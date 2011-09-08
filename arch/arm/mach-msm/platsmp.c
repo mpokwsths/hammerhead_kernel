@@ -51,7 +51,7 @@ void __cpuinit write_pen_release(int val)
 
 static DEFINE_SPINLOCK(boot_lock);
 
-void __cpuinit platform_secondary_init(unsigned int cpu)
+static void __cpuinit msm_secondary_init(unsigned int cpu)
 {
 	WARN_ON(msm_platform_secondary_init(cpu));
 
@@ -249,7 +249,7 @@ static int __cpuinit release_from_pen(unsigned int cpu)
 
 DEFINE_PER_CPU(int, cold_boot_done);
 
-int __cpuinit scorpion_boot_secondary(unsigned int cpu,
+static int __cpuinit scorpion_boot_secondary(unsigned int cpu,
 				      struct task_struct *idle)
 {
 	pr_debug("Starting secondary CPU %d\n", cpu);
@@ -261,7 +261,7 @@ int __cpuinit scorpion_boot_secondary(unsigned int cpu,
 	return release_from_pen(cpu);
 }
 
-int __cpuinit msm8960_boot_secondary(unsigned int cpu, struct task_struct *idle)
+static int __cpuinit msm8960_boot_secondary(unsigned int cpu, struct task_struct *idle)
 {
 	pr_debug("Starting secondary CPU %d\n", cpu);
 
@@ -272,7 +272,7 @@ int __cpuinit msm8960_boot_secondary(unsigned int cpu, struct task_struct *idle)
 	return release_from_pen(cpu);
 }
 
-int __cpuinit msm8974_boot_secondary(unsigned int cpu, struct task_struct *idle)
+static int __cpuinit msm8974_boot_secondary(unsigned int cpu, struct task_struct *idle)
 {
 	pr_debug("Starting secondary CPU %d\n", cpu);
 
@@ -287,7 +287,7 @@ int __cpuinit msm8974_boot_secondary(unsigned int cpu, struct task_struct *idle)
 	return release_from_pen(cpu);
 }
 
-int __cpuinit arm_boot_secondary(unsigned int cpu, struct task_struct *idle)
+static int __cpuinit arm_boot_secondary(unsigned int cpu, struct task_struct *idle)
 {
 	pr_debug("Starting secondary CPU %d\n", cpu);
 
@@ -369,39 +369,43 @@ static void __init msm_platform_smp_prepare_cpus(unsigned int max_cpus)
 struct smp_operations arm_smp_ops __initdata = {
 	.smp_init_cpus = arm_smp_init_cpus,
 	.smp_prepare_cpus = msm_platform_smp_prepare_cpus,
-	.smp_secondary_init = platform_secondary_init,
+	.smp_secondary_init = msm_secondary_init,
 	.smp_boot_secondary = arm_boot_secondary,
-	.cpu_kill = platform_cpu_kill,
-	.cpu_die = platform_cpu_die,
-	.cpu_disable = platform_cpu_disable
+#ifdef CONFIG_HOTPLUG
+	.cpu_die = msm_cpu_die,
+	.cpu_kill = msm_cpu_kill,
+#endif
 };
 
 struct smp_operations msm8974_smp_ops __initdata = {
 	.smp_init_cpus = msm_smp_init_cpus,
 	.smp_prepare_cpus = msm_platform_smp_prepare_cpus,
-	.smp_secondary_init = platform_secondary_init,
+	.smp_secondary_init = msm_secondary_init,
 	.smp_boot_secondary = msm8974_boot_secondary,
-	.cpu_kill = platform_cpu_kill,
-	.cpu_die = platform_cpu_die,
-	.cpu_disable = platform_cpu_disable
+#ifdef CONFIG_HOTPLUG
+	.cpu_die = msm_cpu_die,
+	.cpu_kill = msm_cpu_kill,
+#endif
 };
 
 struct smp_operations msm8960_smp_ops __initdata = {
 	.smp_init_cpus = msm_smp_init_cpus,
 	.smp_prepare_cpus = msm_platform_smp_prepare_cpus,
-	.smp_secondary_init = platform_secondary_init,
+	.smp_secondary_init = msm_secondary_init,
 	.smp_boot_secondary = msm8960_boot_secondary,
-	.cpu_kill = platform_cpu_kill,
-	.cpu_die = platform_cpu_die,
-	.cpu_disable = platform_cpu_disable
+#ifdef CONFIG_HOTPLUG
+	.cpu_die = msm_cpu_die,
+	.cpu_kill = msm_cpu_kill,
+#endif
 };
 
 struct smp_operations scorpion_smp_ops __initdata = {
 	.smp_init_cpus = msm_smp_init_cpus,
 	.smp_prepare_cpus = msm_platform_smp_prepare_cpus,
-	.smp_secondary_init = platform_secondary_init,
+	.smp_secondary_init = msm_secondary_init,
 	.smp_boot_secondary = scorpion_boot_secondary,
-	.cpu_kill = platform_cpu_kill,
-	.cpu_die = platform_cpu_die,
-	.cpu_disable = platform_cpu_disable
+#ifdef CONFIG_HOTPLUG
+	.cpu_die = msm_cpu_die,
+	.cpu_kill = msm_cpu_kill,
+#endif
 };
