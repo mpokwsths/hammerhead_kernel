@@ -52,9 +52,6 @@ ENTRY(cpu_v7_switch_mm)
 	and     r1, r1, #0xff
 	orr     r1, r1, r2                      @ insert the PID into r1
 #endif
-	mrc	p15, 0, r2, c2, c0, 1		@ load TTB 1
-	mcr	p15, 0, r2, c2, c0, 0		@ into TTB 0
-	isb
 #ifdef CONFIG_ARM_ERRATA_754322
 	dsb
 #endif
