@@ -20,7 +20,6 @@ struct hw_pci {
 #ifdef CONFIG_PCI_DOMAINS
 	int		domain;
 #endif
-	struct list_head buses;
 	struct pci_ops	*ops;
 	int		nr_controllers;
 	int		(*setup)(int nr, struct pci_sys_data *);
