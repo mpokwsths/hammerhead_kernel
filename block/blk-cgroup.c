@@ -45,7 +45,6 @@ static struct blkio_policy_type *blkio_policy[BLKIO_NR_POLICIES];
 
 static struct cgroup_subsys_state *blkiocg_create(struct cgroup *);
 static int blkiocg_can_attach(struct cgroup *, struct cgroup_taskset *);
-static void blkiocg_attach(struct cgroup *, struct cgroup_taskset *);
 
 static void blkiocg_destroy(struct cgroup *);
 static int blkiocg_populate(struct cgroup_subsys *, struct cgroup *);
@@ -60,7 +59,6 @@ struct cgroup_subsys blkio_subsys = {
 	.name = "blkio",
 	.create = blkiocg_create,
 	.can_attach = blkiocg_can_attach,
-	.attach = blkiocg_attach,
 	.pre_destroy = blkiocg_pre_destroy,
 	.destroy = blkiocg_destroy,
 	.populate = blkiocg_populate,
@@ -1722,21 +1720,6 @@ static int blkiocg_can_attach(struct cgroup *cgrp, struct cgroup_taskset *tset)
 			break;
 	}
 	return ret;
-}
-
-static void blkiocg_attach(struct cgroup *cgrp, struct cgroup_taskset *tset)
-{
-	struct task_struct *task;
-	struct io_context *ioc;
-
-	cgroup_taskset_for_each(task, cgrp, tset) {
-		/* we don't lose anything even if ioc allocation fails */
-		ioc = get_task_io_context(task, GFP_ATOMIC, NUMA_NO_NODE);
-		if (ioc) {
-			ioc_cgroup_changed(ioc);
-			put_io_context(ioc);
-		}
-	}
 }
 
 static void blkcg_bypass_start(void)
