@@ -4701,6 +4701,7 @@ static struct cftype mem_cgroup_files[] = {
 		.read = mem_cgroup_read,
 	},
 #endif
+	{ },	/* terminate */
 };
 
 static int alloc_mem_cgroup_per_zone_info(struct mem_cgroup *memcg, int node)
@@ -4995,15 +4996,7 @@ static void mem_cgroup_destroy(struct cgroup *cont)
 static int mem_cgroup_populate(struct cgroup_subsys *ss,
 				struct cgroup *cont)
 {
-	int ret;
-
-	ret = cgroup_add_files(cont, ss, mem_cgroup_files,
-				ARRAY_SIZE(mem_cgroup_files));
-
-	if (!ret)
-		ret = register_kmem_files(cont, ss);
-
-	return ret;
+	return register_kmem_files(cont, ss);
 }
 
 #ifdef CONFIG_MMU
@@ -5594,6 +5587,7 @@ struct cgroup_subsys mem_cgroup_subsys = {
 	.can_attach = mem_cgroup_can_attach,
 	.cancel_attach = mem_cgroup_cancel_attach,
 	.attach = mem_cgroup_move_task,
+	.base_cftypes = mem_cgroup_files,
 	.early_init = 0,
 	.use_id = 1,
 };
