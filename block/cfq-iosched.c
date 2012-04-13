@@ -1384,7 +1384,7 @@ static int cfqg_print_weight_device(struct cgroup *cgrp, struct cftype *cft,
 				    struct seq_file *sf)
 {
 	blkcg_print_blkgs(sf, cgroup_to_blkio_cgroup(cgrp),
-			  cfqg_prfill_weight_device, BLKIO_POLICY_PROP, 0,
+			  cfqg_prfill_weight_device, &blkio_policy_cfq, 0,
 			  false);
 	return 0;
 }
@@ -1449,7 +1449,7 @@ static int cfqg_print_stat(struct cgroup *cgrp, struct cftype *cft,
 {
 	struct blkio_cgroup *blkcg = cgroup_to_blkio_cgroup(cgrp);
 
-	blkcg_print_blkgs(sf, blkcg, blkg_prfill_stat, BLKIO_POLICY_PROP,
+	blkcg_print_blkgs(sf, blkcg, blkg_prfill_stat, &blkio_policy_cfq,
 			  cft->private, false);
 	return 0;
 }
@@ -1459,7 +1459,7 @@ static int cfqg_print_rwstat(struct cgroup *cgrp, struct cftype *cft,
 {
 	struct blkio_cgroup *blkcg = cgroup_to_blkio_cgroup(cgrp);
 
-	blkcg_print_blkgs(sf, blkcg, blkg_prfill_rwstat, BLKIO_POLICY_PROP,
+	blkcg_print_blkgs(sf, blkcg, blkg_prfill_rwstat, &blkio_policy_cfq,
 			  cft->private, true);
 	return 0;
 }
@@ -1486,7 +1486,7 @@ static int cfqg_print_avg_queue_size(struct cgroup *cgrp, struct cftype *cft,
 	struct blkio_cgroup *blkcg = cgroup_to_blkio_cgroup(cgrp);
 
 	blkcg_print_blkgs(sf, blkcg, cfqg_prfill_avg_queue_size,
-			  BLKIO_POLICY_PROP, 0, false);
+			  &blkio_policy_cfq, 0, false);
 	return 0;
 }
 #endif	/* CONFIG_DEBUG_BLK_CGROUP */
@@ -4061,7 +4061,7 @@ static void cfq_exit_queue(struct elevator_queue *e)
 #ifndef CONFIG_CFQ_GROUP_IOSCHED
 	kfree(cfqd->root_group);
 #endif
-	update_root_blkg_pd(q, BLKIO_POLICY_PROP);
+	update_root_blkg_pd(q, &blkio_policy_cfq);
 	kfree(cfqd);
 }
 
