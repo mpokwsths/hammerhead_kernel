@@ -2261,7 +2261,7 @@ static int ip_route_input_slow(struct sk_buff *skb, __be32 daddr, __be32 saddr,
 	unsigned int	hash;
 	__be32		spec_dst;
 	int		err = -EINVAL;
-	struct net    * net = dev_net(dev);
+	struct net    *net = dev_net(dev);
 
 	/* IP on this device is disabled. */
 
@@ -3068,7 +3068,7 @@ nla_put_failure:
 	return -EMSGSIZE;
 }
 
-static int inet_rtm_getroute(struct sk_buff *in_skb, struct nlmsghdr* nlh, void *arg)
+static int inet_rtm_getroute(struct sk_buff *in_skb, struct nlmsghdr *nlh, void *arg)
 {
 	struct net *net = sock_net(in_skb->sk);
 	struct rtmsg *rtm;
