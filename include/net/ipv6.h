@@ -117,7 +117,6 @@ struct frag_hdr {
 
 /* sysctls */
 extern int sysctl_mld_max_msf;
-extern struct ctl_path net_ipv6_ctl_path[];
 
 #define _DEVINC(net, statname, modifier, idev, field)			\
 ({									\
