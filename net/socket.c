@@ -2523,6 +2523,12 @@ EXPORT_SYMBOL(sock_unregister);
 static int __init sock_init(void)
 {
 	int err;
+	/*
+	 *      Initialize the network sysctl infrastructure.
+	 */
+	err = net_sysctl_init();
+	if (err)
+		goto out;
 
 	/*
 	 *      Initialize sock SLAB cache.
