@@ -23,6 +23,9 @@ config CONSTRUCTORS
 config IRQ_WORK
 	bool
 
+config BUILDTIME_EXTABLE_SORT
+	bool
+
 menu "General setup"
 
 config EXPERIMENTAL
