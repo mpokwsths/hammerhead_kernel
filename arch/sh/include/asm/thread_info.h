@@ -172,6 +172,41 @@ static inline void set_restore_sigmask(void)
 	ti->status |= TS_RESTORE_SIGMASK;
 	set_bit(TIF_SIGPENDING, (unsigned long *)&ti->flags);
 }
+
+#define TI_FLAG_FAULT_CODE_SHIFT	24
+
+/*
+ * Additional thread flag encoding
+ */
+static inline void set_thread_fault_code(unsigned int val)
+{
+	struct thread_info *ti = current_thread_info();
+	ti->flags = (ti->flags & (~0 >> (32 - TI_FLAG_FAULT_CODE_SHIFT)))
+		| (val << TI_FLAG_FAULT_CODE_SHIFT);
+}
+
+static inline unsigned int get_thread_fault_code(void)
+{
+	struct thread_info *ti = current_thread_info();
+	return ti->flags >> TI_FLAG_FAULT_CODE_SHIFT;
+}
+
+static inline void clear_restore_sigmask(void)
+{
+	current_thread_info()->status &= ~TS_RESTORE_SIGMASK;
+}
+static inline bool test_restore_sigmask(void)
+{
+	return current_thread_info()->status & TS_RESTORE_SIGMASK;
+}
+static inline bool test_and_clear_restore_sigmask(void)
+{
+	struct thread_info *ti = current_thread_info();
+	if (!(ti->status & TS_RESTORE_SIGMASK))
+		return false;
+	ti->status &= ~TS_RESTORE_SIGMASK;
+	return true;
+}
 #endif	/* !__ASSEMBLY__ */
 
 #endif /* __KERNEL__ */
