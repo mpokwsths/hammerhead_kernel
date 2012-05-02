@@ -314,8 +314,11 @@ do_restart:
 
 static int
 handle_signal(unsigned long sig, struct k_sigaction *ka,
-		siginfo_t *info, sigset_t *oldset, struct pt_regs *regs)
+		siginfo_t *info, struct pt_regs *regs)
 {
+	sigset_t *oldset = sigmask_to_save();
+	int ret;
+
 	/* Set up the stack frame */
 	if (ka->sa.sa_flags & SA_SIGINFO)
 		setup_rt_frame(sig, ka, info, oldset, regs);
@@ -363,11 +366,6 @@ int do_signal(struct pt_regs *regs, sigset_t *oldset, int in_syscall)
 	 */
 	if (kernel_mode(regs))
 		return 1;
-
-	if (current_thread_info()->status & TS_RESTORE_SIGMASK)
-		oldset = &current->saved_sigmask;
-	else
-		oldset = &current->blocked;
 
 	signr = get_signal_to_deliver(&info, &ka, regs, NULL);
 	if (signr > 0) {

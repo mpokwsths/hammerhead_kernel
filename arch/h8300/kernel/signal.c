@@ -461,8 +461,10 @@ give_sigsegv:
  */
 static void
 handle_signal(unsigned long sig, siginfo_t *info, struct k_sigaction *ka,
-	      sigset_t *oldset,	struct pt_regs * regs)
+	      struct pt_regs * regs)
 {
+	sigset_t *oldset = sigmask_to_save();
+	int ret;
 	/* are we from a system call? */
 	if (regs->orig_er0 >= 0) {
 		switch (regs->er0) {
@@ -522,14 +524,11 @@ asmlinkage int do_signal(struct pt_regs *regs, sigset_t *oldset)
 
 	current->thread.esp0 = (unsigned long) regs;
 
-	if (!oldset)
-		oldset = &current->blocked;
-
 	signr = get_signal_to_deliver(&info, &ka, regs, NULL);
 	if (signr > 0) {
 		/* Whee!  Actually deliver the signal.  */
-		handle_signal(signr, &info, &ka, oldset, regs);
-		return 1;
+		handle_signal(signr, &info, &ka, regs);
+		return;
 	}
  no_signal:
 	/* Did we come from a system call? */

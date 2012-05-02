@@ -489,6 +489,7 @@ static inline int
 handle_signal(int sig, struct k_sigaction *ka, siginfo_t *info,
 	      sigset_t *oldset, struct pt_regs * regs, struct switch_stack *sw)
 {
+	sigset_t *oldset = sigmask_to_save();
 	int ret;
 
 	if (ka->sa.sa_flags & SA_SIGINFO)

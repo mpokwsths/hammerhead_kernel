@@ -45,7 +45,7 @@
 
 static int
 handle_signal(unsigned long sig, siginfo_t *info, struct k_sigaction *ka,
-		sigset_t *oldset, struct pt_regs * regs);
+		struct pt_regs * regs);
 
 static inline void
 handle_syscall_restart(struct pt_regs *regs, struct sigaction *sa)
@@ -98,17 +98,12 @@ static int do_signal(struct pt_regs *regs, sigset_t *oldset)
 	if (!user_mode(regs))
 		return 1;
 
-	if (current_thread_info()->status & TS_RESTORE_SIGMASK)
-		oldset = &current->saved_sigmask;
-	else if (!oldset)
-		oldset = &current->blocked;
-
 	signr = get_signal_to_deliver(&info, &ka, regs, 0);
 	if (signr > 0) {
 		handle_syscall_restart(regs, &ka.sa);
 
 		/* Whee!  Actually deliver the signal.  */
-		if (handle_signal(signr, &info, &ka, oldset, regs) == 0) {
+		if (handle_signal(signr, &info, &ka, regs) == 0) {
 			/*
 			 * If a signal was successfully delivered, the
 			 * saved sigmask is in its frame, and we can
@@ -708,8 +703,9 @@ give_sigsegv:
  */
 static int
 handle_signal(unsigned long sig, siginfo_t *info, struct k_sigaction *ka,
-		sigset_t *oldset, struct pt_regs * regs)
+		struct pt_regs * regs)
 {
+	sigset_t *oldset = sigmask_to_save();
 	int ret;
 
 	/* Set up the stack frame */

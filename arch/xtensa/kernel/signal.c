@@ -482,14 +482,8 @@ int do_signal(struct pt_regs *regs, sigset_t *oldset)
 	int signr;
 	struct k_sigaction ka;
 
-	if (!user_mode(regs))
-		return 0;
-
 	if (try_to_freeze())
 		goto no_signal;
-
-	if (!oldset)
-		oldset = &current->blocked;
 
 	task_pt_regs(current)->icountlevel = 0;
 
@@ -530,7 +524,7 @@ int do_signal(struct pt_regs *regs, sigset_t *oldset)
 
 		/* Whee!  Actually deliver the signal.  */
 		/* Set up the stack frame */
-		ret = setup_frame(signr, &ka, &info, oldset, regs);
+		ret = setup_frame(signr, &ka, &info, sigmask_to_save(), regs);
 		if (ret)
 			return ret;
 

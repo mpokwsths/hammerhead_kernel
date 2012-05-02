@@ -412,21 +412,7 @@ void do_signal(struct pt_regs *regs)
 	siginfo_t info;
 	int signr;
 	struct k_sigaction ka;
-	sigset_t *oldset;
-
-	/*
-	 * We want the common case to go fast, which
-	 * is why we may in certain cases get here from
-	 * kernel mode. Just return without doing anything
-	 * if so.
-	 */
-	if (!user_mode(regs))
-		return;
-
-	if (test_thread_flag(TIF_RESTORE_SIGMASK))
-		oldset = &current->saved_sigmask;
-	else
-		oldset = &current->blocked;
+	sigset_t *oldset = sigmask_to_save();
 
 	/*
 	 * Get signal to deliver. When running under ptrace, at this point
