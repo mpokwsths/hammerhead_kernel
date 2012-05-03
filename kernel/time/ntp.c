@@ -53,9 +53,6 @@ static int			time_state = TIME_OK;
 /* clock status bits:							*/
 static int			time_status = STA_UNSYNC;
 
-/* TAI offset (secs):							*/
-static long			time_tai;
-
 /* time adjustment (nsecs):						*/
 static s64			time_offset;
 
@@ -420,7 +417,6 @@ int second_overflow(unsigned long secs)
 	case TIME_DEL:
 		if ((secs + 1) % 86400 == 0) {
 			leap = 1;
-			time_tai--;
 			time_state = TIME_WAIT;
 			printk(KERN_NOTICE
 				"Clock: deleting leap second 23:59:59 UTC\n");
@@ -577,7 +573,9 @@ static inline void process_adj_status(struct timex *txc, struct timespec *ts)
  * Called with the xtime lock held, so we can access and modify
  * all the global NTP state:
  */
-static inline void process_adjtimex_modes(struct timex *txc, struct timespec *ts)
+static inline void process_adjtimex_modes(struct timex *txc,
+						struct timespec *ts,
+						s32 *time_tai)
 {
 	if (txc->modes & ADJ_STATUS)
 		process_adj_status(txc, ts);
@@ -611,7 +609,7 @@ static inline void process_adjtimex_modes(struct timex *txc, struct timespec *ts
 	}
 
 	if (txc->modes & ADJ_TAI && txc->constant > 0)
-		time_tai = txc->constant;
+		*time_tai = txc->constant;
 
 	if (txc->modes & ADJ_OFFSET)
 		ntp_update_offset(txc->offset);
@@ -630,6 +628,7 @@ static inline void process_adjtimex_modes(struct timex *txc, struct timespec *ts
 int do_adjtimex(struct timex *txc)
 {
 	struct timespec ts;
+	u32 time_tai, orig_tai;
 	int result;
 
 	/* Validate the data before disabling interrupts */
@@ -669,6 +668,7 @@ int do_adjtimex(struct timex *txc)
 	}
 
 	getnstimeofday(&ts);
+	orig_tai = time_tai = timekeeping_get_tai_offset();
 
 	raw_spin_lock_irq(&ntp_lock);
 
@@ -685,7 +685,7 @@ int do_adjtimex(struct timex *txc)
 
 		/* If there are input parameters, then process them: */
 		if (txc->modes)
-			process_adjtimex_modes(txc, &ts);
+			process_adjtimex_modes(txc, &ts, &time_tai);
 
 		txc->offset = shift_right(time_offset * NTP_INTERVAL_FREQ,
 				  NTP_SCALE_SHIFT);
@@ -713,6 +713,9 @@ int do_adjtimex(struct timex *txc)
 	pps_fill_timex(txc);
 
 	raw_spin_unlock_irq(&ntp_lock);
+
+	if (time_tai != orig_tai)
+		timekeeping_set_tai_offset(time_tai);
 
 	txc->time.tv_sec = ts.tv_sec;
 	txc->time.tv_usec = ts.tv_nsec;
