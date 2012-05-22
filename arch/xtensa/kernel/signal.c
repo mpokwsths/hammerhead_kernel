@@ -558,6 +558,10 @@ no_signal:
 			break;
 		}
 	}
+
+	/* If there's no signal to deliver, we just restore the saved mask.  */
+	restore_saved_sigmask();
+
 	if (current->ptrace & PT_SINGLESTEP)
 		task_pt_regs(current)->icountlevel = 1;
 	return 0;

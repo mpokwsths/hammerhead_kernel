@@ -142,12 +142,7 @@ static int do_signal(struct pt_regs *regs, sigset_t *oldset)
 	}
 
 	/* No signal to deliver -- put the saved sigmask back */
-	if (current_thread_info()->status & TS_RESTORE_SIGMASK) {
-		current_thread_info()->status &= ~TS_RESTORE_SIGMASK;
-		sigprocmask(SIG_SETMASK, &current->saved_sigmask, NULL);
-	}
-
-	return 0;
+	restore_saved_sigmask();
 }
 
 /*

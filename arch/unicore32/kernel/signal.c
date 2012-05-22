@@ -459,6 +459,10 @@ static void do_signal(struct pt_regs *regs, int syscall)
 			sigprocmask(SIG_SETMASK, &current->saved_sigmask, NULL);
 		}
 	}
+	/* If there's no signal to deliver, we just put the saved
+	 * sigmask back.
+	 */
+	restore_saved_sigmask();
 }
 
 asmlinkage void do_notify_resume(struct pt_regs *regs,

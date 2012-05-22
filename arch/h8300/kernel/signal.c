@@ -546,7 +546,9 @@ asmlinkage int do_signal(struct pt_regs *regs, sigset_t *oldset)
 			regs->pc -= 2;
 		}
 	}
-	return 0;
+
+	/* If there's no signal to deliver, we just restore the saved mask.  */
+	restore_saved_sigmask();
 }
 
 asmlinkage void do_notify_resume(struct pt_regs *regs, u32 thread_info_flags)
