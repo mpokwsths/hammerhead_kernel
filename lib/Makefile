@@ -123,6 +123,8 @@ obj-$(CONFIG_SIGNATURE) += digsig.o
 
 obj-$(CONFIG_CLZ_TAB) += clz_tab.o
 
+obj-$(CONFIG_GENERIC_STRNCPY_FROM_USER) += strncpy_from_user.o
+
 obj-$(CONFIG_QMI_ENCDEC) += qmi_encdec.o
 
 obj-$(CONFIG_RBTREE_TEST) += rbtree_test.o
