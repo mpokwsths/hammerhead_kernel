@@ -32,6 +32,9 @@ void __list_add(struct list_head *new,
 		"list_add corruption. prev->next should be "
 		"next (%p), but was %p. (prev=%p).\n",
 		next, prev->next, prev);
+	WARN(new == prev || new == next,
+	     "list_add double add: new=%p, prev=%p, next=%p.\n",
+	     new, prev, next);
 
 	BUG_ON(((prev->next != next) || (next->prev != prev)) &&
 		PANIC_CORRUPTION);
