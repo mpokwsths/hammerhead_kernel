@@ -238,11 +238,6 @@ EXPORT_SYMBOL(nr_online_nodes);
 
 int page_group_by_mobility_disabled __read_mostly;
 
-/*
- * NOTE:
- * Don't use set_pageblock_migratetype(page, MIGRATE_ISOLATE) directly.
- * Instead, use {un}set_pageblock_isolate.
- */
 void set_pageblock_migratetype(struct page *page, int migratetype)
 {
 
@@ -5765,7 +5760,7 @@ static int __alloc_contig_migrate_range(unsigned long start, unsigned long end)
 		.nr_migratepages = 0,
 		.order = -1,
 		.zone = page_zone(pfn_to_page(start)),
-		.mode = COMPACT_SYNC,
+		.sync = true,
 	};
 	INIT_LIST_HEAD(&cc.migratepages);
 
