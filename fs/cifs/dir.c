@@ -488,7 +488,7 @@ mknod_out:
 
 struct dentry *
 cifs_lookup(struct inode *parent_dir_inode, struct dentry *direntry,
-	    struct nameidata *nd)
+	    unsigned int flags)
 {
 	int xid;
 	int rc = 0; /* to get around spurious gcc warning, set to zero here */
