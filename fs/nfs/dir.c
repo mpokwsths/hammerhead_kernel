@@ -46,7 +46,7 @@
 static int nfs_opendir(struct inode *, struct file *);
 static int nfs_closedir(struct inode *, struct file *);
 static int nfs_readdir(struct file *, void *, filldir_t);
-static struct dentry *nfs_lookup(struct inode *, struct dentry *, struct nameidata *);
+static struct dentry *nfs_lookup(struct inode *, struct dentry *, unsigned int);
 static int nfs_create(struct inode *, struct dentry *, umode_t, struct nameidata *);
 static int nfs_mkdir(struct inode *, struct dentry *, umode_t);
 static int nfs_rmdir(struct inode *, struct dentry *);
@@ -1263,7 +1263,7 @@ const struct dentry_operations nfs_dentry_operations = {
 	.d_release	= nfs_d_release,
 };
 
-static struct dentry *nfs_lookup(struct inode *dir, struct dentry * dentry, struct nameidata *nd)
+static struct dentry *nfs_lookup(struct inode *dir, struct dentry * dentry, unsigned int flags)
 {
 	struct dentry *res;
 	struct dentry *parent;
@@ -1284,7 +1284,7 @@ static struct dentry *nfs_lookup(struct inode *dir, struct dentry * dentry, stru
 	 * If we're doing an exclusive create, optimize away the lookup
 	 * but don't hash the dentry.
 	 */
-	if (nfs_is_exclusive_create(dir, nd)) {
+	if (nfs_is_exclusive_create(dir, flags)) {
 		d_instantiate(dentry, NULL);
 		res = NULL;
 		goto out;
@@ -1490,7 +1490,7 @@ out:
 	nfs_set_verifier(dentry, nfs_save_change_attribute(dir));
 	return res;
 no_open:
-	return nfs_lookup(dir, dentry, nd);
+	return nfs_lookup(dir, dentry, 0);
 }
 
 static int nfs4_lookup_revalidate(struct dentry *dentry, unsigned int flags)
