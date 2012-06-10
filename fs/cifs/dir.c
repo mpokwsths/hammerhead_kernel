@@ -137,7 +137,7 @@ cifs_bp_rename_retry:
 
 int
 cifs_create(struct inode *inode, struct dentry *direntry, umode_t mode,
-		struct nameidata *nd)
+		bool excl)
 {
 	int rc = -ENOENT;
 	int xid;
@@ -174,10 +174,7 @@ cifs_create(struct inode *inode, struct dentry *direntry, umode_t mode,
 	if (tcon->ses->server->oplocks)
 		oplock = REQ_OPLOCK;
 
-	if (nd)
-		oflags = nd->intent.open.file->f_flags;
-	else
-		oflags = O_RDONLY | O_CREAT;
+	oflags = O_RDONLY | O_CREAT;
 
 	full_path = build_path_from_dentry(direntry);
 	if (full_path == NULL) {
@@ -207,25 +204,6 @@ cifs_create(struct inode *inode, struct dentry *direntry, umode_t mode,
 		   case where server does not support this SMB level, and
 		   falsely claims capability (also get here for DFS case
 		   which should be rare for path not covered on files) */
-	}
-
-	if (nd) {
-		/* if the file is going to stay open, then we
-		   need to set the desired access properly */
-		desiredAccess = 0;
-		if (OPEN_FMODE(oflags) & FMODE_READ)
-			desiredAccess |= GENERIC_READ; /* is this too little? */
-		if (OPEN_FMODE(oflags) & FMODE_WRITE)
-			desiredAccess |= GENERIC_WRITE;
-
-		if ((oflags & (O_CREAT | O_EXCL)) == (O_CREAT | O_EXCL))
-			disposition = FILE_CREATE;
-		else if ((oflags & (O_CREAT | O_TRUNC)) == (O_CREAT | O_TRUNC))
-			disposition = FILE_OVERWRITE_IF;
-		else if ((oflags & O_CREAT) == O_CREAT)
-			disposition = FILE_OPEN_IF;
-		else
-			cFYI(1, "Create flag not set in create function");
 	}
 
 	/* BB add processing to set equivalent of mode - e.g. via CreateX with
