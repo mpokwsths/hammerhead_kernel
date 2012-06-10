@@ -364,115 +364,6 @@ static struct dentry *fuse_lookup(struct inode *dir, struct dentry *entry,
 }
 
 /*
- * Atomic create+open operation
- *
- * If the filesystem doesn't support this, then fall back to separate
- * 'mknod' + 'open' requests.
- */
-static int fuse_create_open(struct inode *dir, struct dentry *entry,
-			    umode_t mode, struct nameidata *nd)
-{
-	int err;
-	struct inode *inode;
-	struct fuse_conn *fc = get_fuse_conn(dir);
-	struct fuse_req *req;
-	struct fuse_forget_link *forget;
-	struct fuse_create_in inarg;
-	struct fuse_open_out outopen;
-	struct fuse_entry_out outentry;
-	struct fuse_file *ff;
-	struct file *file;
-	int flags = nd->intent.open.flags;
-
-	if (fc->no_create)
-		return -ENOSYS;
-
-	forget = fuse_alloc_forget();
-	if (!forget)
-		return -ENOMEM;
-
-	req = fuse_get_req(fc);
-	err = PTR_ERR(req);
-	if (IS_ERR(req))
-		goto out_put_forget_req;
-
-	err = -ENOMEM;
-	ff = fuse_file_alloc(fc);
-	if (!ff)
-		goto out_put_request;
-
-	if (!fc->dont_mask)
-		mode &= ~current_umask();
-
-	flags &= ~O_NOCTTY;
-	memset(&inarg, 0, sizeof(inarg));
-	memset(&outentry, 0, sizeof(outentry));
-	inarg.flags = flags;
-	inarg.mode = mode;
-	inarg.umask = current_umask();
-	req->in.h.opcode = FUSE_CREATE;
-	req->in.h.nodeid = get_node_id(dir);
-	req->in.numargs = 2;
-	req->in.args[0].size = fc->minor < 12 ? sizeof(struct fuse_open_in) :
-						sizeof(inarg);
-	req->in.args[0].value = &inarg;
-	req->in.args[1].size = entry->d_name.len + 1;
-	req->in.args[1].value = entry->d_name.name;
-	req->out.numargs = 2;
-	if (fc->minor < 9)
-		req->out.args[0].size = FUSE_COMPAT_ENTRY_OUT_SIZE;
-	else
-		req->out.args[0].size = sizeof(outentry);
-	req->out.args[0].value = &outentry;
-	req->out.args[1].size = sizeof(outopen);
-	req->out.args[1].value = &outopen;
-	fuse_request_send(fc, req);
-	err = req->out.h.error;
-	if (err) {
-		if (err == -ENOSYS)
-			fc->no_create = 1;
-		goto out_free_ff;
-	}
-
-	err = -EIO;
-	if (!S_ISREG(outentry.attr.mode) || invalid_nodeid(outentry.nodeid))
-		goto out_free_ff;
-
-	fuse_put_request(fc, req);
-	ff->fh = outopen.fh;
-	ff->nodeid = outentry.nodeid;
-	ff->open_flags = outopen.open_flags;
-	inode = fuse_iget(dir->i_sb, outentry.nodeid, outentry.generation,
-			  &outentry.attr, entry_attr_timeout(&outentry), 0);
-	if (!inode) {
-		flags &= ~(O_CREAT | O_EXCL | O_TRUNC);
-		fuse_sync_release(ff, flags);
-		fuse_queue_forget(fc, forget, outentry.nodeid, 1);
-		return -ENOMEM;
-	}
-	kfree(forget);
-	d_instantiate(entry, inode);
-	fuse_change_entry_timeout(entry, &outentry);
-	fuse_invalidate_attr(dir);
-	file = lookup_instantiate_filp(nd, entry, generic_file_open);
-	if (IS_ERR(file)) {
-		fuse_sync_release(ff, flags);
-		return PTR_ERR(file);
-	}
-	file->private_data = fuse_file_get(ff);
-	fuse_finish_open(inode, file);
-	return 0;
-
- out_free_ff:
-	fuse_file_free(ff);
- out_put_request:
-	fuse_put_request(fc, req);
- out_put_forget_req:
-	kfree(forget);
-	return err;
-}
-
-/*
  * Code shared between mknod, mkdir, symlink and link
  */
 static int create_new_entry(struct fuse_conn *fc, struct fuse_req *req,
@@ -571,14 +462,8 @@ static int fuse_mknod(struct inode *dir, struct dentry *entry, umode_t mode,
 }
 
 static int fuse_create(struct inode *dir, struct dentry *entry, umode_t mode,
-		       struct nameidata *nd)
+		       bool excl)
 {
-	if (nd) {
-		int err = fuse_create_open(dir, entry, mode, nd);
-		if (err != -ENOSYS)
-			return err;
-		/* Fall back on mknod */
-	}
 	return fuse_mknod(dir, entry, mode, 0);
 }
 

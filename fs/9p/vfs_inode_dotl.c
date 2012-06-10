@@ -254,7 +254,7 @@ int v9fs_open_to_dotl_flags(int flags)
 
 static int
 v9fs_vfs_create_dotl(struct inode *dir, struct dentry *dentry, umode_t omode,
-		struct nameidata *nd)
+		bool excl)
 {
 	int err = 0;
 	gid_t gid;
