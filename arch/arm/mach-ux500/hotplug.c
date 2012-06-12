@@ -14,9 +14,20 @@
 
 #include <asm/smp_plat.h>
 
+<<<<<<< HEAD
 extern volatile int pen_release;
 
 static inline void platform_do_lowpower(unsigned int cpu)
+=======
+#include <mach/setup.h>
+
+/*
+ * platform-specific code to shutdown a CPU
+ *
+ * Called with IRQs disabled
+ */
+void __ref ux500_cpu_die(unsigned int cpu)
+>>>>>>> 28e8e29... ARM: consolidate pen_release instead of having per platform definitions
 {
 <<<<<<< HEAD
 	flush_cache_all();

@@ -21,7 +21,11 @@
 
 #include <mach/regs-pmu.h>
 
+<<<<<<< HEAD
 extern volatile int pen_release;
+=======
+#include "common.h"
+>>>>>>> 28e8e29... ARM: consolidate pen_release instead of having per platform definitions
 
 static inline void cpu_enter_lowpower(void)
 {
