@@ -238,6 +238,9 @@ config HAVE_CMPXCHG_LOCAL
 config HAVE_CMPXCHG_DOUBLE
 	bool
 
+config HAVE_VIRT_CPU_ACCOUNTING
+	bool
+
 config ARCH_WANT_OLD_COMPAT_IPC
 	bool
 
