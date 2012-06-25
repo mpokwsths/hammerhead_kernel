@@ -141,11 +141,12 @@ static void destroy_sb_writers(struct super_block *s)
 /**
  *	alloc_super	-	create new superblock
  *	@type:	filesystem type superblock should belong to
+ *	@flags: the mount flags
  *
  *	Allocates and initializes a new &struct super_block.  alloc_super()
  *	returns a pointer new superblock or %NULL if allocation had failed.
  */
-static struct super_block *alloc_super(struct file_system_type *type)
+static struct super_block *alloc_super(struct file_system_type *type, int flags)
 {
 	struct super_block *s = kzalloc(sizeof(struct super_block),  GFP_USER);
 	static const struct super_operations default_op;
@@ -175,6 +176,8 @@ static struct super_block *alloc_super(struct file_system_type *type)
 #endif
 		if (init_sb_writers(s, type))
 			goto err_out;
+
+		s->s_flags = flags;
 		s->s_bdi = &default_backing_dev_info;
 		INIT_HLIST_NODE(&s->s_instances);
 		INIT_HLIST_BL_HEAD(&s->s_anon);
@@ -464,11 +467,13 @@ EXPORT_SYMBOL(generic_shutdown_super);
  *	@type:	filesystem type superblock should belong to
  *	@test:	comparison callback
  *	@set:	setup callback
+ *	@flags:	mount flags
  *	@data:	argument to each of them
  */
 struct super_block *sget(struct file_system_type *type,
 			int (*test)(struct super_block *,void *),
 			int (*set)(struct super_block *,void *),
+			int flags,
 			void *data)
 {
 	struct super_block *s = NULL;
@@ -499,7 +504,7 @@ retry:
 	}
 	if (!s) {
 		spin_unlock(&sb_lock);
-		s = alloc_super(type);
+		s = alloc_super(type, flags);
 		if (!s)
 			return ERR_PTR(-ENOMEM);
 		goto retry;
@@ -975,13 +980,12 @@ struct dentry *mount_ns(struct file_system_type *fs_type, int flags,
 {
 	struct super_block *sb;
 
-	sb = sget(fs_type, ns_test_super, ns_set_super, data);
+	sb = sget(fs_type, ns_test_super, ns_set_super, flags, data);
 	if (IS_ERR(sb))
 		return ERR_CAST(sb);
 
 	if (!sb->s_root) {
 		int err;
-		sb->s_flags = flags;
 		err = fill_super(sb, data, flags & MS_SILENT ? 1 : 0);
 		if (err) {
 			deactivate_locked_super(sb);
@@ -1042,7 +1046,8 @@ struct dentry *mount_bdev(struct file_system_type *fs_type,
 		error = -EBUSY;
 		goto error_bdev;
 	}
-	s = sget(fs_type, test_bdev_super, set_bdev_super, bdev);
+	s = sget(fs_type, test_bdev_super, set_bdev_super, flags | MS_NOSEC,
+		 bdev);
 	mutex_unlock(&bdev->bd_fsfreeze_mutex);
 	if (IS_ERR(s))
 		goto error_s;
@@ -1067,7 +1072,6 @@ struct dentry *mount_bdev(struct file_system_type *fs_type,
 	} else {
 		char b[BDEVNAME_SIZE];
 
-		s->s_flags = flags | MS_NOSEC;
 		s->s_mode = mode;
 		strlcpy(s->s_id, bdevname(bdev, b), sizeof(s->s_id));
 		sb_set_blocksize(s, block_size(bdev));
@@ -1112,12 +1116,10 @@ struct dentry *mount_nodev(struct file_system_type *fs_type,
 	int (*fill_super)(struct super_block *, void *, int))
 {
 	int error;
-	struct super_block *s = sget(fs_type, NULL, set_anon_super, NULL);
+	struct super_block *s = sget(fs_type, NULL, set_anon_super, flags, NULL);
 
 	if (IS_ERR(s))
 		return ERR_CAST(s);
-
-	s->s_flags = flags;
 
 	error = fill_super(s, data, flags & MS_SILENT ? 1 : 0);
 	if (error) {
@@ -1141,11 +1143,10 @@ struct dentry *mount_single(struct file_system_type *fs_type,
 	struct super_block *s;
 	int error;
 
-	s = sget(fs_type, compare_single, set_anon_super, NULL);
+	s = sget(fs_type, compare_single, set_anon_super, flags, NULL);
 	if (IS_ERR(s))
 		return ERR_CAST(s);
 	if (!s->s_root) {
-		s->s_flags = flags;
 		error = fill_super(s, data, flags & MS_SILENT ? 1 : 0);
 		if (error) {
 			deactivate_locked_super(s);
