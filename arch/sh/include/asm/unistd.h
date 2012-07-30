@@ -8,7 +8,11 @@
 #  include "unistd_64.h"
 # endif
 
+<<<<<<< HEAD
 # define __ARCH_WANT_IPC_PARSE_VERSION
+=======
+# define __ARCH_WANT_SYS_RT_SIGSUSPEND
+>>>>>>> c1d7e01... ipc: use Kconfig options for __ARCH_WANT_[COMPAT_]IPC_PARSE_VERSION
 # define __ARCH_WANT_OLD_READDIR
 # define __ARCH_WANT_OLD_STAT
 # define __ARCH_WANT_STAT64
