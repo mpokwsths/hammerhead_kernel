@@ -513,8 +513,7 @@ struct md_plug_cb {
 static void plugger_unplug(struct blk_plug_cb *cb)
 {
 	struct md_plug_cb *mdcb = container_of(cb, struct md_plug_cb, cb);
-	if (atomic_dec_and_test(&mdcb->mddev->plug_cnt))
-		md_wakeup_thread(mdcb->mddev->thread);
+	md_wakeup_thread(mdcb->mddev->thread);
 	kfree(mdcb);
 }
 
@@ -547,7 +546,6 @@ int mddev_check_plugged(struct mddev *mddev)
 
 	mdcb->mddev = mddev;
 	mdcb->cb.callback = plugger_unplug;
-	atomic_inc(&mddev->plug_cnt);
 	list_add(&mdcb->cb.list, &plug->cb_list);
 	return 1;
 }
@@ -601,7 +599,6 @@ void mddev_init(struct mddev *mddev)
 	atomic_set(&mddev->active, 1);
 	atomic_set(&mddev->openers, 0);
 	atomic_set(&mddev->active_io, 0);
-	atomic_set(&mddev->plug_cnt, 0);
 	spin_lock_init(&mddev->write_lock);
 	atomic_set(&mddev->flush_pending, 0);
 	init_waitqueue_head(&mddev->sb_wait);

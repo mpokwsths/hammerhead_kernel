@@ -263,9 +263,6 @@ struct mddev {
 	int				delta_disks, new_level, new_layout;
 	int				new_chunk_sectors;
 
-	atomic_t			plug_cnt;	/* If device is expecting
-							 * more bios soon.
-							 */
 	struct md_thread		*thread;	/* management thread */
 	struct md_thread		*sync_thread;	/* doing resync or reconstruct */
 	sector_t			curr_resync;	/* last block scheduled */
