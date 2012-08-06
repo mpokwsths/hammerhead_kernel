@@ -145,11 +145,6 @@ config TRACE_IRQFLAGS_SUPPORT
 	bool
 	default y
 
-config GENERIC_LOCKBREAK
-	bool
-	default y
-	depends on SMP && PREEMPT
-
 config ARM_TICKET_LOCKS
 	bool
 	help
