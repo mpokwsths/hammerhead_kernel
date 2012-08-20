@@ -236,6 +236,10 @@ static void __dma_free_buffer(struct page *page, size_t size)
 #error ARM Coherent DMA allocator does not (yet) support huge TLB
 #endif
 
+static void *__alloc_from_contiguous(struct device *dev, size_t size,
+				     pgprot_t prot, struct page **ret_page,
+				     bool no_kernel_mapping, const void *caller);
+
 static void *__alloc_remap_buffer(struct device *dev, size_t size, gfp_t gfp,
 				 pgprot_t prot, struct page **ret_page,
 				 const void *caller);
@@ -278,10 +282,6 @@ static void __dma_free_remap(void *cpu_addr, size_t size, bool no_warn)
 	unmap_kernel_range((unsigned long)cpu_addr, size);
 	vunmap(cpu_addr);
 }
-
-static void *__alloc_from_contiguous(struct device *dev, size_t size,
-				     pgprot_t prot, struct page **ret_page,
-				     bool no_kernel_mapping, const void *caller);
 
 #define DEFAULT_DMA_COHERENT_POOL_SIZE	SZ_256K
 
