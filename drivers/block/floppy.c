@@ -668,13 +668,14 @@ static void __reschedule_timeout(int drive, const char *message)
 {
 	if (drive == current_reqD)
 		drive = current_drive;
-	del_timer(&fd_timeout);
+
 	if (drive < 0 || drive >= N_DRIVE) {
 		fd_timeout.expires = jiffies + 20UL * HZ;
 		drive = 0;
 	} else
-		fd_timeout.expires = jiffies + UDP->timeout;
-	add_timer(&fd_timeout);
+		delay = UDP->timeout;
+
+	mod_delayed_work(floppy_wq, &fd_timeout, delay);
 	if (UDP->flags & FD_DEBUG)
 		DPRINT("reschedule timeout %s\n", message);
 	timeout_message = message;
