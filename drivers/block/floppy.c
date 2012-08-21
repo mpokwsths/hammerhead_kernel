@@ -891,8 +891,8 @@ static void unlock_fdc(void)
 		DPRINT("device interrupt still active at FDC release: %pf!\n",
 		       do_floppy);
 	command_status = FD_COMMAND_NONE;
-	spin_lock_irqsave(&floppy_lock, flags);
-	del_timer(&fd_timeout);
+	cancel_delayed_work(&fd_timeout);
+	do_floppy = NULL;
 	cont = NULL;
 	clear_bit(0, &fdc_busy);
 	if (current_req || set_next_request())
