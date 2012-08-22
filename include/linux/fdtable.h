@@ -73,7 +73,6 @@ struct file_operations;
 struct vfsmount;
 struct dentry;
 
-extern int expand_files(struct files_struct *, int nr);
 extern void __init files_defer_init(void);
 
 static inline struct file * fcheck_files(struct files_struct *files, unsigned int fd)
@@ -91,10 +90,6 @@ static inline struct file * fcheck_files(struct files_struct *files, unsigned in
  */
 #define fcheck(fd)	fcheck_files(current->files, fd)
 
-int iterate_fd(struct files_struct *, unsigned,
-		int (*)(const void *, struct file *, unsigned),
-		const void *);
-
 struct task_struct;
 
 struct files_struct *get_files_struct(struct task_struct *);
@@ -103,6 +98,9 @@ void reset_files_struct(struct files_struct *);
 int unshare_files(struct files_struct **);
 struct files_struct *dup_fd(struct files_struct *, int *);
 void do_close_on_exec(struct files_struct *);
+int iterate_fd(struct files_struct *, unsigned,
+		int (*)(const void *, struct file *, unsigned),
+		const void *);
 
 extern int __alloc_fd(struct files_struct *files,
 		      unsigned start, unsigned end, unsigned flags);
