@@ -247,6 +247,15 @@ out_free_devname:
 	return ret;
 }
 
+static int update_netprio(const void *v, struct file *file, unsigned n)
+{
+	int err;
+	struct socket *sock = sock_from_file(file, &err);
+	if (sock)
+		sock->sk->sk_cgrp_prioidx = (u32)(unsigned long)v;
+	return 0;
+}
+
 static struct cftype ss_files[] = {
 	{
 		.name = "prioidx",
