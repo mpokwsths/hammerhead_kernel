@@ -2351,8 +2351,6 @@ pfm_smpl_buffer_alloc(struct task_struct *task, struct file *filp, pfm_context_t
 		goto error;
 	}
 
-	get_file(filp);
-
 	/*
 	 * now insert the vma in the vm list for the process, must be
 	 * done with mmap lock held
