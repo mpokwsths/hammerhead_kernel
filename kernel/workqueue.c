@@ -1703,12 +1703,15 @@ retry:
 	/* set REBIND and kick idle ones, we'll wait for these later */
 	for_each_worker_pool(pool, gcwq) {
 		list_for_each_entry(worker, &pool->idle_list, entry) {
+			unsigned long worker_flags = worker->flags;
+
 			if (worker->flags & WORKER_REBIND)
 				continue;
 
-			/* morph UNBOUND to REBIND */
-			worker->flags &= ~WORKER_UNBOUND;
-			worker->flags |= WORKER_REBIND;
+			/* morph UNBOUND to REBIND atomically */
+			worker_flags &= ~WORKER_UNBOUND;
+			worker_flags |= WORKER_REBIND;
+			ACCESS_ONCE(worker->flags) = worker_flags;
 
 			idle_rebind.cnt++;
 			worker->idle_rebind = &idle_rebind;
@@ -1741,28 +1744,19 @@ retry:
 	/* rebind busy workers */
 	for_each_busy_worker(worker, i, pos, gcwq) {
 		struct work_struct *rebind_work = &worker->rebind_work;
-		struct workqueue_struct *wq;
+		unsigned long worker_flags = worker->flags;
 
-		/* morph UNBOUND to REBIND */
-		worker->flags &= ~WORKER_UNBOUND;
-		worker->flags |= WORKER_REBIND;
+		/* morph UNBOUND to REBIND atomically */
+		worker_flags &= ~WORKER_UNBOUND;
+		worker_flags |= WORKER_REBIND;
+		ACCESS_ONCE(worker->flags) = worker_flags;
 
 		if (test_and_set_bit(WORK_STRUCT_PENDING_BIT,
 				     work_data_bits(rebind_work)))
 			continue;
 
 		debug_work_activate(rebind_work);
-
-		/*
-		 * wq doesn't really matter but let's keep @worker->pool
-		 * and @cwq->pool consistent for sanity.
-		 */
-		if (worker_pool_pri(worker->pool))
-			wq = system_highpri_wq;
-		else
-			wq = system_wq;
-
-		insert_work(get_cwq(gcwq->cpu, wq), rebind_work,
+		insert_work(get_cwq(gcwq->cpu, system_wq), rebind_work,
 			worker->scheduled.next,
 			work_color_to_flags(WORK_NO_COLOR));
 	}
