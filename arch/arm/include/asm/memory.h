@@ -197,6 +197,7 @@ static inline unsigned long __phys_to_virt(phys_addr_t x)
 
 #endif
 #endif
+#endif /* __ASSEMBLY__ */
 
 #ifndef PHYS_OFFSET
 #ifdef PLAT_PHYS_OFFSET
@@ -205,6 +206,8 @@ static inline unsigned long __phys_to_virt(phys_addr_t x)
 #define PHYS_OFFSET	UL(CONFIG_PHYS_OFFSET)
 #endif
 #endif
+
+#ifndef __ASSEMBLY__
 
 /*
  * PFNs are used to describe any physical page; this means
