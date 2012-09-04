@@ -69,6 +69,7 @@
 #include <linux/percpu.h>
 #include <linux/crash_dump.h>
 #include <linux/tboot.h>
+#include <linux/jiffies.h>
 
 #include <video/edid.h>
 
@@ -1042,6 +1043,8 @@ void __init setup_arch(char **cmdline_p)
 	mcheck_init();
 
 	arch_init_ideal_nops();
+
+	register_refined_jiffies(CLOCK_TICK_RATE);
 }
 
 #ifdef CONFIG_X86_32
