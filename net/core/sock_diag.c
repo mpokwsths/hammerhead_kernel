@@ -183,8 +183,7 @@ static int __init sock_diag_init(void)
 		.input	= sock_diag_rcv,
 	};
 
-	sock_diag_nlsk = netlink_kernel_create(&init_net, NETLINK_SOCK_DIAG,
-					       THIS_MODULE, &cfg);
+	sock_diag_nlsk = netlink_kernel_create(&init_net, NETLINK_SOCK_DIAG, &cfg);
 	return sock_diag_nlsk == NULL ? -ENOMEM : 0;
 }
 

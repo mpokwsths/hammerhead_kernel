@@ -348,9 +348,7 @@ static int __init quota_mt2_init(void)
 	pr_debug("xt_quota2: init()");
 
 #ifdef CONFIG_NETFILTER_XT_MATCH_QUOTA2_LOG
-	nflognl = netlink_kernel_create(&init_net,
-					NETLINK_NFLOG, 1, NULL,
-					NULL, THIS_MODULE);
+	nflognl = netlink_kernel_create(&init_net, NETLINK_NFLOG, NULL);
 	if (!nflognl)
 		return -ENOMEM;
 #endif
