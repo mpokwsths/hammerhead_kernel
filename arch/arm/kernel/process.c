@@ -80,6 +80,7 @@ void disable_hlt(void)
 void enable_hlt(void)
 {
 	hlt_counter--;
+	BUG_ON(hlt_counter < 0);
 }
 
 static int __init nohlt_setup(char *__unused)
