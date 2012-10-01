@@ -110,8 +110,9 @@ static int nilfs_page_mkwrite(struct vm_area_struct *vma, struct vm_fault *vmf)
 	if (unlikely(ret))
 		return VM_FAULT_SIGBUS;
 
-	ret = block_page_mkwrite(vma, vmf, nilfs_get_block);
-	if (ret != VM_FAULT_LOCKED) {
+	file_update_time(vma->vm_file);
+	ret = __block_page_mkwrite(vma, vmf, nilfs_get_block);
+	if (ret) {
 		nilfs_transaction_abort(inode->i_sb);
 		return ret;
 	}
