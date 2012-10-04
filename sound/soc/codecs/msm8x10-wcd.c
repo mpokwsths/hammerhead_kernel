@@ -2442,6 +2442,82 @@ int msm8x10_wcd_hs_detect(struct snd_soc_codec *codec,
 }
 EXPORT_SYMBOL_GPL(msm8x10_wcd_hs_detect);
 
+static int msm8x10_wcd_bringup(struct snd_soc_codec *codec)
+{
+	snd_soc_write(codec, MSM8X10_WCD_A_CDC_RST_CTL, 0x02);
+	snd_soc_write(codec, MSM8X10_WCD_A_CHIP_CTL, 0x00);
+	usleep_range(5000, 5000);
+	snd_soc_write(codec, MSM8X10_WCD_A_CDC_RST_CTL, 0x03);
+	return 0;
+}
+
+static struct regulator *wcd8x10_wcd_codec_find_regulator(
+				const struct msm8x10_wcd *msm8x10,
+				const char *name)
+{
+	int i;
+
+	for (i = 0; i < msm8x10->num_of_supplies; i++) {
+		if (msm8x10->supplies[i].supply &&
+		    !strncmp(msm8x10->supplies[i].supply, name, strlen(name)))
+			return msm8x10->supplies[i].consumer;
+	}
+
+	return NULL;
+}
+
+static int msm8x10_wcd_device_up(struct snd_soc_codec *codec)
+{
+	pr_debug("%s: device up!\n", __func__);
+
+	mutex_lock(&codec->mutex);
+
+	msm8x10_wcd_bringup(codec);
+	msm8x10_wcd_codec_init_reg(codec);
+	msm8x10_wcd_update_reg_defaults(codec);
+
+	mutex_unlock(&codec->mutex);
+
+	return 0;
+}
+
+static int adsp_state_callback(struct notifier_block *nb, unsigned long value,
+			       void *priv)
+{
+	bool timedout;
+	unsigned long timeout;
+	static bool booted_once;
+
+	if (value == SUBSYS_AFTER_POWERUP) {
+
+		if (!booted_once) {
+			booted_once = true;
+			return NOTIFY_OK;
+		}
+		pr_debug("%s: ADSP is about to power up. bring up codec\n",
+			 __func__);
+
+		timeout = jiffies +
+			  msecs_to_jiffies(ADSP_STATE_READY_TIMEOUT_MS);
+		while (!(timedout = time_after(jiffies, timeout))) {
+			if (!q6core_is_adsp_ready()) {
+				pr_debug("%s: ADSP isn't ready\n", __func__);
+			} else {
+				pr_debug("%s: ADSP is ready\n", __func__);
+				msm8x10_wcd_device_up(registered_codec);
+				break;
+			}
+		}
+	}
+
+	return NOTIFY_OK;
+}
+
+static struct notifier_block adsp_state_notifier_block = {
+	.notifier_call = adsp_state_callback,
+	.priority = -INT_MAX,
+};
+
 static int msm8x10_wcd_codec_probe(struct snd_soc_codec *codec)
 {
 	struct msm8x10_wcd_priv *msm8x10_wcd;
