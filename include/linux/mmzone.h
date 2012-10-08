@@ -380,6 +380,9 @@ struct zone {
 	 * free areas of different sizes
 	 */
 	spinlock_t		lock;
+#if defined CONFIG_COMPACTION || defined CONFIG_CMA
+	unsigned long		compact_blockskip_expire;
+#endif
 #ifdef CONFIG_MEMORY_HOTPLUG
 	/* see spanned/present_pages for more description */
 	seqlock_t		span_seqlock;
