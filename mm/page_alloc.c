@@ -4597,11 +4597,6 @@ static void __paginginit free_area_init_core(struct pglist_data *pgdat,
 		 * And all highmem pages will be managed by the buddy system.
 		 */
 		zone->managed_pages = is_highmem_idx(j) ? realsize : freesize;
-#if defined CONFIG_COMPACTION || defined CONFIG_CMA
-		zone->compact_cached_free_pfn = zone->zone_start_pfn +
-						zone->spanned_pages;
-		zone->compact_cached_free_pfn &= ~(pageblock_nr_pages-1);
-#endif
 #ifdef CONFIG_NUMA
 		zone->node = nid;
 		zone->min_unmapped_pages = (freesize*sysctl_min_unmapped_ratio)
