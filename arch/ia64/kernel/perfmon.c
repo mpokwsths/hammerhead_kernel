@@ -2312,8 +2312,8 @@ pfm_smpl_buffer_alloc(struct task_struct *task, struct file *filp, pfm_context_t
 	 * partially initialize the vma for the sampling buffer
 	 */
 	vma->vm_mm	     = mm;
-	vma->vm_file	     = filp;
-	vma->vm_flags	     = VM_READ| VM_MAYREAD |VM_RESERVED;
+	vma->vm_file	     = get_file(filp);
+	vma->vm_flags	     = VM_READ|VM_MAYREAD|VM_DONTEXPAND|VM_DONTDUMP;
 	vma->vm_page_prot    = PAGE_READONLY; /* XXX may need to change */
 
 	/*
