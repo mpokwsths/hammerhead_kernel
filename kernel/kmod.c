@@ -218,7 +218,7 @@ static int ____call_usermodehelper(void *data)
 	/* Exec failed? */
 fail:
 	sub_info->retval = retval;
-	return 0;
+	do_exit(0);
 }
 
 void call_usermodehelper_freeinfo(struct subprocess_info *info)
@@ -279,7 +279,7 @@ static int wait_for_helper(void *data)
 	}
 
 	umh_complete(sub_info);
-	return 0;
+	do_exit(0);
 }
 
 /* This is run by khelper thread  */
