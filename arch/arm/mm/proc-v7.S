@@ -60,7 +60,7 @@ ENTRY(cpu_v7_reset)
 	mcr     p15, 0, ip, c7, c5, 6           @ flush BTC
 	dsb
 	isb
-	ret	r0
+	bx	r0
 ENDPROC(cpu_v7_reset)
 	.popsection
 
