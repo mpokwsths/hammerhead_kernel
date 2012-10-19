@@ -250,6 +250,10 @@ static unsigned long isolate_freepages_block(struct compact_control *cc,
 	if (locked)
 		spin_unlock_irqrestore(&cc->zone->lock, flags);
 
+	count_vm_events(COMPACTFREE_SCANNED, nr_scanned);
+	if (total_isolated)
+		count_vm_events(COMPACTISOLATED, total_isolated);
+
 	return total_isolated;
 }
 
@@ -535,6 +539,10 @@ next_pageblock:
 		spin_unlock_irqrestore(&zone->lru_lock, flags);
 
 	trace_mm_compaction_isolate_migratepages(nr_scanned, nr_isolated);
+
+	count_vm_events(COMPACTMIGRATE_SCANNED, nr_scanned);
+	if (nr_isolated)
+		count_vm_events(COMPACTISOLATED, nr_isolated);
 
 	return low_pfn;
 }
