@@ -13,7 +13,6 @@ config HEXAGON
 	# select ARCH_REQUIRE_GPIOLIB
 	# select HAVE_CLK
 	# select IRQ_PER_CPU
-	select HAVE_IRQ_WORK
 	# select GENERIC_PENDING_IRQ if SMP
 	select GENERIC_ATOMIC64
 	select HAVE_PERF_EVENTS
