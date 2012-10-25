@@ -206,9 +206,9 @@ static int do_mmu_notifier_register(struct mmu_notifier *mn,
 	BUG_ON(atomic_read(&mm->mm_users) <= 0);
 
 	/*
-	* Verify that mmu_notifier_init() already run and the global srcu is
-	* initialized.
-	*/
+	 * Verify that mmu_notifier_init() already run and the global srcu is
+	 * initialized.
+	 */
 	BUG_ON(!srcu.per_cpu_ref);
 
 	ret = -ENOMEM;
@@ -220,7 +220,7 @@ static int do_mmu_notifier_register(struct mmu_notifier *mn,
 		down_write(&mm->mmap_sem);
 	ret = mm_take_all_locks(mm);
 	if (unlikely(ret))
-		goto out_cleanup;
+		goto out_clean;
 
 	if (!mm_has_notifiers(mm)) {
 		INIT_HLIST_HEAD(&mmu_notifier_mm->list);
@@ -243,10 +243,9 @@ static int do_mmu_notifier_register(struct mmu_notifier *mn,
 	spin_unlock(&mm->mmu_notifier_mm->lock);
 
 	mm_drop_all_locks(mm);
-out_cleanup:
+out_clean:
 	if (take_mmap_sem)
 		up_write(&mm->mmap_sem);
-	/* kfree() does nothing if mmu_notifier_mm is NULL */
 	kfree(mmu_notifier_mm);
 out:
 	BUG_ON(atomic_read(&mm->mm_users) <= 0);
