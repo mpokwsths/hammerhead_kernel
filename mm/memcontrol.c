@@ -5060,16 +5060,13 @@ free_out:
 	return ERR_PTR(error);
 }
 
-static int mem_cgroup_pre_destroy(struct cgroup *cont)
+static void mem_cgroup_pre_destroy(struct cgroup *cont)
 {
 	struct mem_cgroup *memcg = mem_cgroup_from_cont(cont);
-	int ret;
 
 	css_get(&memcg->css);
-	ret = mem_cgroup_reparent_charges(memcg);
+	mem_cgroup_reparent_charges(memcg);
 	css_put(&memcg->css);
-
-	return ret;
 }
 
 static void mem_cgroup_destroy(struct cgroup *cont)
