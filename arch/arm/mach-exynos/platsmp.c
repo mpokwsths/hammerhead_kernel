@@ -131,8 +131,13 @@ int __cpuinit boot_secondary(unsigned int cpu, struct task_struct *idle)
 		smp_rmb();
 
 		__raw_writel(virt_to_phys(exynos4_secondary_startup),
+<<<<<<< HEAD
 			CPU1_BOOT_REG);
 		gic_raise_softirq(cpumask_of(cpu), 1);
+=======
+							cpu_boot_reg(phys_cpu));
+		arch_send_wakeup_ipi_mask(cpumask_of(cpu));
+>>>>>>> b1cffeb... ARM: GIC: remove direct use of gic_raise_softirq
 
 		if (pen_release == -1)
 			break;
@@ -173,8 +178,6 @@ void __init smp_init_cpus(void)
 
 	for (i = 0; i < ncores; i++)
 		set_cpu_possible(i, true);
-
-	set_smp_cross_call(gic_raise_softirq);
 }
 
 void __init platform_smp_prepare_cpus(unsigned int max_cpus)

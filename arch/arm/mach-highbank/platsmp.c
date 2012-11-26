@@ -32,7 +32,12 @@ void __cpuinit platform_secondary_init(unsigned int cpu)
 
 int __cpuinit boot_secondary(unsigned int cpu, struct task_struct *idle)
 {
+<<<<<<< HEAD
 	gic_raise_softirq(cpumask_of(cpu), 0);
+=======
+	highbank_set_cpu_jump(cpu, secondary_startup);
+	arch_send_wakeup_ipi_mask(cpumask_of(cpu));
+>>>>>>> b1cffeb... ARM: GIC: remove direct use of gic_raise_softirq
 	return 0;
 }
 
@@ -57,8 +62,6 @@ void __init smp_init_cpus(void)
 
 	for (i = 0; i < ncores; i++)
 		set_cpu_possible(i, true);
-
-	set_smp_cross_call(gic_raise_softirq);
 }
 
 void __init platform_smp_prepare_cpus(unsigned int max_cpus)
