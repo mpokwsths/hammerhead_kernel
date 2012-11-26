@@ -79,7 +79,11 @@ int __cpuinit boot_secondary(unsigned int cpu, struct task_struct *idle)
 	 * the boot monitor to read the system wide flags register,
 	 * and branch to the address found there.
 	 */
+<<<<<<< HEAD
 	gic_raise_softirq(cpumask_of(cpu), 1);
+=======
+	arch_send_wakeup_ipi_mask(cpumask_of(cpu));
+>>>>>>> b1cffeb... ARM: GIC: remove direct use of gic_raise_softirq
 
 	timeout = jiffies + (1 * HZ);
 	while (time_before(jiffies, timeout)) {
