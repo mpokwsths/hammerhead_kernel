@@ -351,9 +351,10 @@ asmlinkage void __cpuinit secondary_start_kernel(void)
 	current->active_mm = mm;
 	cpumask_set_cpu(cpu, mm_cpumask(mm));
 
+	cpu_init();
+
 	pr_debug("CPU%u: Booted secondary processor\n", cpu);
 
-	cpu_init();
 	preempt_disable();
 	trace_hardirqs_off();
 
@@ -410,6 +411,7 @@ void __init smp_prepare_boot_cpu(void)
 {
 	unsigned int cpu = smp_processor_id();
 
+	set_my_cpu_offset(per_cpu_offset(smp_processor_id()));
 	per_cpu(cpu_data, cpu).idle = current;
 }
 
