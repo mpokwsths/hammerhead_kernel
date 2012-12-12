@@ -871,7 +871,7 @@ static void node_states_set_node(int node, struct memory_notify *arg)
 }
 
 
-int __ref online_pages(unsigned long pfn, unsigned long nr_pages)
+int __ref online_pages(unsigned long pfn, unsigned long nr_pages, int online_type)
 {
 	unsigned long onlined_pages = 0;
 	struct zone *zone;
@@ -886,6 +886,22 @@ int __ref online_pages(unsigned long pfn, unsigned long nr_pages)
 	 * The section can't be removed here because of the
 	 * memory_block->state_mutex.
 	 */
+	zone = page_zone(pfn_to_page(pfn));
+
+	if (online_type == ONLINE_KERNEL && zone_idx(zone) == ZONE_MOVABLE) {
+		if (move_pfn_range_left(zone - 1, zone, pfn, pfn + nr_pages)) {
+			unlock_memory_hotplug();
+			return -1;
+		}
+	}
+	if (online_type == ONLINE_MOVABLE && zone_idx(zone) == ZONE_MOVABLE - 1) {
+		if (move_pfn_range_right(zone, zone + 1, pfn, pfn + nr_pages)) {
+			unlock_memory_hotplug();
+			return -1;
+		}
+	}
+
+	/* Previous code may changed the zone of the pfn range */
 	zone = page_zone(pfn_to_page(pfn));
 
 	arg.start_pfn = pfn;
