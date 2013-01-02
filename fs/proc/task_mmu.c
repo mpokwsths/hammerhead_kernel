@@ -1240,7 +1240,7 @@ static int show_numa_map(struct seq_file *m, void *v, int is_pid)
 
 	task_lock(task);
 	pol = get_vma_policy(task, vma, vma->vm_start);
-	mpol_to_str(buffer, sizeof(buffer), pol, 0);
+	mpol_to_str(buffer, sizeof(buffer), pol);
 	mpol_cond_put(pol);
 	task_unlock(task);
 
