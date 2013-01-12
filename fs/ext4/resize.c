@@ -309,7 +309,7 @@ static struct buffer_head *bclean(handle_t *handle, struct super_block *sb,
 	int err;
 
 	bh = sb_getblk(sb, blk);
-	if (!bh)
+	if (unlikely(!bh))
 		return ERR_PTR(-ENOMEM);
 	if ((err = ext4_journal_get_write_access(handle, bh))) {
 		brelse(bh);
@@ -386,7 +386,7 @@ static int set_flexbg_block_bitmap(struct super_block *sb, handle_t *handle,
 			return err;
 
 		bh = sb_getblk(sb, flex_gd->groups[group].block_bitmap);
-		if (!bh)
+		if (unlikely(!bh))
 			return -ENOMEM;
 
 		err = ext4_journal_get_write_access(handle, bh);
@@ -461,7 +461,7 @@ static int setup_new_flex_group_blocks(struct super_block *sb,
 				goto out;
 
 			gdb = sb_getblk(sb, block);
-			if (!gdb) {
+			if (unlikely(!gdb)) {
 				err = -ENOMEM;
 				goto out;
 			}
@@ -981,7 +981,7 @@ static void update_backups(struct super_block *sb,
 			break;
 
 		bh = sb_getblk(sb, group * bpg + blk_off);
-		if (!bh) {
+		if (unlikely(!bh)) {
 			err = -ENOMEM;
 			break;
 		}
