@@ -512,10 +512,6 @@ EXPORT_SYMBOL_GPL(vtime_account);
 
 #else
 
-#ifndef nsecs_to_cputime
-# define nsecs_to_cputime(__nsecs)	nsecs_to_jiffies(__nsecs)
-#endif
-
 /*
  * Perform (stime * rtime) / total, but avoid multiplication overflow by
  * loosing precision when the numbers are big.
