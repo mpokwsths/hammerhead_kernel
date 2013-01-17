@@ -1544,7 +1544,6 @@ static void *get_partial_node(struct kmem_cache *s,
 {
 	struct page *page, *page2;
 	void *object = NULL;
-	int available = 0;
 	int objects;
 
 	/*
@@ -2346,8 +2345,7 @@ redo:
 
 	object = c->freelist;
 	page = c->page;
-	if (unlikely(!object || !node_match(page, node)))
-
+	if (unlikely(!object || !page || !node_match(page, node)))
 		object = __slab_alloc(s, gfpflags, node, addr, c);
 
 	else {
