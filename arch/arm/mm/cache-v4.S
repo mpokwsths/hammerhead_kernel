@@ -60,7 +60,11 @@ ENTRY(v4_flush_user_cache_range)
 #ifdef CONFIG_CPU_CP15
 	mov	ip, #0
 <<<<<<< HEAD
+<<<<<<< HEAD
 	mcreq	p15, 0, ip, c7, c7, 0		@ flush ID cache
+=======
+	mcr	p15, 0, ip, c7, c7, 0		@ flush ID cache
+>>>>>>> 771e391... ARM: mm: remove broken condition check for v4 flushing
 	mov	pc, lr
 =======
 	mcr	p15, 0, ip, c7, c7, 0		@ flush ID cache
