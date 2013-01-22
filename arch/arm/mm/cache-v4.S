@@ -59,13 +59,8 @@ ENTRY(v4_flush_kern_cache_all)
 ENTRY(v4_flush_user_cache_range)
 #ifdef CONFIG_CPU_CP15
 	mov	ip, #0
-<<<<<<< HEAD
 	mcreq	p15, 0, ip, c7, c7, 0		@ flush ID cache
-	mov	pc, lr
-=======
-	mcr	p15, 0, ip, c7, c7, 0		@ flush ID cache
 	ret	lr
->>>>>>> 60f7177... ARM: convert all "mov.* pc, reg" to "bx reg" for ARMv6+
 #else
 	/* FALLTHROUGH */
 #endif
@@ -94,12 +89,7 @@ ENTRY(v4_coherent_kern_range)
  *	- end	 - virtual end address
  */
 ENTRY(v4_coherent_user_range)
-<<<<<<< HEAD
-	mov	pc, lr
-=======
-	mov	r0, #0
 	ret	lr
->>>>>>> 60f7177... ARM: convert all "mov.* pc, reg" to "bx reg" for ARMv6+
 
 /*
  *	flush_kern_dcache_area(void *addr, size_t size)
