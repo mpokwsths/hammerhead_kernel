@@ -940,8 +940,8 @@ static int mmc_select_hsddr(struct mmc_card *card, u8 *ext_csd)
 	 * WARNING: eMMC rules are NOT the same as SD DDR
 	 */
 	if (ddr == MMC_1_2V_DDR_MODE) {
-		err = mmc_set_signal_voltage(host,
-			MMC_SIGNAL_VOLTAGE_120, 0);
+		err = __mmc_set_signal_voltage(host,
+			MMC_SIGNAL_VOLTAGE_120);
 		if (err)
 			goto out;
 	}
@@ -975,9 +975,9 @@ static int mmc_select_hs200(struct mmc_card *card, u8 *ext_csd)
 
 	if (card->ext_csd.card_type & EXT_CSD_CARD_TYPE_SDR_1_2V &&
 	    host->caps2 & MMC_CAP2_HS200_1_2V_SDR)
-		if (mmc_set_signal_voltage(host, MMC_SIGNAL_VOLTAGE_120, 0))
-			err = mmc_set_signal_voltage(host,
-						     MMC_SIGNAL_VOLTAGE_180, 0);
+		if (__mmc_set_signal_voltage(host, MMC_SIGNAL_VOLTAGE_120))
+			err = __mmc_set_signal_voltage(host,
+						     MMC_SIGNAL_VOLTAGE_180);
 	/* If fails try again during next card power cycle */
 	if (err)
 		goto out;
@@ -1158,9 +1158,6 @@ static int mmc_init_card(struct mmc_host *host, u32 ocr,
 	/* Set correct bus mode for MMC before attempting init */
 	if (!mmc_host_is_spi(host))
 		mmc_set_bus_mode(host, MMC_BUSMODE_OPENDRAIN);
-
-	/* Initialization should be done at 3.3 V I/O voltage. */
-	mmc_set_signal_voltage(host, MMC_SIGNAL_VOLTAGE_330, 0);
 
 	/*
 	 * Since we're changing the OCR value, we seem to
