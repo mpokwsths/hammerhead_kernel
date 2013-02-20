@@ -344,6 +344,14 @@ static inline void tick_irq_exit(void)
  */
 void irq_exit(void)
 {
+#ifndef __ARCH_IRQ_EXIT_IRQS_DISABLED
+	unsigned long flags;
+
+	local_irq_save(flags);
+#else
+	WARN_ON_ONCE(!irqs_disabled());
+#endif
+
 	account_irq_exit_time(current);
 	trace_hardirq_exit();
 	sub_preempt_count(IRQ_EXIT_OFFSET);
@@ -353,6 +361,9 @@ void irq_exit(void)
 	tick_irq_exit();
 	rcu_irq_exit();
 	sched_preempt_enable_no_resched();
+#ifndef __ARCH_IRQ_EXIT_IRQS_DISABLED
+	local_irq_restore(flags);
+#endif
 }
 
 /*
