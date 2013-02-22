@@ -3721,6 +3721,12 @@ static void __init kmem_cache_bootstrap_fixup(struct kmem_cache *s)
 	list_add(&s->list, &slab_caches);
 	s->refcount = -1;
 
+	/*
+	 * This runs very early, and only the boot processor is supposed to be
+	 * up.  Even if it weren't true, IRQs are not up so we couldn't fire
+	 * IPIs around.
+	 */
+	__flush_cpu_slab(s, smp_processor_id());
 	for_each_node_state(node, N_NORMAL_MEMORY) {
 		struct kmem_cache_node *n = get_node(s, node);
 		struct page *p;
