@@ -15,13 +15,14 @@
 #include <linux/if_arp.h>
 #include <linux/slab.h>
 #include <linux/nsproxy.h>
-#include <net/sock.h>
-#include <net/net_namespace.h>
 #include <linux/rtnetlink.h>
 #include <linux/wireless.h>
 #include <linux/vmalloc.h>
 #include <linux/export.h>
 #include <linux/jiffies.h>
+#include <linux/pm_runtime.h>
+#include <net/net_namespace.h>
+#include <net/sock.h>
 #include <net/wext.h>
 
 #include "net-sysfs.h"
@@ -1441,6 +1442,8 @@ void netdev_unregister_kobject(struct net_device * net)
 
 	remove_queue_kobjects(net);
 
+	pm_runtime_set_memalloc_noio(dev, false);
+
 	device_del(dev);
 }
 
@@ -1483,6 +1486,8 @@ int netdev_register_kobject(struct net_device *net)
 		device_del(dev);
 		return error;
 	}
+
+	pm_runtime_set_memalloc_noio(dev, true);
 
 	return error;
 }
