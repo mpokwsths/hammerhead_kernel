@@ -2024,7 +2024,7 @@ static inline bool compaction_ready(struct zone *zone, struct scan_control *sc)
 	 * a reasonable chance of completing and allocating the page
 	 */
 	balance_gap = min(low_wmark_pages(zone),
-		(zone->present_pages + KSWAPD_ZONE_BALANCE_GAP_RATIO-1) /
+		(zone->managed_pages + KSWAPD_ZONE_BALANCE_GAP_RATIO-1) /
 			KSWAPD_ZONE_BALANCE_GAP_RATIO);
 	watermark = high_wmark_pages(zone) + balance_gap + (2UL << sc->order);
 	watermark_ok = zone_watermark_ok_safe(zone, 0, watermark, 0, 0);
@@ -2534,7 +2534,7 @@ static bool zone_balanced(struct zone *zone, int order,
  */
 static bool pgdat_balanced(pg_data_t *pgdat, int order, int classzone_idx)
 {
-	unsigned long present_pages = 0;
+	unsigned long managed_pages = 0;
 	unsigned long balanced_pages = 0;
 	int i;
 
@@ -2545,7 +2545,7 @@ static bool pgdat_balanced(pg_data_t *pgdat, int order, int classzone_idx)
 		if (!populated_zone(zone))
 			continue;
 
-		present_pages += zone->present_pages;
+		managed_pages += zone->managed_pages;
 
 		/*
 		 * A special case here:
@@ -2555,18 +2555,18 @@ static bool pgdat_balanced(pg_data_t *pgdat, int order, int classzone_idx)
 		 * they must be considered balanced here as well!
 		 */
 		if (!zone_reclaimable(zone)) {
-			balanced_pages += zone->present_pages;
+			balanced_pages += zone->managed_pages;
 			continue;
 		}
 
 		if (zone_balanced(zone, order, 0, i))
-			balanced_pages += zone->present_pages;
+			balanced_pages += zone->managed_pages;
 		else if (!order)
 			return false;
 	}
 
 	if (order)
-		return balanced_pages >= (present_pages >> 2);
+		return balanced_pages >= (managed_pages >> 2);
 	else
 		return true;
 }
@@ -2750,7 +2750,7 @@ loop_again:
 			 * of the zone, whichever is smaller.
 			 */
 			balance_gap = min(low_wmark_pages(zone),
-				(zone->present_pages +
+				(zone->managed_pages +
 					KSWAPD_ZONE_BALANCE_GAP_RATIO-1) /
 				KSWAPD_ZONE_BALANCE_GAP_RATIO);
 			/*
