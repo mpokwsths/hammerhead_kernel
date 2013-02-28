@@ -200,44 +200,7 @@ error_0:
 	return ERR_PTR(err);
 }
 
-#ifdef CONFIG_NFS_V4
-#ifdef CONFIG_NFS_V4_1
-static void nfs4_shutdown_session(struct nfs_client *clp)
-{
-	if (nfs4_has_session(clp)) {
-		nfs4_deviceid_purge_client(clp);
-		nfs4_destroy_session(clp->cl_session);
-	}
-
-}
-#else /* CONFIG_NFS_V4_1 */
-static void nfs4_shutdown_session(struct nfs_client *clp)
-{
-}
-#endif /* CONFIG_NFS_V4_1 */
-
-/*
- * Destroy the NFS4 callback service
- */
-static void nfs4_destroy_callback(struct nfs_client *clp)
-{
-	if (__test_and_clear_bit(NFS_CS_CALLBACK, &clp->cl_res_state))
-		nfs_callback_down(clp->cl_mvops->minor_version);
-}
-
-static void nfs4_shutdown_client(struct nfs_client *clp)
-{
-	if (__test_and_clear_bit(NFS_CS_RENEWD, &clp->cl_res_state))
-		nfs4_kill_renewd(clp);
-	nfs4_shutdown_session(clp);
-	nfs4_destroy_callback(clp);
-	if (__test_and_clear_bit(NFS_CS_IDMAP, &clp->cl_res_state))
-		nfs_idmap_delete(clp);
-
-	rpc_destroy_wait_queue(&clp->cl_rpcwaitq);
-}
-
-/* idr_remove_all is not needed as all id's are removed by nfs_put_client */
+#if IS_ENABLED(CONFIG_NFS_V4)
 void nfs_cleanup_cb_ident_idr(struct net *net)
 {
 	struct nfs_net *nn = net_generic(net, nfs_net_id);
