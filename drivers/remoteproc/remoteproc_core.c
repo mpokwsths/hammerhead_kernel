@@ -1419,8 +1419,28 @@ int rproc_register(struct rproc *rproc)
 	/* create debugfs entries */
 	rproc_create_debug_dir(rproc);
 
-	/* rproc_unregister() calls must wait until async loader completes */
-	init_completion(&rproc->firmware_loading_complete);
+	return rproc_add_virtio_devices(rproc);
+}
+EXPORT_SYMBOL(rproc_add);
+
+/**
+ * rproc_type_release() - release a remote processor instance
+ * @dev: the rproc's device
+ *
+ * This function should _never_ be called directly.
+ *
+ * It will be called by the driver core when no one holds a valid pointer
+ * to @dev anymore.
+ */
+static void rproc_type_release(struct device *dev)
+{
+	struct rproc *rproc = container_of(dev, struct rproc, dev);
+
+	dev_info(&rproc->dev, "releasing %s\n", rproc->name);
+
+	rproc_delete_debug_dir(rproc);
+
+	idr_destroy(&rproc->notifyids);
 
 	/*
 	 * We must retrieve early virtio configuration info from
