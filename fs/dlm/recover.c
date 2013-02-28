@@ -313,6 +313,90 @@ static void recover_list_clear(struct dlm_ls *ls)
 	spin_unlock(&ls->ls_recover_list_lock);
 }
 
+static int recover_idr_empty(struct dlm_ls *ls)
+{
+	int empty = 1;
+
+	spin_lock(&ls->ls_recover_idr_lock);
+	if (ls->ls_recover_list_count)
+		empty = 0;
+	spin_unlock(&ls->ls_recover_idr_lock);
+
+	return empty;
+}
+
+static int recover_idr_add(struct dlm_rsb *r)
+{
+	struct dlm_ls *ls = r->res_ls;
+	int rv, id;
+
+	rv = idr_pre_get(&ls->ls_recover_idr, GFP_NOFS);
+	if (!rv)
+		return -ENOMEM;
+
+	spin_lock(&ls->ls_recover_idr_lock);
+	if (r->res_id) {
+		spin_unlock(&ls->ls_recover_idr_lock);
+		return -1;
+	}
+	rv = idr_get_new_above(&ls->ls_recover_idr, r, 1, &id);
+	if (rv) {
+		spin_unlock(&ls->ls_recover_idr_lock);
+		return rv;
+	}
+	r->res_id = id;
+	ls->ls_recover_list_count++;
+	dlm_hold_rsb(r);
+	spin_unlock(&ls->ls_recover_idr_lock);
+	return 0;
+}
+
+static void recover_idr_del(struct dlm_rsb *r)
+{
+	struct dlm_ls *ls = r->res_ls;
+
+	spin_lock(&ls->ls_recover_idr_lock);
+	idr_remove(&ls->ls_recover_idr, r->res_id);
+	r->res_id = 0;
+	ls->ls_recover_list_count--;
+	spin_unlock(&ls->ls_recover_idr_lock);
+
+	dlm_put_rsb(r);
+}
+
+static struct dlm_rsb *recover_idr_find(struct dlm_ls *ls, uint64_t id)
+{
+	struct dlm_rsb *r;
+
+	spin_lock(&ls->ls_recover_idr_lock);
+	r = idr_find(&ls->ls_recover_idr, (int)id);
+	spin_unlock(&ls->ls_recover_idr_lock);
+	return r;
+}
+
+static void recover_idr_clear(struct dlm_ls *ls)
+{
+	struct dlm_rsb *r;
+	int id;
+
+	spin_lock(&ls->ls_recover_idr_lock);
+
+	idr_for_each_entry(&ls->ls_recover_idr, r, id) {
+		r->res_id = 0;
+		r->res_recover_locks_count = 0;
+		ls->ls_recover_list_count--;
+
+		dlm_put_rsb(r);
+	}
+	idr_remove_all(&ls->ls_recover_idr);
+
+	if (ls->ls_recover_list_count != 0) {
+		log_error(ls, "warning: recover_list_count %d",
+			  ls->ls_recover_list_count);
+		ls->ls_recover_list_count = 0;
+	}
+	spin_unlock(&ls->ls_recover_idr_lock);
+}
 
 /* Master recovery: find new master node for rsb's that were
    mastered on nodes that have been removed.
