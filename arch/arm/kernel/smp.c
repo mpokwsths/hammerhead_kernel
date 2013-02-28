@@ -343,6 +343,7 @@ asmlinkage void __cpuinit secondary_start_kernel(void)
 	current->active_mm = mm;
 	cpumask_set_cpu(cpu, mm_cpumask(mm));
 	cpu_switch_mm(mm->pgd, mm);
+	local_flush_bp_all();
 	enter_lazy_tlb(mm, current);
 	local_flush_tlb_all();
 
