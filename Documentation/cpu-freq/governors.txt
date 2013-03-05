@@ -192,6 +192,11 @@ governor but for the opposite direction.  For example when set to its
 default value of '20' it means that if the CPU usage needs to be below
 20% between samples to have the frequency decreased.
 
+sampling_down_factor: similar functionality as in "ondemand" governor.
+But in "conservative", it controls the rate at which the kernel makes
+a decision on when to decrease the frequency while running in any
+speed. Load for frequency increase is still evaluated every
+sampling rate.
 
 2.6 Interactive
 ---------------
@@ -275,7 +280,6 @@ hispeed_freq according to load as usual.
 boostpulse_duration: Length of time to hold CPU speed at hispeed_freq
 on a write to boostpulse, before allowing speed to drop according to
 load as usual.  Default is 80000 uS.
-
 
 3. The Governor Interface in the CPUfreq Core
 =============================================
