@@ -25,7 +25,6 @@
 
 #define MMC_QUEUE_BOUNCESZ	65536
 
-
 /*
  * Based on benchmark tests the default num of requests to trigger the write
  * packing was determined, to keep the read latency as low as possible and
