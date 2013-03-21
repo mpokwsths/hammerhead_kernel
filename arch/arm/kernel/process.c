@@ -58,8 +58,6 @@ static const char *isa_modes[] = {
   "ARM" , "Thumb" , "Jazelle", "ThumbEE"
 };
 
-static volatile int hlt_counter;
-
 #ifdef CONFIG_SMP
 void arch_trigger_all_cpu_backtrace(void)
 {
@@ -71,32 +69,6 @@ void arch_trigger_all_cpu_backtrace(void)
 	dump_stack();
 }
 #endif
-
-void disable_hlt(void)
-{
-	hlt_counter++;
-}
-
-void enable_hlt(void)
-{
-	hlt_counter--;
-	BUG_ON(hlt_counter < 0);
-}
-
-static int __init nohlt_setup(char *__unused)
-{
-	hlt_counter = 1;
-	return 1;
-}
-
-static int __init hlt_setup(char *__unused)
-{
-	hlt_counter = 0;
-	return 1;
-}
-
-__setup("nohlt", nohlt_setup);
-__setup("hlt", hlt_setup);
 
 extern void call_with_stack(void (*fn)(void *), void *arg, void *sp);
 typedef void (*phys_reset_t)(unsigned long);
@@ -213,55 +185,36 @@ static void default_idle(void)
 void (*pm_idle)(void) = default_idle;
 EXPORT_SYMBOL(pm_idle);
 
-/*
- * The idle thread, has rather strange semantics for calling pm_idle,
- * but this is what x86 does and we need to do the same, so that
- * things like cpuidle get called in the same way.  The only difference
- * is that we always respect 'hlt_counter' to prevent low power idle.
- */
-void cpu_idle(void)
+void arch_cpu_idle_prepare(void)
 {
 	local_fiq_enable();
+}
 
-	/* endless idle loop with no priority at all */
-	while (1) {
-		idle_notifier_call_chain(IDLE_START);
-		tick_nohz_idle_enter();
-		rcu_idle_enter();
-		while (!need_resched()) {
-			/*
-			 * We need to disable interrupts here
-			 * to ensure we don't miss a wakeup call.
-			 */
-			local_irq_disable();
+void arch_cpu_idle_enter(void)
+{
 #ifdef CONFIG_PL310_ERRATA_769419
-			wmb();
+	wmb();
 #endif
-			if (hlt_counter) {
-				local_irq_enable();
-				cpu_relax();
-			} else if (!need_resched()) {
-				stop_critical_timings();
-				if (cpuidle_idle_call())
-					pm_idle();
-				start_critical_timings();
-				/*
-				 * pm_idle functions must always
-				 * return with IRQs enabled.
-				 */
-				WARN_ON(irqs_disabled());
-			} else
-				local_irq_enable();
-		}
-		rcu_idle_exit();
-		tick_nohz_idle_exit();
-		idle_notifier_call_chain(IDLE_END);
-		schedule_preempt_disabled();
+}
+
+void arch_cpu_idle_exit(void)
+{
+}
+
 #ifdef CONFIG_HOTPLUG_CPU
-		if (cpu_is_offline(smp_processor_id()))
-			cpu_die();
+void arch_cpu_idle_dead(void)
+{
+	cpu_die();
+}
 #endif
-	}
+
+/*
+ * Called from the core idle loop.
+ */
+void arch_cpu_idle(void)
+{
+	if (cpuidle_idle_call())
+		default_idle();
 }
 
 static char reboot_mode = 'h';
