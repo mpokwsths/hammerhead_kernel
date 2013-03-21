@@ -77,20 +77,10 @@ void disable_hlt(void)
 	hlt_counter++;
 }
 
-EXPORT_SYMBOL(disable_hlt);
-
 void enable_hlt(void)
 {
 	hlt_counter--;
 }
-
-EXPORT_SYMBOL(enable_hlt);
-
-int get_hlt(void)
-{
-	return hlt_counter;
-}
-EXPORT_SYMBOL(get_hlt);
 
 static int __init nohlt_setup(char *__unused)
 {
