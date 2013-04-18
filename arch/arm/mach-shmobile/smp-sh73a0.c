@@ -104,3 +104,50 @@ void __init sh73a0_smp_prepare_cpus(void)
 	/* enable cache coherency on CPU0 */
 	modify_scu_cpu_psr(0, 3 << (cpu * 8));
 }
+<<<<<<< HEAD
+=======
+
+#ifdef CONFIG_HOTPLUG_CPU
+static int sh73a0_cpu_kill(unsigned int cpu)
+{
+
+	int k;
+	u32 pstr;
+
+	/*
+	 * wait until the power status register confirms the shutdown of the
+	 * offline target
+	 */
+	for (k = 0; k < 1000; k++) {
+		pstr = (__raw_readl(PSTR) >> (4 * cpu)) & 3;
+		if (pstr == PSTR_SHUTDOWN_MODE)
+			return 1;
+
+		mdelay(1);
+	}
+
+	return 0;
+}
+
+static void sh73a0_cpu_die(unsigned int cpu)
+{
+	/* Set power off mode. This takes the CPU out of the MP cluster */
+	scu_power_mode(scu_base_addr(), SCU_PM_POWEROFF);
+
+	/* Enter shutdown mode */
+	cpu_do_idle();
+}
+#endif /* CONFIG_HOTPLUG_CPU */
+
+struct smp_operations sh73a0_smp_ops __initdata = {
+	.smp_init_cpus		= sh73a0_smp_init_cpus,
+	.smp_prepare_cpus	= sh73a0_smp_prepare_cpus,
+	.smp_secondary_init	= sh73a0_secondary_init,
+	.smp_boot_secondary	= sh73a0_boot_secondary,
+#ifdef CONFIG_HOTPLUG_CPU
+	.cpu_kill		= sh73a0_cpu_kill,
+	.cpu_die		= sh73a0_cpu_die,
+	.cpu_disable		= shmobile_cpu_disable_any,
+#endif
+};
+>>>>>>> bca7a5a... ARM: cpu hotplug: remove majority of cache flushing from platforms
