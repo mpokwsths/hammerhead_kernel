@@ -12,16 +12,19 @@
 #include <linux/errno.h>
 #include <linux/smp.h>
 
-#include <asm/cacheflush.h>
 #include <asm/smp_plat.h>
 
 extern volatile int pen_release;
 
 static inline void platform_do_lowpower(unsigned int cpu)
 {
+<<<<<<< HEAD
 	flush_cache_all();
 
 	/* we put the platform to just WFI */
+=======
+	/* directly enter low power state, skipping secure registers */
+>>>>>>> bca7a5a... ARM: cpu hotplug: remove majority of cache flushing from platforms
 	for (;;) {
 		__asm__ __volatile__("dsb\n\t" "wfi\n\t"
 				: : : "memory");

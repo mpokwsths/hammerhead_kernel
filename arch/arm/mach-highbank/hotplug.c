@@ -17,9 +17,12 @@
 #include <linux/errno.h>
 #include <linux/smp.h>
 
+<<<<<<< HEAD
 #include <asm/smp_scu.h>
 #include <asm/cacheflush.h>
 
+=======
+>>>>>>> bca7a5a... ARM: cpu hotplug: remove majority of cache flushing from platforms
 #include "core.h"
 
 extern void secondary_startup(void);
@@ -35,10 +38,15 @@ int platform_cpu_kill(unsigned int cpu)
  */
 void platform_cpu_die(unsigned int cpu)
 {
+<<<<<<< HEAD
 	flush_cache_all();
 
 	highbank_set_cpu_jump(cpu, secondary_startup);
 	scu_power_mode(scu_base_addr, SCU_PM_POWEROFF);
+=======
+	highbank_set_cpu_jump(cpu, phys_to_virt(0));
+	highbank_set_core_pwr();
+>>>>>>> bca7a5a... ARM: cpu hotplug: remove majority of cache flushing from platforms
 
 	cpu_do_idle();
 

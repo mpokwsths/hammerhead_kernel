@@ -12,8 +12,12 @@
 #include <linux/errno.h>
 #include <linux/smp.h>
 
+<<<<<<< HEAD
 #include <asm/cacheflush.h>
 #include <asm/cp15.h>
+=======
+#include <asm/smp_plat.h>
+>>>>>>> bca7a5a... ARM: cpu hotplug: remove majority of cache flushing from platforms
 
 static inline void cpu_enter_lowpower(void)
 {
