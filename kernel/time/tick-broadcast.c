@@ -13,13 +13,14 @@
  */
 #include <linux/cpu.h>
 #include <linux/err.h>
+#include <linux/gfp.h>
 #include <linux/hrtimer.h>
 #include <linux/interrupt.h>
 #include <linux/percpu.h>
 #include <linux/profile.h>
 #include <linux/sched.h>
 #include <linux/smp.h>
-#include <linux/gfp.h>
+#include <linux/module.h>
 
 #include "tick-internal.h"
 
@@ -73,6 +74,8 @@ void tick_install_broadcast_device(struct clock_event_device *dev)
 	    (tick_broadcast_device.evtdev &&
 	     tick_broadcast_device.evtdev->rating >= dev->rating) ||
 	     (dev->features & CLOCK_EVT_FEAT_C3STOP))
+		return;
+	if (!try_module_get(dev->owner))
 		return;
 
 	clockevents_exchange_device(tick_broadcast_device.evtdev, dev);
