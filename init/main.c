@@ -830,8 +830,9 @@ static int __ref kernel_init(void *unused)
 	current->signal->flags |= SIGNAL_UNKILLABLE;
 
 	if (ramdisk_execute_command) {
-		run_init_process(ramdisk_execute_command);
-		printk(KERN_WARNING "Failed to execute %s\n",
+		if (!run_init_process(ramdisk_execute_command))
+			return 0;
+		printk(KERN_ERR "Failed to execute %s\n",
 				ramdisk_execute_command);
 	}
 
@@ -842,8 +843,9 @@ static int __ref kernel_init(void *unused)
 	 * trying to recover a really broken machine.
 	 */
 	if (execute_command) {
-		run_init_process(execute_command);
-		printk(KERN_WARNING "Failed to execute %s.  Attempting "
+		if (!run_init_process(execute_command))
+			return 0;
+		printk(KERN_ERR "Failed to execute %s.  Attempting "
 					"defaults...\n", execute_command);
 	}
 	run_init_process("/sbin/init");
@@ -884,7 +886,7 @@ static noinline void __init kernel_init_freeable(void)
 
 	/* Open the /dev/console on the rootfs, this should never fail */
 	if (sys_open((const char __user *) "/dev/console", O_RDWR, 0) < 0)
-		printk(KERN_WARNING "Warning: unable to open an initial console.\n");
+		printk(KERN_ERR "Warning: unable to open an initial console.\n");
 
 	(void) sys_dup(0);
 	(void) sys_dup(0);
