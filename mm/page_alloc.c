@@ -4689,7 +4689,7 @@ void __paginginit free_area_init_node(int nid, unsigned long *zones_size,
 /*
  * Figure out the number of possible node ids.
  */
-static void __init setup_nr_node_ids(void)
+void __init setup_nr_node_ids(void)
 {
 	unsigned int node;
 	unsigned int highest = 0;
@@ -4697,10 +4697,6 @@ static void __init setup_nr_node_ids(void)
 	for_each_node_mask(node, node_possible_map)
 		highest = node;
 	nr_node_ids = highest + 1;
-}
-#else
-static inline void setup_nr_node_ids(void)
-{
 }
 #endif
 
