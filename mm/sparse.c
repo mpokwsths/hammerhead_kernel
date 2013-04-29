@@ -618,9 +618,11 @@ static void __kfree_section_memmap(struct page *memmap, unsigned long nr_pages)
 {
 	return; /* XXX: Not implemented yet */
 }
+#ifdef CONFIG_MEMORY_HOTREMOVE
 static void free_map_bootmem(struct page *memmap, unsigned long nr_pages)
 {
 }
+#endif /* CONFIG_MEMORY_HOTREMOVE */
 #else
 static struct page *__kmalloc_section_memmap(unsigned long nr_pages)
 {
@@ -659,6 +661,7 @@ static void __kfree_section_memmap(struct page *memmap, unsigned long nr_pages)
 			   get_order(sizeof(struct page) * nr_pages));
 }
 
+#ifdef CONFIG_MEMORY_HOTREMOVE
 static void free_map_bootmem(struct page *memmap, unsigned long nr_pages)
 {
 	unsigned long maps_section_nr, removing_section_nr, i;
@@ -685,6 +688,7 @@ static void free_map_bootmem(struct page *memmap, unsigned long nr_pages)
 			put_page_bootmem(page);
 	}
 }
+#endif /* CONFIG_MEMORY_HOTREMOVE */
 #endif /* CONFIG_SPARSEMEM_VMEMMAP */
 
 static void free_section_usemap(struct page *memmap, unsigned long *usemap)
@@ -787,4 +791,5 @@ void sparse_remove_one_section(struct zone *zone, struct mem_section *ms)
 
 	free_section_usemap(memmap, usemap);
 }
-#endif
+#endif /* CONFIG_MEMORY_HOTREMOVE */
+#endif /* CONFIG_MEMORY_HOTPLUG */
