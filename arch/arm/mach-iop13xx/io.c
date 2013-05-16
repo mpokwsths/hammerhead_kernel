@@ -23,26 +23,7 @@
 
 #include "pci.h"
 
-void * __iomem __iop13xx_io(unsigned long io_addr)
-{
-	void __iomem * io_virt;
-
-	switch (io_addr) {
-	case IOP13XX_PCIE_LOWER_IO_PA ... IOP13XX_PCIE_UPPER_IO_PA:
-		io_virt = (void *) IOP13XX_PCIE_IO_PHYS_TO_VIRT(io_addr);
-		break;
-	case IOP13XX_PCIX_LOWER_IO_PA ... IOP13XX_PCIX_UPPER_IO_PA:
-		io_virt = (void *) IOP13XX_PCIX_IO_PHYS_TO_VIRT(io_addr);
-		break;
-	default:
-		BUG();
-	}
-
-	return io_virt;
-}
-EXPORT_SYMBOL(__iop13xx_io);
-
-static void __iomem *__iop13xx_ioremap_caller(unsigned long cookie,
+static void __iomem *__iop13xx_ioremap_caller(phys_addr_t cookie,
 	size_t size, unsigned int mtype, void *caller)
 {
 	void __iomem * retval;
