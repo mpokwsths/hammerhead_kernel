@@ -404,26 +404,11 @@ void exit_idle(void)
 }
 #endif
 
-/*
- * The idle thread. There's no useful work to be
- * done, so just try to conserve power and have a
- * low exit latency (ie sit in a loop waiting for
- * somebody to say that they'd like to reschedule)
- */
-void cpu_idle(void)
+void arch_cpu_idle_enter(void)
 {
-	/*
-	 * If we're the non-boot CPU, nothing set the stack canary up
-	 * for us.  CPU0 already has it initialized but no harm in
-	 * doing it again.  This is a good place for updating it, as
-	 * we wont ever return from this function (so the invalid
-	 * canaries already on the stack wont ever trigger).
-	 */
-	boot_init_stack_canary();
-	current_thread_info()->status |= TS_POLLING;
-
-	while (1) {
-		tick_nohz_idle_enter();
+	local_touch_nmi();
+	enter_idle();
+}
 
 		while (!need_resched()) {
 			rmb();
