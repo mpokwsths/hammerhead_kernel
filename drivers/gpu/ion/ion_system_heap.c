@@ -70,7 +70,6 @@ static struct page *alloc_buffer_page(struct ion_system_heap *heap,
 				      bool *from_pool)
 {
 	bool cached = ion_buffer_cached(buffer);
-	bool split_pages = ion_buffer_fault_user_mappings(buffer);
 	struct page *page;
 	struct ion_page_pool *pool;
 
@@ -82,8 +81,6 @@ static struct page *alloc_buffer_page(struct ion_system_heap *heap,
 	if (!page)
 		return 0;
 
-	if (split_pages)
-		split_page(page, order);
 	return page;
 }
 
@@ -192,7 +189,6 @@ static int ion_system_heap_allocate(struct ion_heap *heap,
 	unsigned int max_order = orders[0];
 	struct pages_mem data;
 	unsigned int sz;
-	bool split_pages = ion_buffer_fault_user_mappings(buffer);
 
 	data.size = 0;
 	INIT_LIST_HEAD(&pages);
@@ -225,12 +221,7 @@ static int ion_system_heap_allocate(struct ion_heap *heap,
 	if (!table)
 		goto err_free_data_pages;
 
-	if (split_pages)
-		ret = sg_alloc_table(table, PAGE_ALIGN(size) / PAGE_SIZE,
-				     GFP_KERNEL);
-	else
-		ret = sg_alloc_table(table, i, GFP_KERNEL);
-
+	ret = sg_alloc_table(table, i, GFP_KERNEL);
 	if (ret)
 		goto err1;
 
