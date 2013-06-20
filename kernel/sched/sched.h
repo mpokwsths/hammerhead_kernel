@@ -1021,20 +1021,6 @@ static inline void idle_balance(int cpu, struct rq *rq)
 
 #endif
 
-extern void sysrq_sched_debug_show(void);
-extern void sched_init_granularity(void);
-extern void update_max_interval(void);
-extern void init_sched_rt_class(void);
-extern void init_sched_fair_class(void);
-
-extern void resched_task(struct task_struct *p);
-extern void resched_cpu(int cpu);
-
-extern struct rt_bandwidth def_rt_bandwidth;
-extern void init_rt_bandwidth(struct rt_bandwidth *rt_b, u64 period, u64 runtime);
-
-extern void update_idle_cpu_load(struct rq *this_rq);
-
 #ifdef CONFIG_CGROUP_CPUACCT
 #include <linux/cgroup.h>
 /* track cpu usage of a group of tasks and its child groups */
@@ -1073,6 +1059,22 @@ extern void cpuacct_charge(struct task_struct *tsk, u64 cputime);
 #else
 static inline void cpuacct_charge(struct task_struct *tsk, u64 cputime) {}
 #endif
+
+extern void sysrq_sched_debug_show(void);
+extern void sched_init_granularity(void);
+extern void update_max_interval(void);
+extern void init_sched_rt_class(void);
+extern void init_sched_fair_class(void);
+
+extern void resched_task(struct task_struct *p);
+extern void resched_cpu(int cpu);
+
+extern struct rt_bandwidth def_rt_bandwidth;
+extern void init_rt_bandwidth(struct rt_bandwidth *rt_b, u64 period, u64 runtime);
+
+extern void update_idle_cpu_load(struct rq *this_rq);
+
+extern void init_task_runnable_average(struct task_struct *p);
 
 #ifdef CONFIG_PARAVIRT
 static inline u64 steal_ticks(u64 steal)
