@@ -52,7 +52,7 @@ struct ion_iommu_priv_data {
 #define BAD_ORDER	-1
 
 #ifndef CONFIG_ALLOC_BUFFERS_IN_4K_CHUNKS
-static const unsigned int orders[] = {8, 4, 0};
+static const unsigned int orders[] = {9, 8, 4, 0};
 #else
 static const unsigned int orders[] = {0};
 #endif
