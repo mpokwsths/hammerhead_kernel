@@ -500,6 +500,30 @@
 		qcom,i2c-bus-freq = <100000>;
 	};
 
+	spi_4: spi@f9926000 { /* BLSP1 QUP4 */
+		compatible = "qcom,spi-qup-v2";
+		#address-cells = <1>;
+		#size-cells = <0>;
+		reg-names = "spi_physical", "spi_bam_physical";
+		reg = <0xf9926000 0x1000>,
+		      <0xf9904000 0x15000>;
+		interrupt-names = "spi_irq", "spi_bam_irq";
+		interrupts = <0 98 0>, <0 238 0>;
+		spi-max-frequency = <50000000>;
+
+		qcom,gpio-mosi = <&msmgpio 86 0>;
+		qcom,gpio-miso = <&msmgpio 87 0>;
+		qcom,gpio-clk  = <&msmgpio 89 0>;
+		qcom,gpio-cs0  = <&msmgpio 88 0>;
+
+		qcom,infinite-mode = <0>;
+		qcom,use-bam;
+		qcom,ver-reg-exists;
+		qcom,bam-consumer-pipe-index = <18>;
+		qcom,bam-producer-pipe-index = <19>;
+		qcom,master-id = <86>;
+	};
+
 	qcom,pronto@fb21b000 {
 		compatible = "qcom,pil-pronto";
 		reg = <0xfb21b000 0x3000>,
