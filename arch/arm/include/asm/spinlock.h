@@ -5,7 +5,7 @@
 #error SMP not supported on pre-ARMv6 CPUs
 #endif
 
-#include <asm/processor.h>
+#include <linux/prefetch.h>
 
 extern int msm_krait_need_wfe_fixup;
 
@@ -96,6 +96,7 @@ static inline void arch_spin_lock(arch_spinlock_t *lock)
 {
 	unsigned long tmp, fixup = msm_krait_need_wfe_fixup;
 
+	prefetchw(&lock->slock);
 	__asm__ __volatile__(
 "1:	ldrex	%[tmp], [%[lock]]\n"
 "	teq	%[tmp], #0\n"
@@ -116,6 +117,7 @@ static inline int arch_spin_trylock(arch_spinlock_t *lock)
 {
 	unsigned long tmp;
 
+	prefetchw(&lock->slock);
 	__asm__ __volatile__(
 "	ldrex	%0, [%1]\n"
 "	teq	%0, #0\n"
@@ -290,6 +292,7 @@ static inline void arch_write_lock(arch_rwlock_t *rw)
 {
 	unsigned long tmp, fixup = msm_krait_need_wfe_fixup;
 
+	prefetchw(&rw->lock);
 	__asm__ __volatile__(
 "1:	ldrex	%[tmp], [%[lock]]\n"
 "	teq	%[tmp], #0\n"
@@ -310,6 +313,7 @@ static inline int arch_write_trylock(arch_rwlock_t *rw)
 {
 	unsigned long tmp;
 
+	prefetchw(&rw->lock);
 	__asm__ __volatile__(
 "1:	ldrex	%0, [%1]\n"
 "	teq	%0, #0\n"
@@ -340,7 +344,7 @@ static inline void arch_write_unlock(arch_rwlock_t *rw)
 }
 
 /* write_can_lock - would write_trylock() succeed? */
-#define arch_write_can_lock(x)		((x)->lock == 0)
+#define arch_write_can_lock(x)		(ACCESS_ONCE((x)->lock) == 0)
 
 /*
  * Read locks are a bit more hairy:
@@ -358,6 +362,7 @@ static inline void arch_read_lock(arch_rwlock_t *rw)
 {
 	unsigned long tmp, tmp2, fixup = msm_krait_need_wfe_fixup;
 
+	prefetchw(&rw->lock);
 	__asm__ __volatile__(
 "1:	ldrex	%[tmp], [%[lock]]\n"
 "	adds	%[tmp], %[tmp], #1\n"
@@ -380,6 +385,7 @@ static inline void arch_read_unlock(arch_rwlock_t *rw)
 
 	smp_mb();
 
+	prefetchw(&rw->lock);
 	__asm__ __volatile__(
 "1:	ldrex	%0, [%2]\n"
 "	sub	%0, %0, #1\n"
@@ -398,6 +404,7 @@ static inline int arch_read_trylock(arch_rwlock_t *rw)
 {
 	unsigned long tmp, tmp2 = 1;
 
+	prefetchw(&rw->lock);
 	__asm__ __volatile__(
 "1:	ldrex	%0, [%2]\n"
 "	adds	%0, %0, #1\n"
@@ -411,7 +418,7 @@ static inline int arch_read_trylock(arch_rwlock_t *rw)
 }
 
 /* read_can_lock - would read_trylock() succeed? */
-#define arch_read_can_lock(x)		((x)->lock < 0x80000000)
+#define arch_read_can_lock(x)		(ACCESS_ONCE((x)->lock) < 0x80000000)
 
 #define arch_read_lock_flags(lock, flags) arch_read_lock(lock)
 #define arch_write_lock_flags(lock, flags) arch_write_lock(lock)
