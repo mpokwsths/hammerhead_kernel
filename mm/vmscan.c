@@ -681,6 +681,8 @@ static enum page_references page_check_references(struct page *page,
 static void page_check_dirty_writeback(struct page *page,
 				       bool *dirty, bool *writeback)
 {
+	struct address_space *mapping;
+
 	/*
 	 * Anonymous pages are not handled by flushers and must be written
 	 * from reclaim context. Do not stall reclaim based on them
@@ -694,6 +696,14 @@ static void page_check_dirty_writeback(struct page *page,
 	/* By default assume that the page flags are accurate */
 	*dirty = PageDirty(page);
 	*writeback = PageWriteback(page);
+
+	/* Verify dirty/writeback state if the filesystem supports it */
+	if (!page_has_private(page))
+		return;
+
+	mapping = page_mapping(page);
+	if (mapping && mapping->a_ops->is_dirty_writeback)
+		mapping->a_ops->is_dirty_writeback(page, dirty, writeback);
 }
 
 /*
@@ -2872,9 +2882,6 @@ static bool kswapd_shrink_zone(struct zone *zone,
 
 	/* Account for the number of pages attempted to reclaim */
 	*nr_attempted += sc->nr_to_reclaim;
-
-	if (nr_slab == 0 && !zone_reclaimable(zone))
-		zone->all_unreclaimable = 1;
 
 	zone_clear_flag(zone, ZONE_WRITEBACK);
 
