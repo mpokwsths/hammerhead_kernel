@@ -62,6 +62,76 @@ static notrace cycle_t vread_hpet(void)
 	return readl((const void __iomem *)fix_to_virt(VSYSCALL_HPET) + 0xf0);
 }
 
+#ifdef CONFIG_PARAVIRT_CLOCK
+
+static notrace const struct pvclock_vsyscall_time_info *get_pvti(int cpu)
+{
+	const struct pvclock_vsyscall_time_info *pvti_base;
+	int idx = cpu / (PAGE_SIZE/PVTI_SIZE);
+	int offset = cpu % (PAGE_SIZE/PVTI_SIZE);
+
+	BUG_ON(PVCLOCK_FIXMAP_BEGIN + idx > PVCLOCK_FIXMAP_END);
+
+	pvti_base = (struct pvclock_vsyscall_time_info *)
+		    __fix_to_virt(PVCLOCK_FIXMAP_BEGIN+idx);
+
+	return &pvti_base[offset];
+}
+
+static notrace cycle_t vread_pvclock(int *mode)
+{
+	const struct pvclock_vsyscall_time_info *pvti;
+	cycle_t ret;
+	u64 last;
+	u32 version;
+	u8 flags;
+	unsigned cpu, cpu1;
+
+
+	/*
+	 * Note: hypervisor must guarantee that:
+	 * 1. cpu ID number maps 1:1 to per-CPU pvclock time info.
+	 * 2. that per-CPU pvclock time info is updated if the
+	 *    underlying CPU changes.
+	 * 3. that version is increased whenever underlying CPU
+	 *    changes.
+	 *
+	 */
+	do {
+		cpu = __getcpu() & VGETCPU_CPU_MASK;
+		/* TODO: We can put vcpu id into higher bits of pvti.version.
+		 * This will save a couple of cycles by getting rid of
+		 * __getcpu() calls (Gleb).
+		 */
+
+		pvti = get_pvti(cpu);
+
+		version = __pvclock_read_cycles(&pvti->pvti, &ret, &flags);
+
+		/*
+		 * Test we're still on the cpu as well as the version.
+		 * We could have been migrated just after the first
+		 * vgetcpu but before fetching the version, so we
+		 * wouldn't notice a version change.
+		 */
+		cpu1 = __getcpu() & VGETCPU_CPU_MASK;
+	} while (unlikely(cpu != cpu1 ||
+			  (pvti->pvti.version & 1) ||
+			  pvti->pvti.version != version));
+
+	if (unlikely(!(flags & PVCLOCK_TSC_STABLE_BIT)))
+		*mode = VCLOCK_NONE;
+
+	/* refer to tsc.c read_tsc() comment for rationale */
+	last = VVAR(vsyscall_gtod_data).clock.cycle_last;
+
+	if (likely(ret >= last))
+		return ret;
+
+	return last;
+}
+#endif
+
 notrace static long vdso_fallback_gettime(long clock, struct timespec *ts)
 {
 	long ret;
