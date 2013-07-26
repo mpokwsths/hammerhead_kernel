@@ -243,7 +243,7 @@ static void __init arm_adjust_dma_zone(unsigned long *size, unsigned long *hole,
 }
 #endif
 
-void __init setup_dma_zone(struct machine_desc *mdesc)
+void __init setup_dma_zone(const struct machine_desc *mdesc)
 {
 #ifdef CONFIG_ZONE_DMA
 	if (mdesc->dma_zone_size) {
@@ -458,7 +458,8 @@ void find_memory_hole(void)
 
 #endif
 
-void __init arm_memblock_init(struct meminfo *mi, struct machine_desc *mdesc)
+void __init arm_memblock_init(struct meminfo *mi,
+	const struct machine_desc *mdesc)
 {
 	int i;
 
