@@ -7,7 +7,7 @@
 lib-y		:= backtrace.o changebit.o csumipv6.o csumpartial.o   \
 		   csumpartialcopy.o csumpartialcopyuser.o clearbit.o \
 		   delay.o delay-loop.o findbit.o memchr.o memcpy.o   \
-		   memmove.o memset.o memzero.o setbit.o              \
+		   memset.o memzero.o setbit.o                        \
 		   strchr.o strrchr.o                                 \
 		   testchangebit.o testclearbit.o testsetbit.o        \
 		   ashldi3.o ashrdi3.o lshrdi3.o muldi3.o             \
@@ -15,8 +15,13 @@ lib-y		:= backtrace.o changebit.o csumipv6.o csumpartial.o   \
 		   io-readsb.o io-writesb.o io-readsl.o io-writesl.o  \
 		   call_with_stack.o
 
-mmu-y	:= clear_user.o copy_page.o getuser.o putuser.o
-mmu-y	+= copy_from_user.o copy_to_user.o
+mmu-y	:= clear_user.o getuser.o putuser.o
+
+ifneq ($(CONFIG_HAS_MACH_MEMUTILS),y)
+  mmu-y	+= copy_from_user.o copy_to_user.o
+  mmu-y += copy_page.o
+  lib-y += memmove.o
+endif
 
 # using lib_ here won't override already available weak symbols
 obj-$(CONFIG_UACCESS_WITH_MEMCPY) += uaccess_with_memcpy.o
