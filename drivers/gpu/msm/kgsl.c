@@ -219,11 +219,18 @@ kgsl_mem_entry_destroy(struct kref *kref)
 	struct kgsl_mem_entry *entry = container_of(kref,
 						    struct kgsl_mem_entry,
 						    refcount);
+	unsigned int memtype;
+
+	if (entry == NULL)
+		return;
+
+	/* pull out the memtype before the flags get cleared */
+	memtype = kgsl_memdesc_usermem_type(&entry->memdesc);
 
 	/* Detach from process list */
 	kgsl_mem_entry_detach_process(entry);
 
-	if (entry->memtype != KGSL_MEM_ENTRY_KERNEL)
+	if (memtype != KGSL_MEM_ENTRY_KERNEL)
 		kgsl_driver.stats.mapped -= entry->memdesc.size;
 
 	/*
@@ -231,14 +238,12 @@ kgsl_mem_entry_destroy(struct kref *kref)
 	 * clear the sg before freeing the sharedmem so kgsl_sharedmem_free
 	 * doesn't try to free it again
 	 */
-
-	if (entry->memtype == KGSL_MEM_ENTRY_ION) {
+	if (memtype == KGSL_MEM_ENTRY_ION)
 		entry->memdesc.sg = NULL;
-	}
 
 	kgsl_sharedmem_free(&entry->memdesc);
 
-	switch (entry->memtype) {
+	switch (memtype) {
 	case KGSL_MEM_ENTRY_PMEM:
 	case KGSL_MEM_ENTRY_ASHMEM:
 		if (entry->priv_data)
@@ -246,6 +251,8 @@ kgsl_mem_entry_destroy(struct kref *kref)
 		break;
 	case KGSL_MEM_ENTRY_ION:
 		kgsl_destroy_ion(entry->priv_data);
+		break;
+	default:
 		break;
 	}
 
@@ -401,6 +408,7 @@ err_put_proc_priv:
 
 static void kgsl_mem_entry_detach_process(struct kgsl_mem_entry *entry)
 {
+	unsigned int type;
 	if (entry == NULL)
 		return;
 
@@ -414,7 +422,8 @@ static void kgsl_mem_entry_detach_process(struct kgsl_mem_entry *entry)
 		idr_remove(&entry->priv->mem_idr, entry->id);
 	entry->id = 0;
 
-	entry->priv->stats[entry->memtype].cur -= entry->memdesc.size;
+	type = kgsl_memdesc_usermem_type(&entry->memdesc);
+	entry->priv->stats[type].cur -= entry->memdesc.size;
 	spin_unlock(&entry->priv->mem_lock);
 	kgsl_process_private_put(entry->priv);
 
@@ -2544,6 +2553,7 @@ static int kgsl_setup_phys_file(struct kgsl_mem_entry *entry,
 	entry->memdesc.hostptr = (void *) (virt + offset);
 	/* USE_CPU_MAP is not impemented for PMEM. */
 	entry->memdesc.flags &= ~KGSL_MEMFLAGS_USE_CPU_MAP;
+	entry->memdesc.flags = KGSL_MEMFLAGS_USERMEM_PMEM;
 
 	ret = memdesc_sg_phys(&entry->memdesc, phys + offset, size);
 	if (ret)
@@ -2667,6 +2677,7 @@ static int kgsl_setup_useraddr(struct kgsl_mem_entry *entry,
 	entry->memdesc.useraddr = useraddr + (offset & PAGE_MASK);
 	if (kgsl_memdesc_use_cpu_map(&entry->memdesc))
 		entry->memdesc.gpuaddr = entry->memdesc.useraddr;
+	entry->memdesc.flags = KGSL_MEMFLAGS_USERMEM_ADDR;
 
 	return memdesc_sg_virt(&entry->memdesc, entry->memdesc.useraddr,
 				size);
@@ -2734,6 +2745,7 @@ static int kgsl_setup_ashmem(struct kgsl_mem_entry *entry,
 	entry->memdesc.useraddr = useraddr;
 	if (kgsl_memdesc_use_cpu_map(&entry->memdesc))
 		entry->memdesc.gpuaddr = entry->memdesc.useraddr;
+	entry->memdesc.flags = KGSL_MEMFLAGS_USERMEM_ASHMEM;
 
 	ret = memdesc_sg_virt(&entry->memdesc, useraddr, size);
 	if (ret)
@@ -2790,12 +2802,12 @@ static int kgsl_setup_ion(struct kgsl_mem_entry *entry,
 	meta->dmabuf = dmabuf;
 	meta->attach = attach;
 
-	entry->memtype = KGSL_MEM_ENTRY_ION;
 	entry->priv_data = meta;
 	entry->memdesc.pagetable = pagetable;
 	entry->memdesc.size = 0;
 	/* USE_CPU_MAP is not impemented for ION. */
 	entry->memdesc.flags &= ~KGSL_MEMFLAGS_USE_CPU_MAP;
+	entry->memdesc.flags = KGSL_MEMFLAGS_USERMEM_ION;
 
 	sg_table = dma_buf_map_attachment(attach, DMA_TO_DEVICE);
 
@@ -2843,17 +2855,21 @@ static long kgsl_ioctl_map_user_mem(struct kgsl_device_private *dev_priv,
 	struct kgsl_map_user_mem *param = data;
 	struct kgsl_mem_entry *entry = NULL;
 	struct kgsl_process_private *private = dev_priv->process_priv;
-	enum kgsl_user_mem_type memtype;
+	unsigned int memtype;
 
 	entry = kgsl_mem_entry_create();
 
 	if (entry == NULL)
 		return -ENOMEM;
 
+	/*
+	 * Convert from enum value to KGSL_MEM_ENTRY value, so that
+	 * we can use the latter consistently everywhere.
+	 */
 	if (_IOC_SIZE(cmd) == sizeof(struct kgsl_sharedmem_from_pmem))
-		memtype = KGSL_USER_MEM_TYPE_PMEM;
+		memtype = KGSL_MEM_ENTRY_PMEM;
 	else
-		memtype = param->memtype;
+		memtype = param->memtype + 1;
 
 	/*
 	 * Mask off unknown flags from userspace. This way the caller can
@@ -2862,11 +2878,11 @@ static long kgsl_ioctl_map_user_mem(struct kgsl_device_private *dev_priv,
 	 * determined by type of allocation being mapped.
 	 */
 	param->flags &= KGSL_MEMFLAGS_GPUREADONLY
-			| KGSL_MEMTYPE_MASK
 			| KGSL_MEMALIGN_MASK
 			| KGSL_MEMFLAGS_USE_CPU_MAP;
 
 	entry->memdesc.flags = param->flags;
+
 	if (!kgsl_mmu_use_cpu_map(&dev_priv->device->mmu))
 		entry->memdesc.flags &= ~KGSL_MEMFLAGS_USE_CPU_MAP;
 
@@ -2874,17 +2890,16 @@ static long kgsl_ioctl_map_user_mem(struct kgsl_device_private *dev_priv,
 		entry->memdesc.priv |= KGSL_MEMDESC_GUARD_PAGE;
 
 	switch (memtype) {
-	case KGSL_USER_MEM_TYPE_PMEM:
+	case KGSL_MEM_ENTRY_PMEM:
 		if (param->fd == 0 || param->len == 0)
 			break;
 
 		result = kgsl_setup_phys_file(entry, private->pagetable,
 					      param->fd, param->offset,
 					      param->len);
-		entry->memtype = KGSL_MEM_ENTRY_PMEM;
 		break;
 
-	case KGSL_USER_MEM_TYPE_ADDR:
+	case KGSL_MEM_ENTRY_USER:
 		KGSL_DEV_ERR_ONCE(dev_priv->device, "User mem type "
 				"KGSL_USER_MEM_TYPE_ADDR is deprecated\n");
 		if (!kgsl_mmu_enabled()) {
@@ -2900,10 +2915,9 @@ static long kgsl_ioctl_map_user_mem(struct kgsl_device_private *dev_priv,
 		result = kgsl_setup_useraddr(entry, private->pagetable,
 					    param->hostptr,
 					    param->offset, param->len);
-		entry->memtype = KGSL_MEM_ENTRY_USER;
 		break;
 
-	case KGSL_USER_MEM_TYPE_ASHMEM:
+	case KGSL_MEM_ENTRY_ASHMEM:
 		if (!kgsl_mmu_enabled()) {
 			KGSL_DRV_ERR(dev_priv->device,
 				"Cannot map paged memory with the "
@@ -2918,9 +2932,8 @@ static long kgsl_ioctl_map_user_mem(struct kgsl_device_private *dev_priv,
 					   param->fd, param->hostptr,
 					   param->len);
 
-		entry->memtype = KGSL_MEM_ENTRY_ASHMEM;
 		break;
-	case KGSL_USER_MEM_TYPE_ION:
+	case KGSL_MEM_ENTRY_ION:
 		result = kgsl_setup_ion(entry, private->pagetable, data,
 					dev_priv->device);
 		break;
@@ -2950,14 +2963,15 @@ static long kgsl_ioctl_map_user_mem(struct kgsl_device_private *dev_priv,
 	KGSL_STATS_ADD(param->len, kgsl_driver.stats.mapped,
 		kgsl_driver.stats.mapped_max);
 
-	kgsl_process_add_stats(private, entry->memtype, param->len);
+	kgsl_process_add_stats(private,
+			kgsl_memdesc_usermem_type(&entry->memdesc), param->len);
 
 	trace_kgsl_mem_map(entry, param->fd);
 
 	return result;
 
 error_attach:
-	switch (entry->memtype) {
+	switch (memtype) {
 	case KGSL_MEM_ENTRY_PMEM:
 	case KGSL_MEM_ENTRY_ASHMEM:
 		if (entry->priv_data)
@@ -3204,8 +3218,6 @@ _gpumem_alloc(struct kgsl_device_private *dev_priv,
 	if (result != 0)
 		goto err;
 
-	entry->memtype = KGSL_MEM_ENTRY_KERNEL;
-
 	*ret_entry = entry;
 	return result;
 err:
@@ -3232,7 +3244,9 @@ kgsl_ioctl_gpumem_alloc(struct kgsl_device_private *dev_priv,
 	if (result != 0)
 		goto err;
 
-	kgsl_process_add_stats(private, entry->memtype, param->size);
+	kgsl_process_add_stats(private,
+			kgsl_memdesc_usermem_type(&entry->memdesc),
+			param->size);
 	trace_kgsl_mem_alloc(entry);
 
 	param->gpuaddr = entry->memdesc.gpuaddr;
@@ -3266,7 +3280,9 @@ kgsl_ioctl_gpumem_alloc_id(struct kgsl_device_private *dev_priv,
 	if (result != 0)
 		goto err;
 
-	kgsl_process_add_stats(private, entry->memtype, param->size);
+	kgsl_process_add_stats(private,
+			kgsl_memdesc_usermem_type(&entry->memdesc),
+			param->size);
 	trace_kgsl_mem_alloc(entry);
 
 	param->id = entry->id;
