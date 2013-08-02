@@ -2793,6 +2793,20 @@ struct kgsl_memdesc *adreno_find_ctxtmem(struct kgsl_device *device,
 	return desc;
 }
 
+/*
+ * adreno_find_region() - Find corresponding allocation for a given address
+ * @device: Device on which address operates
+ * @pt_base: The pagetable in which address is mapped
+ * @gpuaddr: The gpu address
+ * @size: Size in bytes of the address
+ * @entry: If the allocation is part of user space allocation then the mem
+ * entry is returned in this parameter. Caller is supposed to decrement
+ * refcount on this entry after its done using it.
+ *
+ * Finds an allocation descriptor for a given gpu address range
+ *
+ * Returns the descriptor on success else NULL
+ */
 static struct kgsl_memdesc *adreno_find_region(struct kgsl_device *device,
 						phys_addr_t pt_base,
 						unsigned int gpuaddr,
