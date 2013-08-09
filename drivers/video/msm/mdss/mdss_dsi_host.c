@@ -28,6 +28,8 @@
 
 #define VSYNC_PERIOD 17
 
+#define VSYNC_PERIOD 17
+
 static struct mdss_dsi_ctrl_pdata *left_ctrl_pdata;
 
 static struct mdss_dsi_ctrl_pdata *ctrl_list[DSI_CTRL_MAX];
