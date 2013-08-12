@@ -154,6 +154,14 @@ Subnode properties:
 			 enabled if framebuffer size is less than max mixer
 			 width; 2) the defaut even split is enabled if frambuffer
 			 size is greater than max mixer width.
+- linux,contiguous-region: Phandle to the continuous memory region reserved for
+			 frame-buffer. Size of this region is dependent on the
+			 display panel resolution and buffering scheme.
+			 Currently driver uses double buffering.
+
+			 Example: Width = 1920, Height = 1080, BytesPerPixel = 4,
+			 Number of frame-buffers reserved = 2.
+			 Size = 1920*1080*4*2 = ROUND_1MB(15.8MB) = 16MB.
 
 Example:
 	qcom,mdss_mdp@fd900000 {
@@ -200,6 +208,7 @@ Example:
 			compatible = "qcom,mdss-fb";
 			qcom,mdss-mixer-swap;
 			qcom,mdss-fb-split = <480 240>
+			linux,contiguous-region = <&fb_mem>;
 		};
 	};
 
