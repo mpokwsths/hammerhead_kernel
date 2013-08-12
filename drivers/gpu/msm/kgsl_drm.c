@@ -518,6 +518,8 @@ kgsl_gem_create_ioctl(struct drm_device *dev, void *data,
 	ret = kgsl_gem_init_obj(dev, file_priv, obj, &handle);
 	if (ret) {
 		drm_gem_object_release(obj);
+		kfree(obj->driver_private);
+		kfree(obj);
 		DRM_ERROR("Unable to initialize GEM object ret = %d\n", ret);
 		return ret;
 	}
@@ -574,8 +576,12 @@ kgsl_gem_create_fd_ioctl(struct drm_device *dev, void *data,
 
 	ret = kgsl_gem_init_obj(dev, file_priv, obj, &handle);
 
-	if (ret)
+	if (ret) {
+		drm_gem_object_release(obj);
+		kfree(obj->driver_private);
+		kfree(obj);
 		goto error_fput;
+	}
 
 	mutex_lock(&dev->struct_mutex);
 
@@ -634,6 +640,8 @@ kgsl_gem_create_from_ion_ioctl(struct drm_device *dev, void *data,
 	if (ret) {
 		ion_free(kgsl_drm_ion_client, ion_handle);
 		drm_gem_object_release(obj);
+		kfree(obj->driver_private);
+		kfree(obj);
 		DRM_ERROR("Unable to initialize GEM object ret = %d\n", ret);
 		return ret;
 	}
@@ -664,6 +672,7 @@ kgsl_gem_create_from_ion_ioctl(struct drm_device *dev, void *data,
 		kgsl_mmu_putpagetable(priv->pagetable);
 		drm_gem_object_release(obj);
 		kfree(priv);
+		kfree(obj);
 		return -ENOMEM;
 	}
 
@@ -687,6 +696,7 @@ kgsl_gem_create_from_ion_ioctl(struct drm_device *dev, void *data,
 		kgsl_mmu_putpagetable(priv->pagetable);
 		drm_gem_object_release(obj);
 		kfree(priv);
+		kfree(obj);
 		return -ENOMEM;
 	}
 	ret = kgsl_mmu_map(priv->pagetable, &priv->memdesc);
@@ -699,6 +709,7 @@ kgsl_gem_create_from_ion_ioctl(struct drm_device *dev, void *data,
 		kgsl_mmu_putpagetable(priv->pagetable);
 		drm_gem_object_release(obj);
 		kfree(priv);
+		kfree(obj);
 		return -ENOMEM;
 	}
 
