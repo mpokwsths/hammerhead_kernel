@@ -207,9 +207,24 @@ static void detect_repeating_patterns(struct menu_device *data)
 	stddev = stddev / INTERVALS;
 
 	/*
-	 * now.. if stddev is small.. then assume we have a
-	 * repeating pattern and predict we keep doing this.
+	 * If we have outliers to the upside in our distribution, discard
+	 * those by setting the threshold to exclude these outliers, then
+	 * calculate the average and standard deviation again. Once we get
+	 * down to the bottom 3/4 of our samples, stop excluding samples.
+	 *
+	 * This can deal with workloads that have long pauses interspersed
+	 * with sporadic activity with a bunch of short pauses.
+	 *
+	 * The typical interval is obtained when standard deviation is small
+	 * or standard deviation is small compared to the average interval.
+	 *
+	 * Use this result only if there is no timer to wake us up sooner.
 	 */
+	if (((avg > stddev * 6) && (divisor * 4 >= INTERVALS * 3))
+							|| stddev <= 20) {
+		if (data->expected_us > avg)
+			data->predicted_us = avg;
+		return;
 
 	if (avg && stddev < STDDEV_THRESH)
 		data->predicted_us = avg;
