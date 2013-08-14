@@ -192,31 +192,46 @@ static void detect_repeating_patterns(struct menu_device *data)
 	uint64_t stddev = 0; /* contains the square of the std deviation */
 
 	/* first calculate average and standard deviation of the past */
-	for (i = 0; i < INTERVALS; i++)
-		avg += data->intervals[i];
-	avg = avg / INTERVALS;
+	max = avg = divisor = stddev = 0;
+	for (i = 0; i < INTERVALS; i++) {
+		int64_t value = data->intervals[i];
+		if (value <= thresh) {
+			avg += value;
+			divisor++;
+			if (value > max)
+				max = value;
+		}
+	}
+	do_div(avg, divisor);
 
-	/* if the avg is beyond the known next tick, it's worthless */
-	if (avg > data->expected_us)
-		return;
-
-	for (i = 0; i < INTERVALS; i++)
-		stddev += (data->intervals[i] - avg) *
-			  (data->intervals[i] - avg);
-
-	stddev = stddev / INTERVALS;
-
+	for (i = 0; i < INTERVALS; i++) {
+		int64_t value = data->intervals[i];
+		if (value <= thresh) {
+			int64_t diff = value - avg;
+			stddev += diff * diff;
+		}
+	}
+	do_div(stddev, divisor);
 	/*
 	 * The typical interval is obtained when standard deviation is small
 	 * or standard deviation is small compared to the average interval.
 	 *
+	 * int_sqrt() formal parameter type is unsigned long. When the
+	 * greatest difference to an outlier exceeds ~65 ms * sqrt(divisor)
+	 * the resulting squared standard deviation exceeds the input domain
+	 * of int_sqrt on platforms where unsigned long is 32 bits in size.
+	 * In such case reject the candidate average.
+	 *
 	 * Use this result only if there is no timer to wake us up sooner.
 	 */
-	if (((avg > stddev * 6) && (divisor * 4 >= INTERVALS * 3))
+	if (likely(stddev <= ULONG_MAX)) {
+		stddev = int_sqrt(stddev);
+		if (((avg > stddev * 6) && (divisor * 4 >= INTERVALS * 3))
 							|| stddev <= 20) {
-		if (data->expected_us > avg)
-			data->predicted_us = avg;
-		return;
+			if (data->expected_us > avg)
+				data->predicted_us = avg;
+			return;
+		}
 	}
 
 	/*
