@@ -187,12 +187,17 @@ static u64 div_round64(u64 dividend, u32 divisor)
  */
 static void detect_repeating_patterns(struct menu_device *data)
 {
-	int i;
-	uint64_t avg = 0;
-	uint64_t stddev = 0; /* contains the square of the std deviation */
+	int i, divisor;
+	uint64_t max, avg, stddev;
+	int64_t thresh = LLONG_MAX; /* Discard outliers above this value. */
+
+again:
 
 	/* first calculate average and standard deviation of the past */
-	max = avg = divisor = stddev = 0;
+	max = 0;
+	avg = 0;
+	divisor = 0;
+	stddev = 0;
 	for (i = 0; i < INTERVALS; i++) {
 		int64_t value = data->intervals[i];
 		if (value <= thresh) {
