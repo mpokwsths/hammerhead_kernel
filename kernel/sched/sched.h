@@ -592,6 +592,7 @@ struct sched_group_power {
 	 */
 	unsigned int power, power_orig;
 	unsigned long next_update;
+	int imbalance; /* XXX unrelated to power but shared group state */
 	/*
 	 * Number of busy cpus in this group.
 	 */
@@ -620,6 +621,15 @@ struct sched_group {
 static inline struct cpumask *sched_group_cpus(struct sched_group *sg)
 {
 	return to_cpumask(sg->cpumask);
+}
+
+/*
+ * cpumask masking which cpus in the group are allowed to iterate up the domain
+ * tree.
+ */
+static inline struct cpumask *sched_group_mask(struct sched_group *sg)
+{
+	return to_cpumask(sg->sgp->cpumask);
 }
 
 /**
