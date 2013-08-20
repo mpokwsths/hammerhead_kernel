@@ -58,6 +58,12 @@ struct mdss_hw_settings {
 	u32 val;
 };
 
+struct mdss_debug_inf {
+	void *debug_data;
+	int (*debug_dump_stats)(void *data, char *buf, int len);
+	void (*debug_enable_clock)(int on);
+};
+
 struct mdss_fudge_factor {
 	u32 numer;
 	u32 denom;
@@ -150,7 +156,7 @@ struct mdss_data_type {
 	struct mdss_iommu_map_type *iommu_map;
 
 	struct early_suspend early_suspend;
-	void *debug_data;
+	struct mdss_debug_inf debug_inf;
 	bool mixer_switched;
 	struct mdss_prefill_data prefill_data;
 
