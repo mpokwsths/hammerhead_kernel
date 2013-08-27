@@ -114,7 +114,10 @@ struct dma_buf *dma_buf_export(void *priv, const struct dma_buf_ops *ops,
 	dmabuf->size = size;
 
 	file = anon_inode_getfile("dmabuf", &dma_buf_fops, dmabuf, flags);
-
+	if (IS_ERR(file)) {
+		kfree(dmabuf);
+		return ERR_CAST(file);
+	}
 	dmabuf->file = file;
 
 	mutex_init(&dmabuf->lock);
