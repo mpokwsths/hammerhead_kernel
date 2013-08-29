@@ -341,7 +341,7 @@ static void *deadline_init_queue(struct request_queue *q)
 {
 	struct deadline_data *dd;
 
-	dd = kmalloc_node(sizeof(*dd), GFP_KERNEL | __GFP_ZERO, q->node);
+	dd = kzalloc_node(sizeof(*dd), GFP_KERNEL, q->node);
 	if (!dd)
 		return NULL;
 
