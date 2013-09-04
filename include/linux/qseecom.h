@@ -157,6 +157,13 @@ struct qseecom_is_es_activated_req {
 	int is_activated; /* out */
 };
 
+enum qseecom_bandwidth_request_mode {
+	INACTIVE = 0,
+	LOW,
+	MEDIUM,
+	HIGH,
+};
+
 #define QSEECOM_IOC_MAGIC    0x97
 
 
@@ -219,5 +226,8 @@ struct qseecom_is_es_activated_req {
 
 #define QSEECOM_IOCTL_IS_ES_ACTIVATED_REQ \
 	_IOWR(QSEECOM_IOC_MAGIC, 20, struct qseecom_is_es_activated_req)
+
+#define QSEECOM_IOCTL_SET_BUS_SCALING_REQ \
+	_IOWR(QSEECOM_IOC_MAGIC, 21, int)
 
 #endif /* __QSEECOM_H_ */
