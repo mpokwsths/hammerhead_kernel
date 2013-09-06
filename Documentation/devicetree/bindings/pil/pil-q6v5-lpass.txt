@@ -22,6 +22,7 @@ Optional properties:
 - qcom,gpio-err-ready: GPIO used by the lpass to indicate apps error service is ready.
 - qcom,gpio-proxy-unvote: GPIO used by the lpass to indicate apps clock is ready.
 - qcom,gpio-force-stop: GPIO used by the apps to force the lpass to shutdown.
+- qcom,restart-group: List of subsystems that will need to restart together.
 
 Example:
 	qcom,lpass@fe200000 {
