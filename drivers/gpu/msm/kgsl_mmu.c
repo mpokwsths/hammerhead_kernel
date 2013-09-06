@@ -18,6 +18,7 @@
 #include <linux/slab.h>
 #include <linux/sched.h>
 #include <linux/iommu.h>
+#include <linux/types.h>
 #include <mach/iommu.h>
 
 #include "kgsl.h"
@@ -532,6 +533,8 @@ int kgsl_mmu_init(struct kgsl_device *device)
 	if (KGSL_MMU_TYPE_NONE == kgsl_mmu_type) {
 		dev_info(device->dev, "|%s| MMU type set for device is "
 				"NOMMU\n", __func__);
+		status = dma_set_coherent_mask(device->dev->parent,
+					DMA_BIT_MASK(sizeof(dma_addr_t)*8));
 		goto done;
 	} else if (KGSL_MMU_TYPE_GPU == kgsl_mmu_type)
 		mmu->mmu_ops = &gpummu_ops;
@@ -826,6 +829,10 @@ kgsl_mmu_map(struct kgsl_pagetable *pagetable,
 	if (!kgsl_memdesc_is_global(memdesc) &&
 		(KGSL_MEMDESC_MAPPED & memdesc->priv))
 		return -EINVAL;
+
+	if (kgsl_mmu_get_mmutype() == KGSL_MMU_TYPE_NONE)
+		return 0;
+
 	/* Add space for the guard page when allocating the mmu VA. */
 	size = memdesc->size;
 	if (kgsl_memdesc_has_guard_page(memdesc))
