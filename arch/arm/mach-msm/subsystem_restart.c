@@ -44,6 +44,8 @@
 #include <mach/lge_handle_panic.h>
 #endif
 
+#include "sysmon.h"
+
 static int enable_debug;
 module_param(enable_debug, int, S_IRUGO | S_IWUSR);
 
@@ -392,11 +394,22 @@ static void notify_each_subsys_device(struct subsys_device **list,
 		unsigned count,
 		enum subsys_notif_type notif, void *data)
 {
+	struct subsys_device *subsys;
+
 	while (count--) {
 		struct subsys_device *dev = *list++;
 		struct notif_data notif_data;
+
 		if (!dev)
 			continue;
+
+		mutex_lock(&subsys_list_lock);
+		list_for_each_entry(subsys, &subsys_list, list)
+			if (dev != subsys)
+				sysmon_send_event(subsys->desc->name,
+						dev->desc->name,
+						notif);
+		mutex_unlock(&subsys_list_lock);
 
 		notif_data.crashed = subsys_get_crash_status(dev);
 		notif_data.enable_ramdump = enable_ramdumps;
