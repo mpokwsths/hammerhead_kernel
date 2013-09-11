@@ -131,17 +131,10 @@ static struct dmi_system_id __cpuinitdata processor_power_dmi_table[] = {
  */
 static void acpi_safe_halt(void)
 {
-	current_thread_info()->status &= ~TS_POLLING;
-	/*
-	 * TS_POLLING-cleared state must be visible before we
-	 * test NEED_RESCHED:
-	 */
-	smp_mb();
-	if (!need_resched()) {
+	if (!tif_need_resched()) {
 		safe_halt();
 		local_irq_disable();
 	}
-	current_thread_info()->status |= TS_POLLING;
 }
 
 #ifdef ARCH_APICTIMER_STOPS_ON_C3
@@ -752,7 +745,10 @@ static int acpi_idle_enter_c1(struct cpuidle_device *dev,
 	if (unlikely(!pr))
 		return -EINVAL;
 
-	local_irq_disable();
+	if (cx->entry_method == ACPI_CSTATE_FFH) {
+		if (current_set_polling_and_test())
+			return -EINVAL;
+	}
 
 	lapic_timer_state_broadcast(pr, cx, 1);
 	kt1 = ktime_get_real();
@@ -821,21 +817,9 @@ static int acpi_idle_enter_simple(struct cpuidle_device *dev,
 	if (unlikely(!pr))
 		return -EINVAL;
 
-	local_irq_disable();
-
-	if (cx->entry_method != ACPI_CSTATE_FFH) {
-		current_thread_info()->status &= ~TS_POLLING;
-		/*
-		 * TS_POLLING-cleared state must be visible before we test
-		 * NEED_RESCHED:
-		 */
-		smp_mb();
-
-		if (unlikely(need_resched())) {
-			current_thread_info()->status |= TS_POLLING;
-			local_irq_enable();
+	if (cx->entry_method == ACPI_CSTATE_FFH) {
+		if (current_set_polling_and_test())
 			return -EINVAL;
-		}
 	}
 
 	/*
@@ -861,12 +845,6 @@ static int acpi_idle_enter_simple(struct cpuidle_device *dev,
 
 	/* Tell the scheduler how much we idled: */
 	sched_clock_idle_wakeup_event(idle_time_ns);
-
-	local_irq_enable();
-	if (cx->entry_method != ACPI_CSTATE_FFH)
-		current_thread_info()->status |= TS_POLLING;
-
-	cx->usage++;
 
 	lapic_timer_state_broadcast(pr, cx, 0);
 	cx->time += idle_time;
@@ -913,21 +891,9 @@ static int acpi_idle_enter_bm(struct cpuidle_device *dev,
 		}
 	}
 
-	local_irq_disable();
-
-	if (cx->entry_method != ACPI_CSTATE_FFH) {
-		current_thread_info()->status &= ~TS_POLLING;
-		/*
-		 * TS_POLLING-cleared state must be visible before we test
-		 * NEED_RESCHED:
-		 */
-		smp_mb();
-
-		if (unlikely(need_resched())) {
-			current_thread_info()->status |= TS_POLLING;
-			local_irq_enable();
+	if (cx->entry_method == ACPI_CSTATE_FFH) {
+		if (current_set_polling_and_test())
 			return -EINVAL;
-		}
 	}
 
 	acpi_unlazy_tlb(smp_processor_id());
@@ -978,15 +944,6 @@ static int acpi_idle_enter_bm(struct cpuidle_device *dev,
 
 	/* Update device last_residency*/
 	dev->last_residency = (int)idle_time;
-
-	/* Tell the scheduler how much we idled: */
-	sched_clock_idle_wakeup_event(idle_time_ns);
-
-	local_irq_enable();
-	if (cx->entry_method != ACPI_CSTATE_FFH)
-		current_thread_info()->status |= TS_POLLING;
-
-	cx->usage++;
 
 	lapic_timer_state_broadcast(pr, cx, 0);
 	cx->time += idle_time;
