@@ -1603,6 +1603,8 @@ int do_adjtimex(struct timex *txc)
 	if (tai != orig_tai)
 		timekeeping_set_tai_offset(tai);
 
+	ntp_notify_cmos_timer();
+
 	return ret;
 }
 
