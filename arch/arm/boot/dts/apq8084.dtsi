@@ -277,6 +277,515 @@
 			qcom,irq-no-suspend;
 		};
 	};
+<<<<<<< HEAD
+=======
+
+	qcom,venus@fdce0000 {
+		compatible = "qcom,pil-venus";
+		reg = <0xfdce0000 0x4000>,
+		      <0xfdc80000 0x400>;
+		reg-names = "wrapper_base", "vbif_base";
+		vdd-supply = <&gdsc_venus>;
+
+		qcom,firmware-name = "venus";
+	};
+
+	qcom,lpass@fe200000 {
+		compatible = "qcom,pil-q6v5-lpass";
+		reg = <0xfe200000 0x00100>,
+		      <0xfd485100 0x00010>,
+		      <0xfc4016c0 0x00004>;
+		reg-names = "qdsp6_base", "halt_base", "restart_reg";
+		vdd_cx-supply = <&pma8084_s2_corner>;
+		interrupts = <0 162 1>;
+
+		qcom,firmware-name = "adsp";
+
+		/* GPIO inputs from lpass */
+		qcom,gpio-err-fatal = <&smp2pgpio_ssr_smp2p_2_in 0 0>;
+		qcom,gpio-proxy-unvote = <&smp2pgpio_ssr_smp2p_2_in 2 0>;
+		qcom,gpio-err-ready = <&smp2pgpio_ssr_smp2p_2_in 1 0>;
+
+		/* GPIO output to lpass */
+		qcom,gpio-force-stop = <&smp2pgpio_ssr_smp2p_2_out 0 0>;
+	};
+
+	ufsphy1: ufsphy@0xfc597000 {
+		compatible = "qcom,ufsphy";
+		reg = <0xfc597000 0x87c>;
+		vdda-phy-supply = <&pma8084_l4>;
+		vdda-pll-supply = <&pma8084_l12>;
+		vdda-phy-max-microamp = <50000>;
+		vdda-pll-max-microamp = <1000>;
+
+		status = "disabled";
+	};
+
+	ufs1: ufshc@0xfc594000 {
+		compatible = "qcom,ufshc";
+		reg = <0xfc594000 0x800>;
+		interrupts = <0 28 0>;
+
+		ufs-phy = <&ufsphy1>;
+		vcc-supply = <&pma8084_l19>;
+		vccq-supply = <&pma8084_l3>;
+		vccq2-supply = <&pma8084_s4>;
+		vcc-max-microamp = <460000>;
+		vccq-max-microamp = <200000>;
+		vccq2-max-microamp = <145000>;
+
+		clock-names = "core_clk_src", "core_clk", "bus_clk", "iface_clk",
+				"ref_clk", "rx_lane0_sync_clk", "tx_lane0_sync_clk",
+				"rx_lane1_sync_clk", "tx_lane1_sync_clk";
+		max-clock-frequency-hz = <200000000>, <0>, <0>, <0>,
+						<0>, <0>, <0>, <0>, <0>;
+
+		status = "disabled";
+	};
+
+	qcom,wdt@f9017000 {
+		compatible = "qcom,msm-watchdog";
+		reg = <0xf9017000 0x1000>;
+		interrupts = <0 3 0>, <0 4 0>;
+		qcom,bark-time = <11000>;
+		qcom,pet-time = <10000>;
+		qcom,ipi-ping;
+	};
+
+	qcom,msm-rng@f9bff000{
+		compatible = "qcom,msm-rng";
+		reg = <0xf9bff000 0x200>;
+		qcom,msm-rng-iface-clk;
+	};
+
+	jtag_fuse: jtagfuse@fc4be024 {
+		compatible = "qcom,jtag-fuse";
+		reg = <0xfc4be024 0x8>;
+		reg-names = "fuse-base";
+	};
+
+	qcom,bcl {
+		compatible = "qcom,bcl";
+	};
+
+	qcom,msm-thermal {
+		compatible = "qcom,msm-thermal";
+		qcom,sensor-id = <5>;
+		qcom,poll-ms = <250>;
+		qcom,limit-temp = <60>;
+		qcom,temp-hysteresis = <10>;
+		qcom,freq-step = <2>;
+		qcom,freq-control-mask = <0xf>;
+		qcom,core-limit-temp = <80>;
+		qcom,core-temp-hysteresis = <10>;
+		qcom,core-control-mask = <0xe>;
+		qcom,vdd-restriction-temp = <5>;
+		qcom,vdd-restriction-temp-hysteresis = <10>;
+		qcom,pmic-sw-mode-temp = <85>;
+		qcom,pmic-sw-mode-temp-hysteresis = <75>;
+		qcom,pmic-sw-mode-regs = "vdd-dig";
+
+		vdd-dig-supply = <&pma8084_s2_floor_corner>;
+		vdd-gfx-supply = <&pma8084_s6_floor_corner>;
+
+		qcom,vdd-dig-rstr{
+			qcom,vdd-rstr-reg = "vdd-dig";
+			qcom,levels = <5 7 7>; /* Nominal, Super Turbo, Super Turbo */
+			qcom,min-level = <1>; /* No Request */
+		};
+
+		qcom,vdd-gfx-rstr{
+			qcom,vdd-rstr-reg = "vdd-gfx";
+			qcom,levels = <5 7 7>; /* Nominal, Super Turbo, Super Turbo */
+			qcom,min-level = <1>; /* No Request */
+		};
+
+		qcom,vdd-apps-rstr{
+			qcom,vdd-rstr-reg = "vdd-apps";
+			qcom,levels = <1958400 2150400 2150400>;
+			qcom,freq-req;
+		};
+	};
+
+	msm_vidc: qcom,vidc@fdc00000 {
+		compatible = "qcom,msm-vidc";
+		reg = <0xfdc00000 0xff000>;
+		interrupts = <0 44 0>;
+		qcom,hfi = "venus";
+		qcom,ocmem-size = <524288>; /* 512 * 1024*/
+		qcom,max-hw-load = <1281600>; /* Full 4k @ 30 + 1080p @ 30 */
+		qcom,vidc-ns-map = <0x40000000 0x40000000>;
+		qcom,load-freq-tbl = <979200 465000000>,
+			<783360 465000000>,
+			<489600 266670000>,
+			<244800 133330000>;
+		qcom,bus-ports = <1>;
+		qcom,reg-presets = <0x800B0 0x00101001>,
+			<0x800B0 0x00101001>,
+			<0x800B4 0x00101010>,
+			<0x800B8 0x10100010>,
+			<0x800BC 0x00001010>,
+			<0x800C0 0x1000100f>,
+			<0x800C4 0x10000000>,
+			<0x800C8 0x10001000>,
+			<0x800CC 0x00001000>,
+			<0x80070 0x00013FFF>,
+			<0x80074 0x000000A4>,
+			<0x800A8 0x00003FFF>,
+			<0xe0020 0x5555556>,
+			<0xe0024 0>,
+			<0x80124 0x3>;
+		qcom,enc-ocmem-ab-ib = <0 0>,
+			<138000 1034000>,
+			<414000 1034000>,
+			<940000 1034000>,
+			<1880000 2068000>,
+			<3008000 3309000>,
+			<3760000 4136000>,
+			<4468000 2457000>;
+		qcom,dec-ocmem-ab-ib = <0 0>,
+			<176000 519000>,
+			<456000 519000>,
+			<864000 519000>,
+			<1728000 1038000>,
+			<2766000 1661000>,
+			<3456000 2076000>,
+			<3662000 2198000>;
+		qcom,enc-ddr-ab-ib = <0 0>,
+			<120000 302000>,
+			<364000 302000>,
+			<804000 302000>,
+			<1608000 604000>,
+			<2576000 967000>,
+			<4680000 1404000>,
+			<49880000 1496000>;
+		qcom,dec-ddr-ab-ib = <0 0>,
+			<208000 303000>,
+			<536000 303000>,
+			<1012000 303000>,
+			<2024000 606000>,
+			<3240000 970000>,
+			<4048000 1212000>,
+			<4264000 1279000>;
+		qcom,buffer-type-tz-usage-table = <0x91 0x1>,
+			<0x42 0x2>,
+			<0x120 0x3>;
+		qcom,vidc-iommu-domains {
+			qcom,domain-ns {
+				qcom,vidc-domain-phandle = <&venus_domain_ns>;
+				qcom,vidc-partition-buffer-types = <0x1ff>,
+					<0x200>;
+			};
+			qcom,domain-sec-bs {
+				qcom,vidc-domain-phandle = <&venus_domain_sec_bitstream>;
+				qcom,vidc-partition-buffer-types = <0x91>;
+			};
+			qcom,domain-sec-px {
+				qcom,vidc-domain-phandle = <&venus_domain_sec_pixel>;
+				qcom,vidc-partition-buffer-types = <0x42>;
+			};
+			qcom,domain-sec-np {
+				qcom,vidc-domain-phandle = <&venus_domain_sec_non_pixel>;
+				qcom,vidc-partition-buffer-types = <0x120>;
+			};
+		};
+	};
+
+	qcom,msm-adsp-sensors {
+		compatible = "qcom,msm-adsp-sensors";
+		qcom,src-id = <11>;
+		qcom,dst-id = <604>;
+		qcom,ab = <32505856>;
+		qcom,ib = <32505856>;
+	};
+
+	sound {
+		compatible = "qcom,apq8084-audio-taiko";
+		qcom,model = "apq8084-taiko-snd-card";
+
+		qcom,audio-routing =
+			"RX_BIAS", "MCLK",
+			"LDO_H", "MCLK",
+			"AIF4 MAD", "MCLK",
+			"AMIC1", "MIC BIAS1 Internal1",
+			"MIC BIAS1 Internal1", "Handset Mic",
+			"AMIC2", "MIC BIAS2 External",
+			"MIC BIAS2 External", "Headset Mic",
+			"AMIC3", "MIC BIAS2 External",
+			"MIC BIAS2 External", "ANCRight Headset Mic",
+			"AMIC4", "MIC BIAS2 External",
+			"MIC BIAS2 External", "ANCLeft Headset Mic",
+			"DMIC1", "MIC BIAS1 External",
+			"MIC BIAS1 External", "Digital Mic1",
+			"DMIC2", "MIC BIAS1 External",
+			"MIC BIAS1 External", "Digital Mic2",
+			"DMIC3", "MIC BIAS3 External",
+			"MIC BIAS3 External", "Digital Mic3",
+			"DMIC4", "MIC BIAS4 External",
+			"MIC BIAS4 External", "Digital Mic4",
+			"DMIC5", "MIC BIAS3 External",
+			"MIC BIAS3 External", "Digital Mic5",
+			"DMIC6", "MIC BIAS3 External",
+			"MIC BIAS3 External", "Digital Mic6";
+
+		qcom,cdc-mclk-gpios = <&pma8084_gpios 15 0>;
+		qcom,taiko-mclk-clk-freq = <9600000>;
+		qcom,prim-auxpcm-gpio-clk  = <&msmgpio 87 0>;
+		qcom,prim-auxpcm-gpio-sync = <&msmgpio 88 0>;
+		qcom,prim-auxpcm-gpio-din  = <&msmgpio 89 0>;
+		qcom,prim-auxpcm-gpio-dout = <&msmgpio 89 0>;
+		qcom,prim-auxpcm-gpio-set = "prim-gpio-prim";
+		qcom,sec-auxpcm-gpio-clk  = <&msmgpio 82 0>;
+		qcom,sec-auxpcm-gpio-sync = <&msmgpio 83 0>;
+		qcom,sec-auxpcm-gpio-din  = <&msmgpio 84 0>;
+		qcom,sec-auxpcm-gpio-dout = <&msmgpio 85 0>;
+	};
+
+	qcom,msm-adsp-loader {
+		compatible = "qcom,adsp-loader";
+		qcom,adsp-state = <0>;
+	};
+
+	qcom,msm-pcm {
+		compatible = "qcom,msm-pcm-dsp";
+		qcom,msm-pcm-dsp-id = <0>;
+	};
+
+	qcom,msm-pcm-low-latency {
+		compatible = "qcom,msm-pcm-dsp";
+		qcom,msm-pcm-dsp-id = <1>;
+		qcom,msm-pcm-low-latency;
+	};
+
+	qcom,msm-pcm-routing {
+		compatible = "qcom,msm-pcm-routing";
+	};
+
+	qcom,msm-pcm-lpa {
+		compatible = "qcom,msm-pcm-lpa";
+	};
+
+	qcom,msm-compr-dsp {
+		compatible = "qcom,msm-compr-dsp";
+	};
+
+	qcom,msm-voip-dsp {
+		compatible = "qcom,msm-voip-dsp";
+	};
+
+	qcom,msm-pcm-voice {
+		compatible = "qcom,msm-pcm-voice";
+	};
+
+	qcom,msm-stub-codec {
+		compatible = "qcom,msm-stub-codec";
+	};
+
+	qcom,msm-dai-fe {
+		compatible = "qcom,msm-dai-fe";
+	};
+
+	qcom,msm-pcm-afe {
+		compatible = "qcom,msm-pcm-afe";
+	};
+
+	qcom,msm-dai-q6-hdmi {
+		compatible = "qcom,msm-dai-q6-hdmi";
+		qcom,msm-dai-q6-dev-id = <8>;
+	};
+
+	qcom,msm-lsm-client {
+		compatible = "qcom,msm-lsm-client";
+	};
+
+	qcom,msm-dai-stub {
+		compatible = "qcom,msm-dai-stub";
+		qcom,msm-dai-stub-rx {
+			compatible = "qcom,msm-dai-stub-dev";
+			qcom,msm-dai-stub-dev-id = <0>;
+		};
+
+		qcom,msm-dai-stub-tx {
+			compatible = "qcom,msm-dai-stub-dev";
+			qcom,msm-dai-stub-dev-id = <1>;
+		};
+
+		qcom,msm-dai-stub-1-tx {
+			compatible = "qcom,msm-dai-stub-dev";
+			qcom,msm-dai-stub-dev-id = <3>;
+		};
+	};
+
+	qcom,msm-dai-q6 {
+		compatible = "qcom,msm-dai-q6";
+		qcom,msm-dai-q6-sb-0-rx {
+			compatible = "qcom,msm-dai-q6-dev";
+			qcom,msm-dai-q6-dev-id = <16384>;
+		};
+
+		qcom,msm-dai-q6-sb-0-tx {
+			compatible = "qcom,msm-dai-q6-dev";
+			qcom,msm-dai-q6-dev-id = <16385>;
+		};
+
+		qcom,msm-dai-q6-sb-1-rx {
+			compatible = "qcom,msm-dai-q6-dev";
+			qcom,msm-dai-q6-dev-id = <16386>;
+		};
+
+		qcom,msm-dai-q6-sb-1-tx {
+			compatible = "qcom,msm-dai-q6-dev";
+			qcom,msm-dai-q6-dev-id = <16387>;
+		};
+
+		qcom,msm-dai-q6-sb-2-rx {
+			compatible = "qcom,msm-dai-q6-dev";
+			qcom,msm-dai-q6-dev-id = <16388>;
+		};
+
+		qcom,msm-dai-q6-sb-2-tx {
+			compatible = "qcom,msm-dai-q6-dev";
+			qcom,msm-dai-q6-dev-id = <16389>;
+		};
+
+		qcom,msm-dai-q6-sb-3-rx {
+			compatible = "qcom,msm-dai-q6-dev";
+			qcom,msm-dai-q6-dev-id = <16390>;
+		};
+
+		qcom,msm-dai-q6-sb-3-tx {
+			compatible = "qcom,msm-dai-q6-dev";
+			qcom,msm-dai-q6-dev-id = <16391>;
+		};
+
+		qcom,msm-dai-q6-sb-4-rx {
+			compatible = "qcom,msm-dai-q6-dev";
+			qcom,msm-dai-q6-dev-id = <16392>;
+		};
+
+		qcom,msm-dai-q6-sb-4-tx {
+			compatible = "qcom,msm-dai-q6-dev";
+			qcom,msm-dai-q6-dev-id = <16393>;
+		};
+
+		qcom,msm-dai-q6-sb-5-tx {
+			compatible = "qcom,msm-dai-q6-dev";
+			qcom,msm-dai-q6-dev-id = <16395>;
+		};
+
+		qcom,msm-dai-q6-bt-sco-rx {
+			compatible = "qcom,msm-dai-q6-dev";
+			qcom,msm-dai-q6-dev-id = <12288>;
+		};
+
+		qcom,msm-dai-q6-bt-sco-tx {
+			compatible = "qcom,msm-dai-q6-dev";
+			qcom,msm-dai-q6-dev-id = <12289>;
+		};
+
+		qcom,msm-dai-q6-int-fm-rx {
+			compatible = "qcom,msm-dai-q6-dev";
+			qcom,msm-dai-q6-dev-id = <12292>;
+		};
+
+		qcom,msm-dai-q6-int-fm-tx {
+			compatible = "qcom,msm-dai-q6-dev";
+			qcom,msm-dai-q6-dev-id = <12293>;
+		};
+
+		qcom,msm-dai-q6-be-afe-pcm-rx {
+			compatible = "qcom,msm-dai-q6-dev";
+			qcom,msm-dai-q6-dev-id = <224>;
+		};
+
+		qcom,msm-dai-q6-be-afe-pcm-tx {
+			compatible = "qcom,msm-dai-q6-dev";
+			qcom,msm-dai-q6-dev-id = <225>;
+		};
+
+		qcom,msm-dai-q6-afe-proxy-rx {
+			compatible = "qcom,msm-dai-q6-dev";
+			qcom,msm-dai-q6-dev-id = <241>;
+		};
+
+		qcom,msm-dai-q6-afe-proxy-tx {
+			compatible = "qcom,msm-dai-q6-dev";
+			qcom,msm-dai-q6-dev-id = <240>;
+		};
+
+		qcom,msm-dai-q6-incall-record-rx {
+			compatible = "qcom,msm-dai-q6-dev";
+			qcom,msm-dai-q6-dev-id = <32771>;
+		};
+
+		qcom,msm-dai-q6-incall-record-tx {
+			compatible = "qcom,msm-dai-q6-dev";
+			qcom,msm-dai-q6-dev-id = <32772>;
+		};
+
+		qcom,msm-dai-q6-incall-music-rx {
+			compatible = "qcom,msm-dai-q6-dev";
+			qcom,msm-dai-q6-dev-id = <32773>;
+		};
+	};
+
+	qcom,msm-pri-auxpcm {
+		compatible = "qcom,msm-auxpcm-dev";
+		qcom,msm-cpudai-auxpcm-mode = <0>, <0>;
+		qcom,msm-cpudai-auxpcm-sync = <1>, <1>;
+		qcom,msm-cpudai-auxpcm-frame = <5>, <4>;
+		qcom,msm-cpudai-auxpcm-quant = <2>, <2>;
+		qcom,msm-cpudai-auxpcm-slot = <1>, <1>;
+		qcom,msm-cpudai-auxpcm-data = <0>, <0>;
+		qcom,msm-cpudai-auxpcm-pcm-clk-rate = <2048000>, <2048000>;
+		qcom,msm-auxpcm-interface = "primary";
+	};
+
+	qcom,msm-sec-auxpcm {
+		compatible = "qcom,msm-auxpcm-dev";
+		qcom,msm-cpudai-auxpcm-mode = <0>, <0>;
+		qcom,msm-cpudai-auxpcm-sync = <1>, <1>;
+		qcom,msm-cpudai-auxpcm-frame = <5>, <4>;
+		qcom,msm-cpudai-auxpcm-quant = <2>, <2>;
+		qcom,msm-cpudai-auxpcm-slot = <1>, <1>;
+		qcom,msm-cpudai-auxpcm-data = <0>, <0>;
+		qcom,msm-cpudai-auxpcm-pcm-clk-rate = <2048000>, <2048000>;
+		qcom,msm-auxpcm-interface = "secondary";
+	};
+
+	qcom,msm-dai-mi2s {
+		compatible = "qcom,msm-dai-mi2s";
+		qcom,msm-dai-q6-mi2s-quat {
+			compatible = "qcom,msm-dai-q6-mi2s";
+			qcom,msm-dai-q6-mi2s-dev-id = <3>;
+			qcom,msm-mi2s-rx-lines = <1>;
+			qcom,msm-mi2s-tx-lines = <2>;
+		};
+	};
+
+	qcom,msm-pcm-hostless {
+		compatible = "qcom,msm-pcm-hostless";
+	};
+};
+
+&gdsc_venus {
+	status = "ok";
+};
+
+&gdsc_venus_core0 {
+	qcom,support-hw-trigger;
+	status = "ok";
+};
+
+&gdsc_venus_core1 {
+	qcom,support-hw-trigger;
+	status = "ok";
+};
+
+&gdsc_vpu {
+	qcom,clock-names = "core_clk", "maple_clk";
+	status = "ok";
+>>>>>>> 9af6d96... ARM: dts: msm: Add new property to specify OCMEM size
 };
 
 /include/ "msm-pma8084.dtsi"
