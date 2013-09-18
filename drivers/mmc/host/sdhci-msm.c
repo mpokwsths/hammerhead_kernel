@@ -94,6 +94,9 @@ enum sdc_mpm_pin_state {
 #define CORE_CLK_PWRSAVE	(1 << 1)
 #define CORE_IO_PAD_PWR_SWITCH	(1 << 16)
 
+#define CORE_VENDOR_SPEC_CAPABILITIES0	0x11C
+#define CORE_SYS_BUS_SUPPORT_64_BIT	28
+
 #define CORE_MCI_DATA_CTRL	0x2C
 #define CORE_MCI_DPSM_ENABLE	(1 << 0)
 
@@ -2653,7 +2656,11 @@ static int __devinit sdhci_msm_probe(struct platform_device *pdev)
 		}
 	}
 
-	if (dma_supported(mmc_dev(host->mmc), DMA_BIT_MASK(32))) {
+	if ((sdhci_readl(host, SDHCI_CAPABILITIES) & SDHCI_CAN_64BIT) &&
+		(dma_supported(mmc_dev(host->mmc), DMA_BIT_MASK(64)))) {
+		host->dma_mask = DMA_BIT_MASK(64);
+		mmc_dev(host->mmc)->dma_mask = &host->dma_mask;
+	} else if (dma_supported(mmc_dev(host->mmc), DMA_BIT_MASK(32))) {
 		host->dma_mask = DMA_BIT_MASK(32);
 		mmc_dev(host->mmc)->dma_mask = &host->dma_mask;
 	} else {
