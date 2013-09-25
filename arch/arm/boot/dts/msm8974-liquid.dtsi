@@ -13,6 +13,19 @@
 /include/ "msm8974-leds.dtsi"
 /include/ "msm8974-camera-sensor-liquid.dtsi"
 
+/ {
+	aliases {
+		serial0 = &blsp1_uart1;
+	};
+
+	memory {
+
+		fb_mem: fb_region {
+			reg = <0 0x1000000>;
+		};
+	};
+};
+
 &soc {
 	serial@f991e000 {
 		status = "ok";
