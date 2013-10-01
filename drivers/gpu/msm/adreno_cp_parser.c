@@ -112,20 +112,23 @@ static void adreno_ib_merge_range(struct adreno_ib_object *ib_obj,
  * adreno_ib_check_overlap() - Checks if an address range overlap
  * @gpuaddr: The start address range to check for overlap
  * @size: Size of the address range
+ * @type: The type of address range
  * @ib_obj_list: The list of address ranges to check for overlap
  *
  * Checks if an address range overlaps with a list of address ranges
  * Returns the entry from list which overlaps else NULL
  */
 static struct adreno_ib_object *adreno_ib_check_overlap(unsigned int gpuaddr,
-		unsigned int size, struct adreno_ib_object_list *ib_obj_list)
+		unsigned int size, int type,
+		struct adreno_ib_object_list *ib_obj_list)
 {
 	struct adreno_ib_object *ib_obj;
 	int i;
 
 	for (i = 0; i < ib_obj_list->num_objs; i++) {
 		ib_obj = &(ib_obj_list->obj_list[i]);
-		if (kgsl_addr_range_overlap(ib_obj->gpuaddr, ib_obj->size,
+		if ((type == ib_obj->snapshot_obj_type) &&
+			kgsl_addr_range_overlap(ib_obj->gpuaddr, ib_obj->size,
 			gpuaddr, size))
 			/* regions overlap */
 			return ib_obj;
@@ -171,7 +174,7 @@ static int adreno_ib_add_range(struct kgsl_device *device,
 		gpuaddr = entry->memdesc.gpuaddr;
 	}
 
-	ib_obj = adreno_ib_check_overlap(gpuaddr, size, ib_obj_list);
+	ib_obj = adreno_ib_check_overlap(gpuaddr, size, type, ib_obj_list);
 	if (ib_obj) {
 		adreno_ib_merge_range(ib_obj, gpuaddr, size);
 	} else {
@@ -655,6 +658,7 @@ static void ib_parse_type0(struct kgsl_device *device, unsigned int *ptr,
 static int adreno_ib_find_objs(struct kgsl_device *device,
 				phys_addr_t ptbase,
 				unsigned int gpuaddr, unsigned int dwords,
+				int obj_type,
 				struct adreno_ib_object_list *ib_obj_list)
 {
 	int ret = 0;
@@ -668,7 +672,8 @@ static int adreno_ib_find_objs(struct kgsl_device *device,
 	/* check that this IB is not already on list */
 	for (i = 0; i < ib_obj_list->num_objs; i++) {
 		ib_obj = &(ib_obj_list->obj_list[i]);
-		if ((ib_obj->gpuaddr <= gpuaddr) &&
+		if ((obj_type == ib_obj->snapshot_obj_type) &&
+			(ib_obj->gpuaddr <= gpuaddr) &&
 			((ib_obj->gpuaddr + ib_obj->size) >=
 			(gpuaddr + (dwords << 2))))
 			return 0;
@@ -714,6 +719,7 @@ static int adreno_ib_find_objs(struct kgsl_device *device,
 				ret = adreno_ib_find_objs(
 						device, ptbase,
 						gpuaddrib2, size,
+						SNAPSHOT_GPU_OBJECT_IB,
 						ib_obj_list);
 				if (ret < 0)
 					goto done;
@@ -791,7 +797,7 @@ int adreno_ib_create_object_list(struct kgsl_device *device,
 	}
 
 	ret = adreno_ib_find_objs(device, ptbase, gpuaddr, dwords,
-		ib_obj_list);
+		SNAPSHOT_GPU_OBJECT_IB, ib_obj_list);
 
 	if (ret)
 		adreno_ib_destroy_obj_list(ib_obj_list);
