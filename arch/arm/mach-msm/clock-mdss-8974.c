@@ -166,12 +166,48 @@ static int mdss_gdsc_enabled(void)
 	return !!(readl_relaxed(gdsc_base) & BIT(31));
 }
 
+/* Auto PLL calibaration */
+static int mdss_ahb_clk_enable(int enable)
+{
+	int rc = 0;
+
+	/* todo: Ideally, we should enable/disable GDSC whenever we are
+	 * attempting to enable/disable MDSS AHB clock.
+	 * For now, just return error if  GDSC is not enabled.
+	 */
+	if (!mdss_gdsc_enabled()) {
+		pr_err("%s: mdss GDSC is not enabled\n", __func__);
+		return -EPERM;
+	}
+
+	if (enable)
+		rc = clk_prepare_enable(mdss_ahb_clk);
+	else
+		clk_disable_unprepare(mdss_ahb_clk);
+
+	return rc;
+}
+
 static void hdmi_vco_disable(struct clk *c)
 {
-	clk_enable(mdss_ahb_clk);
+	u32 rc;
+
+	if (!mdss_gdsc_enabled()) {
+		pr_err("%s: mdss GDSC is not enabled\n", __func__);
+		return;
+	}
+
+	rc = clk_enable(mdss_ahb_clk);
+	if (rc) {
+		pr_err("%s: failed to enable mdss ahb clock. rc=%d\n",
+			__func__, rc);
+		return;
+	}
+
 	REG_W(0x0, hdmi_phy_pll_base + HDMI_UNI_PLL_GLB_CFG);
 	udelay(5);
 	REG_W(0x0, hdmi_phy_base + HDMI_PHY_GLB_CFG);
+
 	clk_disable(mdss_ahb_clk);
 
 	hdmi_pll_on = 0;
@@ -180,9 +216,21 @@ static void hdmi_vco_disable(struct clk *c)
 static int hdmi_vco_enable(struct clk *c)
 {
 	u32 status;
+	u32 rc;
 	u32 max_reads, timeout_us;
 
-	clk_enable(mdss_ahb_clk);
+	if (!mdss_gdsc_enabled()) {
+		pr_err("%s: mdss GDSC is not enabled\n", __func__);
+		return -EPERM;
+	}
+
+	rc = clk_enable(mdss_ahb_clk);
+	if (rc) {
+		pr_err("%s: failed to enable mdss ahb clock. rc=%d\n",
+			__func__, rc);
+		return rc;
+	}
+
 	/* Global Enable */
 	REG_W(0x81, hdmi_phy_base + HDMI_PHY_GLB_CFG);
 	/* Power up power gen */
@@ -241,6 +289,7 @@ static inline struct hdmi_pll_vco_clk *to_hdmi_vco_clk(struct clk *clk)
 static int hdmi_vco_set_rate(struct clk *c, unsigned long rate)
 {
 	unsigned int set_power_dwn = 0;
+	int rc = 0;
 
 	struct hdmi_pll_vco_clk *vco = to_hdmi_vco_clk(c);
 
@@ -249,7 +298,13 @@ static int hdmi_vco_set_rate(struct clk *c, unsigned long rate)
 		set_power_dwn = 1;
 	}
 
-	clk_enable(mdss_ahb_clk);
+	rc = mdss_ahb_clk_enable(1);
+	if (rc) {
+		pr_err("%s: failed to enable mdss ahb clock. rc=%d\n",
+			__func__, rc);
+		return rc;
+	}
+
 	pr_debug("%s: rate=%ld\n", __func__, rate);
 
 	switch (rate) {
@@ -609,7 +664,7 @@ static int hdmi_vco_set_rate(struct clk *c, unsigned long rate)
 	/* Make sure writes complete before disabling iface clock */
 	mb();
 
-	clk_disable(mdss_ahb_clk);
+	mdss_ahb_clk_enable(0);
 
 	if (set_power_dwn)
 		hdmi_vco_enable(c);
@@ -619,26 +674,6 @@ static int hdmi_vco_set_rate(struct clk *c, unsigned long rate)
 
 	return 0;
 } /* hdmi_pll_set_rate */
-
-/* Auto PLL calibaration */
-int mdss_ahb_clk_enable(int enable)
-{
-	int rc = 0;
-
-	/* todo: Ideally, we should enable/disable GDSC whenever we are
-	 * attempting to enable/disable MDSS AHB clock.
-	 * For now, just return error if  GDSC is not enabled.
-	 */
-	if (!mdss_gdsc_enabled())
-		return -EPERM;
-
-	if (enable)
-		rc = clk_prepare_enable(mdss_ahb_clk);
-	else
-		clk_disable_unprepare(mdss_ahb_clk);
-
-	return rc;
-}
 
 int set_byte_mux_sel(struct mux_clk *clk, int sel)
 {
@@ -1619,6 +1654,11 @@ static unsigned long hdmi_vco_get_rate(struct clk *c)
 {
 	unsigned long freq = 0;
 
+	if (mdss_ahb_clk_enable(1)) {
+		pr_err("%s: Failed to enable mdss ahb clock\n", __func__);
+		return freq;
+	}
+
 	freq = DSS_REG_R(hdmi_phy_pll_base, HDMI_UNI_PLL_CAL_CFG11) << 8 |
 		DSS_REG_R(hdmi_phy_pll_base, HDMI_UNI_PLL_CAL_CFG10);
 
@@ -1638,6 +1678,8 @@ static unsigned long hdmi_vco_get_rate(struct clk *c)
 	default:
 		freq *= 1000000;
 	}
+
+	mdss_ahb_clk_enable(0);
 
 	return freq;
 }
@@ -1673,7 +1715,15 @@ static int hdmi_vco_prepare(struct clk *c)
 
 	vco->rate_set = false;
 
+	if (!ret)
+		ret = clk_prepare(mdss_ahb_clk);
+
 	return ret;
+}
+
+static void hdmi_vco_unprepare(struct clk *c)
+{
+	clk_unprepare(mdss_ahb_clk);
 }
 
 static int hdmi_pll_lock_status(void)
@@ -1686,7 +1736,7 @@ static int hdmi_pll_lock_status(void)
 	if (rc) {
 		pr_err("%s: failed to enable mdss ahb clock. rc=%d\n",
 			__func__, rc);
-		return rc;
+		return 0;
 	}
 	/* poll for PLL ready status */
 	if (readl_poll_timeout_noirq((hdmi_phy_base + HDMI_PHY_STATUS),
@@ -1736,6 +1786,7 @@ static struct clk_ops hdmi_vco_clk_ops = {
 	.get_rate = hdmi_vco_get_rate,
 	.round_rate = hdmi_vco_round_rate,
 	.prepare = hdmi_vco_prepare,
+	.unprepare = hdmi_vco_unprepare,
 	.disable = hdmi_vco_disable,
 	.handoff = hdmi_vco_handoff,
 };
@@ -1795,8 +1846,23 @@ static struct div_clk hdmipll_div6_clk = {
 
 static int hdmipll_set_mux_sel(struct mux_clk *clk, int mux_sel)
 {
+	int rc;
+
+	if (!mdss_gdsc_enabled()) {
+		pr_err("%s: mdss GDSC is not enabled\n", __func__);
+		return -EPERM;
+	}
+
+	rc = clk_enable(mdss_ahb_clk);
+	if (rc) {
+		pr_err("%s: Failed to enable mdss ahb clock\n", __func__);
+		return rc;
+	}
+
 	pr_debug("%s: mux_sel=%d\n", __func__, mux_sel);
 	DSS_REG_W(hdmi_phy_pll_base, HDMI_UNI_PLL_POSTDIV1_CFG, mux_sel);
+
+	clk_disable(mdss_ahb_clk);
 
 	return 0;
 }
@@ -1806,13 +1872,14 @@ static int hdmipll_get_mux_sel(struct mux_clk *clk)
 	int mux_sel = 0;
 
 	if (mdss_ahb_clk_enable(1)) {
-		pr_debug("%s: Failed to enable mdss ahb clock\n", __func__);
-		return 1;
+		pr_err("%s: Failed to enable mdss ahb clock\n", __func__);
+		return mux_sel;
 	}
 
 	mux_sel = DSS_REG_R(hdmi_phy_pll_base, HDMI_UNI_PLL_POSTDIV1_CFG);
 	mux_sel &= 0x03;
 	pr_debug("%s: mux_sel=%d\n", __func__, mux_sel);
+
 	mdss_ahb_clk_enable(0);
 
 	return mux_sel;
