@@ -1194,9 +1194,22 @@ static int __qseecom_send_cmd(struct qseecom_dev_handle *data,
 		pr_err("cmd buffer or response buffer is null\n");
 		return -EINVAL;
 	}
+	if (((uint32_t)req->cmd_req_buf < data->client.user_virt_sb_base) ||
+		((uint32_t)req->cmd_req_buf >= (data->client.user_virt_sb_base +
+					data->client.sb_length))) {
+		pr_err("cmd buffer address not within shared bufffer\n");
+		return -EINVAL;
+	}
 
-	if (req->cmd_req_len <= 0 ||
-		req->resp_len <= 0 ||
+
+	if (((uint32_t)req->resp_buf < data->client.user_virt_sb_base)  ||
+		((uint32_t)req->resp_buf >= (data->client.user_virt_sb_base +
+					data->client.sb_length))){
+		pr_err("response buffer address not within shared bufffer\n");
+		return -EINVAL;
+	}
+
+	if ((req->cmd_req_len == 0) || (req->resp_len == 0) ||
 		req->cmd_req_len > data->client.sb_length ||
 		req->resp_len > data->client.sb_length) {
 		pr_err("cmd buffer length or "
@@ -1371,6 +1384,7 @@ static int qseecom_send_modfd_cmd(struct qseecom_dev_handle *data,
 					void __user *argp)
 {
 	int ret = 0;
+	int i;
 	struct qseecom_send_modfd_cmd_req req;
 	struct qseecom_send_cmd_req send_cmd_req;
 
