@@ -1499,6 +1499,8 @@ struct div_clk indirect_path_div2_clk_8226 = {
 	.ops = &fixed_2div_ops,
 	.data = {
 		.div = 2,
+		.min_div = 2,
+		.max_div = 2,
 	},
 	.c = {
 		.parent = &analog_postdiv_clk_8226.c,
@@ -1600,6 +1602,8 @@ struct div_clk indirect_path_div2_clk_8974 = {
 	.ops = &fixed_2div_ops,
 	.data = {
 		.div = 2,
+		.min_div = 2,
+		.max_div = 2,
 	},
 	.c = {
 		.parent = &analog_postdiv_clk_8974.c,
