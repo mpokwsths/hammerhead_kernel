@@ -214,7 +214,7 @@ void kgsl_pwrctrl_pwrlevel_change(struct kgsl_device *device,
 
 EXPORT_SYMBOL(kgsl_pwrctrl_pwrlevel_change);
 
-static int kgsl_pwrctrl_thermal_pwrlevel_store(struct device *dev,
+static ssize_t kgsl_pwrctrl_thermal_pwrlevel_store(struct device *dev,
 					 struct device_attribute *attr,
 					 const char *buf, size_t count)
 {
@@ -254,7 +254,7 @@ static int kgsl_pwrctrl_thermal_pwrlevel_store(struct device *dev,
 	return count;
 }
 
-static int kgsl_pwrctrl_thermal_pwrlevel_show(struct device *dev,
+static ssize_t kgsl_pwrctrl_thermal_pwrlevel_show(struct device *dev,
 					struct device_attribute *attr,
 					char *buf)
 {
@@ -267,7 +267,7 @@ static int kgsl_pwrctrl_thermal_pwrlevel_show(struct device *dev,
 	return snprintf(buf, PAGE_SIZE, "%d\n", pwr->thermal_pwrlevel);
 }
 
-static int kgsl_pwrctrl_max_pwrlevel_store(struct device *dev,
+static ssize_t kgsl_pwrctrl_max_pwrlevel_store(struct device *dev,
 					 struct device_attribute *attr,
 					 const char *buf, size_t count)
 {
@@ -306,7 +306,7 @@ static int kgsl_pwrctrl_max_pwrlevel_store(struct device *dev,
 	return count;
 }
 
-static int kgsl_pwrctrl_max_pwrlevel_show(struct device *dev,
+static ssize_t kgsl_pwrctrl_max_pwrlevel_show(struct device *dev,
 					struct device_attribute *attr,
 					char *buf)
 {
@@ -319,7 +319,7 @@ static int kgsl_pwrctrl_max_pwrlevel_show(struct device *dev,
 	return snprintf(buf, PAGE_SIZE, "%d\n", pwr->max_pwrlevel);
 }
 
-static int kgsl_pwrctrl_min_pwrlevel_store(struct device *dev,
+static ssize_t kgsl_pwrctrl_min_pwrlevel_store(struct device *dev,
 					 struct device_attribute *attr,
 					 const char *buf, size_t count)
 {	struct kgsl_device *device = kgsl_device_from_dev(dev);
@@ -359,7 +359,7 @@ static int kgsl_pwrctrl_min_pwrlevel_store(struct device *dev,
 	return count;
 }
 
-static int kgsl_pwrctrl_min_pwrlevel_show(struct device *dev,
+static ssize_t kgsl_pwrctrl_min_pwrlevel_show(struct device *dev,
 					struct device_attribute *attr,
 					char *buf)
 {
@@ -371,7 +371,7 @@ static int kgsl_pwrctrl_min_pwrlevel_show(struct device *dev,
 	return snprintf(buf, PAGE_SIZE, "%d\n", pwr->min_pwrlevel);
 }
 
-static int kgsl_pwrctrl_num_pwrlevels_show(struct device *dev,
+static ssize_t kgsl_pwrctrl_num_pwrlevels_show(struct device *dev,
 					struct device_attribute *attr,
 					char *buf)
 {
@@ -398,7 +398,7 @@ static int _get_nearest_pwrlevel(struct kgsl_pwrctrl *pwr, unsigned int clock)
 	return -ERANGE;
 }
 
-static int kgsl_pwrctrl_max_gpuclk_store(struct device *dev,
+static ssize_t kgsl_pwrctrl_max_gpuclk_store(struct device *dev,
 					 struct device_attribute *attr,
 					 const char *buf, size_t count)
 {
@@ -436,7 +436,7 @@ done:
 	return count;
 }
 
-static int kgsl_pwrctrl_max_gpuclk_show(struct device *dev,
+static ssize_t kgsl_pwrctrl_max_gpuclk_show(struct device *dev,
 					struct device_attribute *attr,
 					char *buf)
 {
@@ -450,7 +450,7 @@ static int kgsl_pwrctrl_max_gpuclk_show(struct device *dev,
 			pwr->pwrlevels[pwr->thermal_pwrlevel].gpu_freq);
 }
 
-static int kgsl_pwrctrl_gpuclk_store(struct device *dev,
+static ssize_t kgsl_pwrctrl_gpuclk_store(struct device *dev,
 				     struct device_attribute *attr,
 				     const char *buf, size_t count)
 {
@@ -477,7 +477,7 @@ static int kgsl_pwrctrl_gpuclk_store(struct device *dev,
 	return count;
 }
 
-static int kgsl_pwrctrl_gpuclk_show(struct device *dev,
+static ssize_t kgsl_pwrctrl_gpuclk_show(struct device *dev,
 				    struct device_attribute *attr,
 				    char *buf)
 {
@@ -497,7 +497,7 @@ static int kgsl_pwrctrl_gpuclk_show(struct device *dev,
 	return snprintf(buf, PAGE_SIZE, "%lu\n", freq);
 }
 
-static int kgsl_pwrctrl_idle_timer_store(struct device *dev,
+static ssize_t kgsl_pwrctrl_idle_timer_store(struct device *dev,
 					struct device_attribute *attr,
 					const char *buf, size_t count)
 {
@@ -526,7 +526,7 @@ static int kgsl_pwrctrl_idle_timer_store(struct device *dev,
 	return count;
 }
 
-static int kgsl_pwrctrl_idle_timer_show(struct device *dev,
+static ssize_t kgsl_pwrctrl_idle_timer_show(struct device *dev,
 					struct device_attribute *attr,
 					char *buf)
 {
@@ -539,7 +539,7 @@ static int kgsl_pwrctrl_idle_timer_show(struct device *dev,
 		device->pwrctrl.interval_timeout * mul);
 }
 
-static int kgsl_pwrctrl_pmqos_latency_store(struct device *dev,
+static ssize_t kgsl_pwrctrl_pmqos_latency_store(struct device *dev,
 					struct device_attribute *attr,
 					const char *buf, size_t count)
 {
@@ -561,7 +561,7 @@ static int kgsl_pwrctrl_pmqos_latency_store(struct device *dev,
 	return count;
 }
 
-static int kgsl_pwrctrl_pmqos_latency_show(struct device *dev,
+static ssize_t kgsl_pwrctrl_pmqos_latency_show(struct device *dev,
 					   struct device_attribute *attr,
 					   char *buf)
 {
@@ -572,7 +572,7 @@ static int kgsl_pwrctrl_pmqos_latency_show(struct device *dev,
 		device->pwrctrl.pm_qos_latency);
 }
 
-static int kgsl_pwrctrl_gpubusy_show(struct device *dev,
+static ssize_t kgsl_pwrctrl_gpubusy_show(struct device *dev,
 					struct device_attribute *attr,
 					char *buf)
 {
@@ -592,7 +592,7 @@ static int kgsl_pwrctrl_gpubusy_show(struct device *dev,
 	return ret;
 }
 
-static int kgsl_pwrctrl_gputop_show(struct device *dev,
+static ssize_t kgsl_pwrctrl_gputop_show(struct device *dev,
 					struct device_attribute *attr,
 					char *buf)
 {
@@ -621,7 +621,7 @@ static int kgsl_pwrctrl_gputop_show(struct device *dev,
 	return (unsigned int) (ptr - buf);
 }
 
-static int kgsl_pwrctrl_gpu_available_frequencies_show(
+static ssize_t kgsl_pwrctrl_gpu_available_frequencies_show(
 					struct device *dev,
 					struct device_attribute *attr,
 					char *buf)
@@ -640,7 +640,7 @@ static int kgsl_pwrctrl_gpu_available_frequencies_show(
 	return num_chars;
 }
 
-static int kgsl_pwrctrl_reset_count_show(struct device *dev,
+static ssize_t kgsl_pwrctrl_reset_count_show(struct device *dev,
 					struct device_attribute *attr,
 					char *buf)
 {
@@ -671,7 +671,7 @@ static void __force_on(struct kgsl_device *device, int flag, int on)
 	}
 }
 
-static int __force_on_show(struct device *dev,
+static ssize_t __force_on_show(struct device *dev,
 					struct device_attribute *attr,
 					char *buf, int flag)
 {
@@ -682,7 +682,7 @@ static int __force_on_show(struct device *dev,
 		test_bit(flag, &device->pwrctrl.ctrl_flags));
 }
 
-static int __force_on_store(struct device *dev,
+static ssize_t __force_on_store(struct device *dev,
 					struct device_attribute *attr,
 					const char *buf, size_t count,
 					int flag)
@@ -705,42 +705,42 @@ static int __force_on_store(struct device *dev,
 	return count;
 }
 
-static int kgsl_pwrctrl_force_clk_on_show(struct device *dev,
+static ssize_t kgsl_pwrctrl_force_clk_on_show(struct device *dev,
 					struct device_attribute *attr,
 					char *buf)
 {
 	return __force_on_show(dev, attr, buf, KGSL_PWRFLAGS_CLK_ON);
 }
 
-static int kgsl_pwrctrl_force_clk_on_store(struct device *dev,
+static ssize_t kgsl_pwrctrl_force_clk_on_store(struct device *dev,
 					struct device_attribute *attr,
 					const char *buf, size_t count)
 {
 	return __force_on_store(dev, attr, buf, count, KGSL_PWRFLAGS_CLK_ON);
 }
 
-static int kgsl_pwrctrl_force_bus_on_show(struct device *dev,
+static ssize_t kgsl_pwrctrl_force_bus_on_show(struct device *dev,
 					struct device_attribute *attr,
 					char *buf)
 {
 	return __force_on_show(dev, attr, buf, KGSL_PWRFLAGS_AXI_ON);
 }
 
-static int kgsl_pwrctrl_force_bus_on_store(struct device *dev,
+static ssize_t kgsl_pwrctrl_force_bus_on_store(struct device *dev,
 					struct device_attribute *attr,
 					const char *buf, size_t count)
 {
 	return __force_on_store(dev, attr, buf, count, KGSL_PWRFLAGS_AXI_ON);
 }
 
-static int kgsl_pwrctrl_force_rail_on_show(struct device *dev,
+static ssize_t kgsl_pwrctrl_force_rail_on_show(struct device *dev,
 					struct device_attribute *attr,
 					char *buf)
 {
 	return __force_on_show(dev, attr, buf, KGSL_PWRFLAGS_POWER_ON);
 }
 
-static int kgsl_pwrctrl_force_rail_on_store(struct device *dev,
+static ssize_t kgsl_pwrctrl_force_rail_on_store(struct device *dev,
 					struct device_attribute *attr,
 					const char *buf, size_t count)
 {
