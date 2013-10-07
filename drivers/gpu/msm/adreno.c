@@ -1458,6 +1458,7 @@ done:
 static int adreno_of_get_iommu(struct device_node *parent,
 	struct kgsl_device_platform_data *pdata)
 {
+	int result = -EINVAL;
 	struct device_node *node, *child;
 	struct kgsl_device_iommu_data *data = NULL;
 	struct kgsl_iommu_ctx *ctxs = NULL;
@@ -1470,7 +1471,7 @@ static int adreno_of_get_iommu(struct device_node *parent,
 
 	data = kzalloc(sizeof(*data), GFP_KERNEL);
 	if (data == NULL) {
-		KGSL_CORE_ERR("kzalloc(%d) failed\n", sizeof(*data));
+		result = -ENOMEM;
 		goto err;
 	}
 
@@ -1491,8 +1492,7 @@ static int adreno_of_get_iommu(struct device_node *parent,
 		GFP_KERNEL);
 
 	if (ctxs == NULL) {
-		KGSL_CORE_ERR("kzalloc(%d) failed\n",
-			data->iommu_ctx_count * sizeof(struct kgsl_iommu_ctx));
+		result = -ENOMEM;
 		goto err;
 	}
 
@@ -1531,7 +1531,7 @@ err:
 	kfree(ctxs);
 	kfree(data);
 
-	return -EINVAL;
+	return result;
 }
 
 static int adreno_of_get_pdata(struct platform_device *pdev)
@@ -1556,7 +1556,6 @@ static int adreno_of_get_pdata(struct platform_device *pdev)
 
 	pdata = kzalloc(sizeof(*pdata), GFP_KERNEL);
 	if (pdata == NULL) {
-		KGSL_CORE_ERR("kzalloc(%d) failed\n", sizeof(*pdata));
 		ret = -ENOMEM;
 		goto err;
 	}
