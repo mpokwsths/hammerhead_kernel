@@ -250,7 +250,7 @@ kgsl_mem_entry_create(void)
 
 	return entry;
 }
-
+#ifdef CONFIG_DMA_SHARED_BUFFER
 static void kgsl_destroy_ion(struct kgsl_dma_buf_meta *meta)
 {
 	dma_buf_unmap_attachment(meta->attach, meta->table, DMA_FROM_DEVICE);
@@ -258,6 +258,12 @@ static void kgsl_destroy_ion(struct kgsl_dma_buf_meta *meta)
 	dma_buf_put(meta->dmabuf);
 	kfree(meta);
 }
+#else
+static void kgsl_destroy_ion(struct kgsl_dma_buf_meta *meta)
+{
+
+}
+#endif
 
 void
 kgsl_mem_entry_destroy(struct kref *kref)
@@ -2462,19 +2468,6 @@ long kgsl_ioctl_gpumem_free_id(struct kgsl_device_private *dev_priv,
 	return _sharedmem_free_entry(entry);
 }
 
-static struct vm_area_struct *kgsl_get_vma_from_start_addr(unsigned int addr)
-{
-	struct vm_area_struct *vma;
-
-	down_read(&current->mm->mmap_sem);
-	vma = find_vma(current->mm, addr);
-	up_read(&current->mm->mmap_sem);
-	if (!vma)
-		KGSL_CORE_ERR("find_vma(%x) failed\n", addr);
-
-	return vma;
-}
-
 static inline int _check_region(unsigned long start, unsigned long size,
 				uint64_t len)
 {
@@ -2482,6 +2475,7 @@ static inline int _check_region(unsigned long start, unsigned long size,
 	return (end > len);
 }
 
+#ifdef CONFIG_FB
 static int kgsl_get_phys_file(int fd, unsigned long *start, unsigned long *len,
 			      unsigned long *vstart, struct file **filep)
 {
@@ -2578,6 +2572,15 @@ static int kgsl_setup_phys_file(struct kgsl_mem_entry *entry,
 err:
 	return ret;
 }
+#else
+static int kgsl_setup_phys_file(struct kgsl_mem_entry *entry,
+				struct kgsl_pagetable *pagetable,
+				unsigned int fd, unsigned int offset,
+				size_t size)
+{
+	return -EINVAL;
+}
+#endif
 
 static int memdesc_sg_virt(struct kgsl_memdesc *memdesc,
 	unsigned long paddr, int size)
@@ -2689,6 +2692,19 @@ static int kgsl_setup_useraddr(struct kgsl_mem_entry *entry,
 }
 
 #ifdef CONFIG_ASHMEM
+static struct vm_area_struct *kgsl_get_vma_from_start_addr(unsigned int addr)
+{
+	struct vm_area_struct *vma;
+
+	down_read(&current->mm->mmap_sem);
+	vma = find_vma(current->mm, addr);
+	up_read(&current->mm->mmap_sem);
+	if (!vma)
+		KGSL_CORE_ERR("find_vma(%x) failed\n", addr);
+
+	return vma;
+}
+
 static int kgsl_setup_ashmem(struct kgsl_mem_entry *entry,
 			     struct kgsl_pagetable *pagetable,
 			     int fd, unsigned long useraddr, size_t size)
@@ -2757,6 +2773,7 @@ static int kgsl_setup_ashmem(struct kgsl_mem_entry *entry,
 }
 #endif
 
+#ifdef CONFIG_DMA_SHARED_BUFFER
 static int kgsl_setup_ion(struct kgsl_mem_entry *entry,
 		struct kgsl_pagetable *pagetable, void *data,
 		struct kgsl_device *device)
@@ -2829,6 +2846,14 @@ err1:
 	kfree(meta);
 	return ret;
 }
+#else
+static int kgsl_setup_ion(struct kgsl_mem_entry *entry,
+		struct kgsl_pagetable *pagetable, void *data,
+		struct kgsl_device *device)
+{
+	return -EINVAL;
+}
+#endif
 
 static long kgsl_ioctl_map_user_mem(struct kgsl_device_private *dev_priv,
 				     unsigned int cmd, void *data)
