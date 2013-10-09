@@ -6,9 +6,9 @@ obj-y     = fork.o exec_domain.o panic.o printk.o \
 	    cpu.o exit.o softirq.o resource.o \
 	    sysctl.o sysctl_binary.o capability.o ptrace.o user.o \
 	    signal.o sys.o kmod.o workqueue.o pid.o \
-	    rcupdate.o extable.o params.o \
+	    extable.o params.o \
 	    kthread.o wait.o kfifo.o sys_ni.o mutex.o \
-	    rwsem.o nsproxy.o srcu.o semaphore.o \
+	    rwsem.o nsproxy.o semaphore.o \
 	    notifier.o ksysfs.o cred.o \
 	    async.o range.o groups.o smpboot.o lglock.o
 
@@ -25,6 +25,7 @@ endif
 obj-y += sched/
 obj-y += power/
 obj-y += cpu/
+obj-y += rcu/
 
 obj-$(CONFIG_FREEZER) += freezer.o
 obj-$(CONFIG_PROFILING) += profile.o
@@ -78,12 +79,6 @@ obj-$(CONFIG_DETECT_HUNG_TASK) += hung_task.o
 obj-$(CONFIG_LOCKUP_DETECTOR) += watchdog.o
 obj-$(CONFIG_GENERIC_HARDIRQS) += irq/
 obj-$(CONFIG_SECCOMP) += seccomp.o
-obj-$(CONFIG_RCU_TORTURE_TEST) += rcutorture.o
-obj-$(CONFIG_TREE_RCU) += rcutree.o
-obj-$(CONFIG_TREE_PREEMPT_RCU) += rcutree.o
-obj-$(CONFIG_TREE_RCU_TRACE) += rcutree_trace.o
-obj-$(CONFIG_TINY_RCU) += rcutiny.o
-obj-$(CONFIG_TINY_PREEMPT_RCU) += rcutiny.o
 obj-$(CONFIG_RELAY) += relay.o
 obj-$(CONFIG_SYSCTL) += utsname_sysctl.o
 obj-$(CONFIG_TASK_DELAY_ACCT) += delayacct.o
