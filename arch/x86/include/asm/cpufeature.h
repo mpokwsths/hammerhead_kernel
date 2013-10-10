@@ -341,8 +341,29 @@ extern const char * const x86_power_flags[32];
  */
 static __always_inline __pure bool __static_cpu_has(u16 bit)
 {
-#if __GNUC__ > 4 || __GNUC_MINOR__ >= 5
-		asm goto("1: jmp %l[t_no]\n"
+#ifdef CC_HAVE_ASM_GOTO
+
+#ifdef CONFIG_X86_DEBUG_STATIC_CPU_HAS
+
+		/*
+		 * Catch too early usage of this before alternatives
+		 * have run.
+		 */
+		asm_volatile_goto("1: jmp %l[t_warn]\n"
+			 "2:\n"
+			 ".section .altinstructions,\"a\"\n"
+			 " .long 1b - .\n"
+			 " .long 0\n"		/* no replacement */
+			 " .word %P0\n"		/* 1: do replace */
+			 " .byte 2b - 1b\n"	/* source len */
+			 " .byte 0\n"		/* replacement len */
+			 ".previous\n"
+			 /* skipping size check since replacement size = 0 */
+			 : : "i" (X86_FEATURE_ALWAYS) : : t_warn);
+
+#endif
+
+		asm_volatile_goto("1: jmp %l[t_no]\n"
 			 "2:\n"
 			 ".section .altinstructions,\"a\"\n"
 			 " .long 1b - .\n"
@@ -387,6 +408,88 @@ static __always_inline __pure bool __static_cpu_has(u16 bit)
 	__builtin_constant_p(bit) ?				\
 		__static_cpu_has(bit) :				\
 		boot_cpu_has(bit)				\
+)
+
+static __always_inline __pure bool _static_cpu_has_safe(u16 bit)
+{
+#ifdef CC_HAVE_ASM_GOTO
+/*
+ * We need to spell the jumps to the compiler because, depending on the offset,
+ * the replacement jump can be bigger than the original jump, and this we cannot
+ * have. Thus, we force the jump to the widest, 4-byte, signed relative
+ * offset even though the last would often fit in less bytes.
+ */
+		asm_volatile_goto("1: .byte 0xe9\n .long %l[t_dynamic] - 2f\n"
+			 "2:\n"
+			 ".section .altinstructions,\"a\"\n"
+			 " .long 1b - .\n"		/* src offset */
+			 " .long 3f - .\n"		/* repl offset */
+			 " .word %P1\n"			/* always replace */
+			 " .byte 2b - 1b\n"		/* src len */
+			 " .byte 4f - 3f\n"		/* repl len */
+			 ".previous\n"
+			 ".section .altinstr_replacement,\"ax\"\n"
+			 "3: .byte 0xe9\n .long %l[t_no] - 2b\n"
+			 "4:\n"
+			 ".previous\n"
+			 ".section .altinstructions,\"a\"\n"
+			 " .long 1b - .\n"		/* src offset */
+			 " .long 0\n"			/* no replacement */
+			 " .word %P0\n"			/* feature bit */
+			 " .byte 2b - 1b\n"		/* src len */
+			 " .byte 0\n"			/* repl len */
+			 ".previous\n"
+			 : : "i" (bit), "i" (X86_FEATURE_ALWAYS)
+			 : : t_dynamic, t_no);
+		return true;
+	t_no:
+		return false;
+	t_dynamic:
+		return __static_cpu_has_safe(bit);
+#else
+		u8 flag;
+		/* Open-coded due to __stringify() in ALTERNATIVE() */
+		asm volatile("1: movb $2,%0\n"
+			     "2:\n"
+			     ".section .altinstructions,\"a\"\n"
+			     " .long 1b - .\n"		/* src offset */
+			     " .long 3f - .\n"		/* repl offset */
+			     " .word %P2\n"		/* always replace */
+			     " .byte 2b - 1b\n"		/* source len */
+			     " .byte 4f - 3f\n"		/* replacement len */
+			     ".previous\n"
+			     ".section .discard,\"aw\",@progbits\n"
+			     " .byte 0xff + (4f-3f) - (2b-1b)\n" /* size check */
+			     ".previous\n"
+			     ".section .altinstr_replacement,\"ax\"\n"
+			     "3: movb $0,%0\n"
+			     "4:\n"
+			     ".previous\n"
+			     ".section .altinstructions,\"a\"\n"
+			     " .long 1b - .\n"		/* src offset */
+			     " .long 5f - .\n"		/* repl offset */
+			     " .word %P1\n"		/* feature bit */
+			     " .byte 4b - 3b\n"		/* src len */
+			     " .byte 6f - 5f\n"		/* repl len */
+			     ".previous\n"
+			     ".section .discard,\"aw\",@progbits\n"
+			     " .byte 0xff + (6f-5f) - (4b-3b)\n" /* size check */
+			     ".previous\n"
+			     ".section .altinstr_replacement,\"ax\"\n"
+			     "5: movb $1,%0\n"
+			     "6:\n"
+			     ".previous\n"
+			     : "=qm" (flag)
+			     : "i" (bit), "i" (X86_FEATURE_ALWAYS));
+		return (flag == 2 ? __static_cpu_has_safe(bit) : flag);
+#endif /* CC_HAVE_ASM_GOTO */
+}
+
+#define static_cpu_has_safe(bit)				\
+(								\
+	__builtin_constant_p(boot_cpu_has(bit)) ?		\
+		boot_cpu_has(bit) :				\
+		_static_cpu_has_safe(bit)			\
 )
 #else
 /*
