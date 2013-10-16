@@ -754,6 +754,9 @@ int mdss_mdp_overlay_kickoff(struct msm_fb_data_type *mfd)
 	mdss_mdp_ctl_notify(ctl, MDP_NOTIFY_FRAME_BEGIN);
 	mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_ON, false);
 
+	if (data)
+		mdss_mdp_set_roi(ctl, data);
+
 	list_for_each_entry(pipe, &mdp5_data->pipes_used, used_list) {
 		struct mdss_mdp_data *buf;
 		/*
@@ -2229,6 +2232,7 @@ int mdss_mdp_overlay_init(struct msm_fb_data_type *mfd)
 			goto init_fail;
 		}
 	}
+	mfd->mdp_sync_pt_data.async_wait_fences = true;
 
 	pm_runtime_set_suspended(&mfd->pdev->dev);
 	pm_runtime_enable(&mfd->pdev->dev);
