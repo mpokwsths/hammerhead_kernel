@@ -261,6 +261,7 @@ config ARCH_MSM8974
 	select MSM_GPIOMUX
 	select MULTI_IRQ_HANDLER
 	select MSM_MULTIMEDIA_USE_ION
+	select PM_DEVFREQ
 	select MSM_PIL
 	select MSM_SPM_V2
 	select MSM_L2_SPM
@@ -307,6 +308,11 @@ config ARCH_APQ8084
 	select DONT_MAP_HOLE_AFTER_MEMBANK0
 	select QMI_ENCDEC
 	select MSM_PM if PM
+	select PM_DEVFREQ
+	select MSM_DEVFREQ_CPUBW
+	select MSM_SPM_V2
+	select MSM_L2_SPM
+	select MSM_RPM_SMD
 
 config ARCH_MPQ8092
 	bool "MPQ8092"
