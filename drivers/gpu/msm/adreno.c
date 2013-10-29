@@ -387,8 +387,8 @@ done:
  */
 
 int adreno_perfcounter_query_group(struct adreno_device *adreno_dev,
-	unsigned int groupid, unsigned int *countables, unsigned int count,
-	unsigned int *max_counters)
+	unsigned int groupid, unsigned int __user *countables,
+	unsigned int count, unsigned int *max_counters)
 {
 	struct adreno_perfcounters *counters = adreno_dev->gpudev->perfcounters;
 	struct adreno_perfcount_group *group;
