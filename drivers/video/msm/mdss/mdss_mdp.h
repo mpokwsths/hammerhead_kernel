@@ -404,6 +404,21 @@ struct mdss_overlay_private {
 	int retire_cnt;
 };
 
+static inline bool mdss_mdp_pipe_is_yuv(struct mdss_mdp_pipe *pipe)
+{
+	return pipe && (pipe->type == MDSS_MDP_PIPE_TYPE_VIG);
+}
+
+static inline bool mdss_mdp_pipe_is_rgb(struct mdss_mdp_pipe *pipe)
+{
+	return pipe && (pipe->type == MDSS_MDP_PIPE_TYPE_RGB);
+}
+
+static inline bool mdss_mdp_pipe_is_dma(struct mdss_mdp_pipe *pipe)
+{
+	return pipe && (pipe->type == MDSS_MDP_PIPE_TYPE_DMA);
+}
+
 static inline void mdss_mdp_ctl_write(struct mdss_mdp_ctl *ctl,
 				      u32 reg, u32 val)
 {
