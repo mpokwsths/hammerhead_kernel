@@ -60,16 +60,43 @@ static struct of_dev_auxdata mpq8092_auxdata_lookup[] __initdata = {
 	{}
 };
 
+/*
+ * Used to satisfy dependencies for devices that need to be
+ * run early or in a particular order. Most likely your device doesn't fall
+ * into this category, and thus the driver should not be added here. The
+ * EPROBE_DEFER can satisfy most dependency problems.
+ */
+void __init mpq8092_add_drivers(void)
+{
+	msm_init_modem_notifier_list();
+	msm_smd_init();
+	msm_rpm_driver_init();
+	rpm_regulator_smd_driver_init();
+	qpnp_regulator_init();
+	if (of_board_is_rumi())
+		msm_clock_init(&mpq8092_rumi_clock_init_data);
+	else
+		msm_clock_init(&mpq8092_clock_init_data);
+}
+
 static void __init mpq8092_init(void)
 {
 	struct of_dev_auxdata *adata = mpq8092_auxdata_lookup;
+
+	/*
+	 * populate devices from DT first so smem probe will get called as part
+	 * of msm_smem_init.  socinfo_init needs smem support so call
+	 * msm_smem_init before it.
+	 */
+	board_dt_populate(adata);
+
+	msm_smem_init();
 
 	if (socinfo_init() < 0)
 		pr_err("%s: socinfo_init() failed\n", __func__);
 
 	mpq8092_init_gpiomux();
-	msm_clock_init(&mpq8092_clock_init_data);
-	board_dt_populate(adata);
+	mpq8092_add_drivers();
 }
 
 static const char *mpq8092_dt_match[] __initconst = {
