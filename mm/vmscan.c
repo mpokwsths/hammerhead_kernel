@@ -165,7 +165,7 @@ unsigned long zone_reclaimable_pages(struct zone *zone)
 	nr = zone_page_state(zone, NR_ACTIVE_FILE) +
 	     zone_page_state(zone, NR_INACTIVE_FILE);
 
-	if (get_nr_swap_pages() > 0)
+	if (nr_swap_pages > 0)
 		nr += zone_page_state(zone, NR_ACTIVE_ANON) +
 		      zone_page_state(zone, NR_INACTIVE_ANON);
 
@@ -474,6 +474,8 @@ static pageout_t pageout(struct page *page, struct address_space *mapping,
 		if (!PageWriteback(page)) {
 			/* synchronous write or broken a_ops? */
 			ClearPageReclaim(page);
+			if (PageError(page))
+				return PAGE_ACTIVATE;
 		}
 		trace_mm_vmscan_writepage(page, trace_reclaim_flags(page));
 		inc_zone_page_state(page, NR_VMSCAN_WRITE);
