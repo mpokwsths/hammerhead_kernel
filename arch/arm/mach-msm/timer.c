@@ -482,7 +482,7 @@ static uint32_t msm_timer_do_sync_to_sclk(
 	uint32_t smem_clock_val;
 	uint32_t state;
 
-	smem_clock = smem_alloc(SMEM_SMEM_SLOW_CLOCK_VALUE, sizeof(uint32_t));
+	smem_clock = smem_find(SMEM_SMEM_SLOW_CLOCK_VALUE, sizeof(uint32_t));
 	if (smem_clock == NULL) {
 		printk(KERN_ERR "no smem clock\n");
 		return 0;
@@ -557,7 +557,7 @@ static uint32_t msm_timer_do_sync_to_sclk(
 	uint32_t last_state;
 	uint32_t state;
 
-	smem_clock = smem_alloc(SMEM_SMEM_SLOW_CLOCK_VALUE,
+	smem_clock = smem_find(SMEM_SMEM_SLOW_CLOCK_VALUE,
 				sizeof(uint32_t));
 
 	if (smem_clock == NULL) {
