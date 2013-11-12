@@ -771,6 +771,21 @@ static inline ssize_t kgsl_sysfs_store(const char *buf, size_t count,
 }
 
 /**
+ * kgsl_property_read_u32() - Read a u32 property from the device tree
+ * @device: Pointer to the KGSL device
+ * @prop: String name of the property to query
+ * @ptr: Pointer to the variable to store the property
+ */
+static inline int kgsl_property_read_u32(struct kgsl_device *device,
+	const char *prop, unsigned int *ptr)
+{
+	struct platform_device *pdev =
+		container_of(device->parentdev, struct platform_device, dev);
+
+	return of_property_read_u32(pdev->dev.of_node, prop, ptr);
+}
+
+/**
  * kgsl_mutex_lock() -- try to acquire the mutex if current thread does not
  *                      already own it
  * @mutex: mutex to lock
@@ -800,4 +815,5 @@ static inline void kgsl_mutex_unlock(struct mutex *mutex, atomic64_t *owner)
 	atomic64_set(owner, 0);
 	mutex_unlock(mutex);
 }
+
 #endif  /* __KGSL_DEVICE_H */
