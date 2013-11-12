@@ -358,7 +358,7 @@ static void ion_iommu_heap_free(struct ion_buffer *buffer)
 		ion_iommu_buffer_zero(data, ION_IS_CACHED(buffer->flags));
 
 	for_each_sg(table->sgl, sg, table->nents, i) {
-		int order = get_order(sg_dma_len(sg));
+		int order = get_order(sg->length);
 		int idx = order_to_index(order);
 		struct ion_page_pool *pool;
 
@@ -430,14 +430,14 @@ int ion_iommu_heap_map_user(struct ion_heap *heap, struct ion_buffer *buffer,
 	for_each_sg(table->sgl, sg, table->nents, i) {
 		struct page *page = sg_page(sg);
 		unsigned long remainder = vma->vm_end - addr;
-		unsigned long len = sg_dma_len(sg);
+		unsigned long len = sg->length;
 
-		if (offset >= sg_dma_len(sg)) {
-			offset -= sg_dma_len(sg);
+		if (offset >= sg->length) {
+			offset -= sg->length;
 			continue;
 		} else if (offset) {
 			page += offset / PAGE_SIZE;
-			len = sg_dma_len(sg) - offset;
+			len = sg->length - offset;
 			offset = 0;
 		}
 		len = min(len, remainder);

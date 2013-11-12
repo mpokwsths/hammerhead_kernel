@@ -196,7 +196,7 @@ static struct ion_buffer *ion_buffer_create(struct ion_heap *heap,
 	if (ion_buffer_fault_user_mappings(buffer)) {
 		for_each_sg(buffer->sg_table->sgl, sg, buffer->sg_table->nents,
 			    i) {
-			if (sg_dma_len(sg) == PAGE_SIZE)
+			if (sg->length == PAGE_SIZE)
 				continue;
 			pr_err("%s: cached mappings that will be faulted in "
 			       "must have pagewise sg_lists\n", __func__);
@@ -891,7 +891,7 @@ struct sg_table *ion_create_chunked_sg_table(phys_addr_t buffer_base,
 	for_each_sg(table->sgl, sg, table->nents, i) {
 		dma_addr_t addr = buffer_base + i * chunk_size;
 		sg_dma_address(sg) = addr;
-		sg_dma_len(sg) = chunk_size;
+		sg->length = chunk_size;
 	}
 
 	return table;
