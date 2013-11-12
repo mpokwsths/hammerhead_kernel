@@ -2330,7 +2330,7 @@ static void adreno_ft_uninit_sysfs(struct kgsl_device *device)
 
 static int adreno_getproperty(struct kgsl_device *device,
 				enum kgsl_property_type type,
-				void *value,
+				void __user *value,
 				size_t sizebytes)
 {
 	int status = -EINVAL;
@@ -2471,7 +2471,7 @@ static int adreno_set_constraint(struct kgsl_device *device,
 
 static int adreno_setproperty(struct kgsl_device_private *dev_priv,
 				enum kgsl_property_type type,
-				void *value,
+				void __user *value,
 				unsigned int sizebytes)
 {
 	int status = -EINVAL;
@@ -2485,8 +2485,7 @@ static int adreno_setproperty(struct kgsl_device_private *dev_priv,
 			if (sizebytes != sizeof(enable))
 				break;
 
-			if (copy_from_user(&enable, (void __user *) value,
-				sizeof(enable))) {
+			if (copy_from_user(&enable, value, sizeof(enable))) {
 				status = -EFAULT;
 				break;
 			}
