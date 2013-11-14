@@ -38,6 +38,8 @@ Optional properties:
 				qcom,pfm-threshold must be specified.
 - qcom,pfm-threshold		The power coeff threshold in abstract power units below which
 				pmic will be made to operate in PFM mode.
+- qcom,cores-per-phase		Value that indicates the number of cores running at max frequency
+				a phase can support.
 
 [Second Level Nodes]
 Required properties:
