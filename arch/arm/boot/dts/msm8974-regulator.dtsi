@@ -469,6 +469,7 @@
 		ranges;
 		qcom,pfm-threshold = <73>;
 		qcom,use-phase-scaling-factor;
+		qcom,cores-per-phase = <1>;
 		qcom,phase-scaling-factor-bits-pos = <16>;
 		qcom,valid-scaling-factor-versions = <0 1 0 0>;
 
