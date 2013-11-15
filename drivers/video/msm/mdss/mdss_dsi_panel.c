@@ -473,8 +473,8 @@ static int mdss_panel_parse_dt(struct platform_device *pdev,
 	else if (!strncmp(pdest, "display_2", 9))
 		panel_data->panel_info.pdest = DISPLAY_2;
 	else {
-		pr_debug("%s: pdest not specified. Set Default\n",
-							__func__);
+		pr_debug("%s: incorrect pdest. Set Default\n",
+			__func__);
 		panel_data->panel_info.pdest = DISPLAY_1;
 	}
 
