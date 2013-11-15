@@ -61,8 +61,6 @@ static void __init msm_map_io(struct map_desc *io_desc, int size)
 
 #ifdef CONFIG_ARCH_MSM8974
 static struct map_desc msm_8974_io_desc[] __initdata = {
-	MSM_CHIP_DEVICE(QGIC_DIST, MSM8974),
-	MSM_CHIP_DEVICE(QGIC_CPU, MSM8974),
 	MSM_CHIP_DEVICE(TLMM, MSM8974),
 	MSM_CHIP_DEVICE(MPM2_PSHOLD, MSM8974),
 	{
@@ -85,8 +83,6 @@ void __init msm_map_8974_io(void)
 
 #ifdef CONFIG_ARCH_APQ8084
 static struct map_desc msm_8084_io_desc[] __initdata = {
-	MSM_CHIP_DEVICE(QGIC_DIST, APQ8084),
-	MSM_CHIP_DEVICE(QGIC_CPU, APQ8084),
 	MSM_CHIP_DEVICE(TLMM, APQ8084),
 	{
 		.virtual =  (unsigned long) MSM_SHARED_RAM_BASE,
@@ -108,7 +104,6 @@ void __init msm_map_8084_io(void)
 
 #ifdef CONFIG_ARCH_FSM9900
 static struct map_desc fsm9900_io_desc[] __initdata = {
-	MSM_CHIP_DEVICE(QGIC_DIST, FSM9900),
 	MSM_CHIP_DEVICE(TLMM, FSM9900),
 	{
 		.virtual =  (unsigned long) MSM_SHARED_RAM_BASE,
@@ -149,8 +144,6 @@ void __init msm_map_msmkrypton_io(void)
 
 #ifdef CONFIG_ARCH_MPQ8092
 static struct map_desc mpq8092_io_desc[] __initdata = {
-	MSM_CHIP_DEVICE(QGIC_DIST, MPQ8092),
-	MSM_CHIP_DEVICE(QGIC_CPU, MPQ8092),
 	MSM_CHIP_DEVICE(TLMM, MPQ8092),
 	{
 		.virtual =  (unsigned long) MSM_SHARED_RAM_BASE,
@@ -172,8 +165,6 @@ void __init msm_map_mpq8092_io(void)
 
 #ifdef CONFIG_ARCH_MSM8226
 static struct map_desc msm_8226_io_desc[] __initdata = {
-	MSM_CHIP_DEVICE(QGIC_DIST, MSM8226),
-	MSM_CHIP_DEVICE(QGIC_CPU, MSM8226),
 	MSM_CHIP_DEVICE(APCS_GCC, MSM8226),
 	MSM_CHIP_DEVICE(TLMM, MSM8226),
 	MSM_CHIP_DEVICE(MPM2_PSHOLD, MSM8226),
@@ -198,7 +189,6 @@ void __init msm_map_msm8226_io(void)
 
 #ifdef CONFIG_ARCH_MSM8610
 static struct map_desc msm8610_io_desc[] __initdata = {
-	MSM_CHIP_DEVICE(QGIC_DIST, MSM8610),
 	MSM_CHIP_DEVICE(APCS_GCC, MSM8610),
 	MSM_CHIP_DEVICE(TLMM, MSM8610),
 	MSM_CHIP_DEVICE(MPM2_PSHOLD, MSM8610),
@@ -219,7 +209,6 @@ void __init msm_map_msm8610_io(void)
 
 #ifdef CONFIG_ARCH_MSMSAMARIUM
 static struct map_desc msmsamarium_io_desc[] __initdata = {
-	MSM_CHIP_DEVICE(QGIC_DIST, MSMSAMARIUM),
 	MSM_CHIP_DEVICE(TLMM, MSMSAMARIUM),
 	MSM_CHIP_DEVICE(MPM2_PSHOLD, MSMSAMARIUM),
 	{
