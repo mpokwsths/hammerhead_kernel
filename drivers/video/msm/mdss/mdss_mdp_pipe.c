@@ -231,11 +231,12 @@ int mdss_mdp_smp_reserve(struct mdss_mdp_pipe *pipe)
 		if (rc)
 			return rc;
 
-		if (pipe->mixer && pipe->mixer->rotator_mode)
+		if (pipe->mixer && pipe->mixer->rotator_mode) {
 			rot_mode = 1;
-		else if (ps.num_planes == 1)
+		} else if (pipe->mixer && (ps.num_planes == 1)) {
 			ps.ystride[0] = MAX_BPP *
 				max(pipe->mixer->width, width);
+		}
 	}
 
 	if (pipe->src_fmt->tile)
