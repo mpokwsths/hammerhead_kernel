@@ -987,9 +987,13 @@ static ssize_t mdss_mdp_show_capabilities(struct device *dev,
 	SPRINT("dma_pipes=%d\n", mdata->ndma_pipes);
 	SPRINT("smp_count=%d\n", mdata->smp_mb_cnt);
 	SPRINT("smp_size=%d\n", mdata->smp_mb_size);
-	SPRINT("max downscale ratio=%d\n", MAX_DOWNSCALE_RATIO);
-	SPRINT("max upscale ratio=%d\n", MAX_UPSCALE_RATIO);
-	SPRINT("features:");
+	SPRINT("max_downscale_ratio=%d\n", MAX_DOWNSCALE_RATIO);
+	SPRINT("max_upscale_ratio=%d\n", MAX_UPSCALE_RATIO);
+	if (mdata->max_bw_low)
+		SPRINT("max_bandwidth_low=%u\n", mdata->max_bw_low);
+	if (mdata->max_bw_high)
+		SPRINT("max_bandwidth_high=%u\n", mdata->max_bw_high);
+	SPRINT("features=");
 	if (mdata->has_bwc)
 		SPRINT(" bwc");
 	if (mdata->has_decimation)
@@ -1731,6 +1735,16 @@ static int mdss_mdp_parse_dt_misc(struct platform_device *pdev)
 		&mdata->high_ib_factor);
 	mdss_mdp_parse_dt_fudge_factors(pdev, "qcom,mdss-clk-factor",
 		&mdata->clk_factor);
+
+	rc = of_property_read_u32(pdev->dev.of_node,
+			"qcom,max-bandwidth-low-kbps", &mdata->max_bw_low);
+	if (rc)
+		pr_debug("max bandwidth (low) property not specified\n");
+
+	rc = of_property_read_u32(pdev->dev.of_node,
+			"qcom,max-bandwidth-high-kbps", &mdata->max_bw_high);
+	if (rc)
+		pr_debug("max bandwidth (high) property not specified\n");
 
 	return 0;
 }
