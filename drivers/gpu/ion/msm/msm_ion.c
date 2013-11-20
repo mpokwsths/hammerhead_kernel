@@ -992,7 +992,7 @@ static struct ion_heap *msm_ion_heap_create(struct ion_platform_heap *heap_data)
 	}
 
 	if (IS_ERR_OR_NULL(heap)) {
-		pr_err("%s: error creating heap %s type %d base %pa size %u\n",
+		pr_err("%s: error creating heap %s type %d base %pa size %zu\n",
 		       __func__, heap_data->name, heap_data->type,
 		       &heap_data->base, heap_data->size);
 		return ERR_PTR(-EINVAL);
@@ -1083,8 +1083,8 @@ static int msm_ion_probe(struct platform_device *pdev)
 			continue;
 		} else {
 			if (heap_data->size)
-				pr_info("ION heap %s created at %pa "
-					"with size %x\n", heap_data->name,
+				pr_info("ION heap %s created at %pa with size %zx\n",
+							heap_data->name,
 							  &heap_data->base,
 							  heap_data->size);
 			else
