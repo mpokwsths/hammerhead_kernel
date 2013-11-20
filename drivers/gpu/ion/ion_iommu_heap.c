@@ -147,7 +147,7 @@ static int ion_iommu_buffer_zero(struct ion_iommu_priv_data *data,
 	 * It's cheaper just to use writecombine memory and skip the
 	 * cache vs. using a cache memory and trying to flush it afterwards
 	 */
-	pgprot_t pgprot = pgprot_writecombine(pgprot_kernel);
+	pgprot_t pgprot = pgprot_writecombine(PAGE_KERNEL);
 
 	/*
 	 * As an optimization, we manually zero out all of the
