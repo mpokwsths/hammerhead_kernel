@@ -1170,7 +1170,7 @@ void hfi_process_sys_property_info(
 	}
 
 	smem_table_ptr = smem_get_entry(SMEM_IMAGE_VERSION_TABLE,
-						&smem_block_size);
+			&smem_block_size, 0, SMEM_ANY_HOST_FLAG);
 	if (smem_table_ptr &&
 		((smem_image_index_venus + 128) <= smem_block_size))
 		memcpy(smem_table_ptr + smem_image_index_venus,
