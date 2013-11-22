@@ -490,7 +490,9 @@ bool msm_mpm_irqs_detectable(bool from_idle)
 	return msm_mpm_interrupts_detectable(MSM_MPM_GIC_IRQ_DOMAIN,
 			from_idle);
 }
-void msm_mpm_enter_sleep(uint32_t sclk_count, bool from_idle)
+
+void msm_mpm_enter_sleep(uint32_t sclk_count, bool from_idle,
+		const struct cpumask *cpumask)
 {
 	cycle_t wakeup = (u64)sclk_count * ARCH_TIMER_HZ;
 
@@ -507,6 +509,7 @@ void msm_mpm_enter_sleep(uint32_t sclk_count, bool from_idle)
 	}
 
 	msm_mpm_set(wakeup, !from_idle);
+	irq_set_affinity(msm_mpm_dev_data.mpm_ipc_irq, cpumask);
 }
 
 void msm_mpm_exit_sleep(bool from_idle)

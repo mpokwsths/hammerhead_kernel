@@ -759,6 +759,13 @@ int msm_lpmrs_enter_sleep(uint32_t sclk_count, struct msm_rpmrs_limits *limits,
 	int ret = 0;
 	int i;
 	struct msm_lpm_resource *rs = NULL;
+	struct clock_event_device *bc = tick_get_broadcast_device()->evtdev;
+	const struct cpumask *nextcpu;
+
+	if (from_idle)
+		nextcpu = bc->cpumask;
+	else
+		nextcpu = cpumask_of(smp_processor_id());
 
 	for (i = 0; i < ARRAY_SIZE(msm_lpm_resources); i++) {
 		rs = msm_lpm_resources[i];
@@ -773,11 +780,10 @@ int msm_lpmrs_enter_sleep(uint32_t sclk_count, struct msm_rpmrs_limits *limits,
 		if (rs->valid && rs->flush)
 			rs->flush(notify_rpm);
 	}
-	if (notify_rpm)
+	if (notify_rpm) {
 		msm_lpm_get_rpm_notif = true;
-
-	if (notify_rpm)
-		msm_mpm_enter_sleep(sclk_count, from_idle);
+		msm_mpm_enter_sleep(sclk_count, from_idle, nextcpu);
+	}
 
 	return ret;
 }
