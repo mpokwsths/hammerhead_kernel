@@ -385,7 +385,7 @@ struct adreno_gpudev {
 	void (*soft_reset)(struct adreno_device *device);
 };
 
-#define FT_DETECT_REGS_COUNT 12
+#define FT_DETECT_REGS_COUNT 14
 
 struct log_field {
 	bool show;
