@@ -262,6 +262,7 @@ config ARCH_MSM8974
 	select MULTI_IRQ_HANDLER
 	select MSM_MULTIMEDIA_USE_ION
 	select PM_DEVFREQ
+	select MSM_DEVFREQ_CPUBW
 	select MSM_PIL
 	select MSM_SPM_V2
 	select MSM_L2_SPM
@@ -318,6 +319,8 @@ config ARCH_APQ8084
 config ARCH_MPQ8092
 	bool "MPQ8092"
 	select ARCH_MSM_KRAITMP
+	select PM_DEVFREQ
+	select MSM_DEVFREQ_CPUBW
 	select GPIO_MSM_V3
 	select ARM_GIC
 	select MULTI_IRQ_HANDLER
@@ -336,6 +339,8 @@ config ARCH_FSM9900
 	select MSM_SCM
 	select MSM_GPIOMUX
 	select MULTI_IRQ_HANDLER
+	select PM_DEVFREQ
+	select MSM_DEVFREQ_CPUBW
 	select MSM_PIL
 	select MSM_NATIVE_RESTART
 	select MSM_RESTART_V2
@@ -436,6 +441,8 @@ config ARCH_MSMKRYPTON
 	select GPIO_MSM_V3
 	select MAY_HAVE_SPARSE_IRQ
 	select SPARSE_IRQ
+	select PM_DEVFREQ
+	select MSM_DEVFREQ_CPUBW
 
 config ARCH_MSM8610
 	bool "MSM8610"
@@ -468,6 +475,8 @@ config ARCH_MSM8610
 	select CPU_FREQ_GOV_USERSPACE
 	select CPU_FREQ_GOV_ONDEMAND
 	select CPU_FREQ_GOV_POWERSAVE
+	select PM_DEVFREQ
+	select MSM_DEVFREQ_CPUBW
 	select MSM_PIL
 	select MSM_RUN_QUEUE_STATS
 	select ARM_HAS_SG_CHAIN
@@ -509,6 +518,8 @@ config ARCH_MSM8226
 	select CPU_FREQ
 	select CPU_FREQ_GOV_USERSPACE
 	select CPU_FREQ_GOV_ONDEMAND
+	select PM_DEVFREQ
+	select MSM_DEVFREQ_CPUBW
 	select MSM_PIL
 	select MSM_RUN_QUEUE_STATS
 	select ARM_HAS_SG_CHAIN
@@ -528,6 +539,8 @@ config ARCH_MSMSAMARIUM
 	select ARM_GIC
 	select CPU_V7
 	select MSM_SCM
+	select PM_DEVFREQ
+	select MSM_DEVFREQ_CPUBW
 	select MSM_GPIOMUX
 	select MULTI_IRQ_HANDLER
 	select MSM_SPM_V2
@@ -1863,6 +1876,7 @@ config MSM_CPU_FREQ_MIN
 
 endif # CPU_FREQ_MSM
 
+
 config MSM_CPU_VOLTAGE_CONTROL
 	bool "Userspace CPU Voltage Control"
 	default y
@@ -1876,6 +1890,19 @@ config MSM_DEVFREQ_CPUBW
 	select DEVFREQ_GOV_POWERSAVE
 	select DEVFREQ_GOV_USERSPACE
 	select DEVFREQ_GOV_MSM_CPUFREQ
+	default n
+	help
+	  Different devfreq governors use this devfreq device to make CPU to
+	  DDR IB/AB bandwidth votes. This driver provides a SoC topology
+	  agnostic interface to so that some of the devfreq governors can be
+	  shared across SoCs.
+
+config MSM_DEVFREQ_CPUBW
+	bool "Devfreq device for CPU<->DDR IB/AB BW voting"
+	depends on PM_DEVFREQ
+	select DEVFREQ_GOV_PERFORMANCE
+	select DEVFREQ_GOV_POWERSAVE
+	select DEVFREQ_GOV_USERSPACE
 	default n
 	help
 	  Different devfreq governors use this devfreq device to make CPU to
