@@ -156,7 +156,6 @@ static struct z180_device device_2d0 = {
 		.drv_log = KGSL_LOG_LEVEL_DEFAULT,
 		.mem_log = KGSL_LOG_LEVEL_DEFAULT,
 		.pwr_log = KGSL_LOG_LEVEL_DEFAULT,
-		.pm_dump_enable = 0,
 	},
 	.cmdwin_lock = __SPIN_LOCK_INITIALIZER(device_2d1.cmdwin_lock),
 };
@@ -900,7 +899,6 @@ static int z180_wait(struct kgsl_device *device,
 	else if (timeout == 0) {
 		status = -ETIMEDOUT;
 		kgsl_pwrctrl_set_state(device, KGSL_STATE_HUNG);
-		kgsl_postmortem_dump(device, 0);
 	} else
 		status = timeout;
 
@@ -1029,7 +1027,6 @@ static const struct kgsl_functable z180_functable = {
 	.drawctxt_detach = z180_drawctxt_detach,
 	.drawctxt_destroy = z180_drawctxt_destroy,
 	.ioctl = NULL,
-	.postmortem_dump = z180_dump,
 };
 
 static struct platform_device_id z180_id_table[] = {
