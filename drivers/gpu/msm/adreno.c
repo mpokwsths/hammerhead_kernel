@@ -356,6 +356,10 @@ static struct input_handler adreno_input_handler = {
 	.id_table = adreno_input_ids,
 };
 
+static int adreno_ft_init_sysfs(struct kgsl_device *device);
+static void adreno_ft_uninit_sysfs(struct kgsl_device *device);
+static int adreno_soft_reset(struct kgsl_device *device);
+
 /**
  * adreno_perfcounter_init: Reserve kernel performance counters
  * @device: device to configure
@@ -1815,8 +1819,6 @@ adreno_probe(struct platform_device *pdev)
 
 	kgsl_pwrscale_init(&pdev->dev, CONFIG_MSM_ADRENO_DEFAULT_GOVERNOR);
 
-
-	device->flags &= ~KGSL_FLAGS_SOFT_RESET;
 	pdata = kgsl_device_get_drvdata(device);
 
 	adreno_coresight_init(pdev);
@@ -1851,6 +1853,8 @@ static int __devexit adreno_remove(struct platform_device *pdev)
 	adreno_dev = ADRENO_DEVICE(device);
 
 	input_unregister_handler(&adreno_input_handler);
+
+	adreno_ft_uninit_sysfs(device);
 
 	adreno_coresight_remove(pdev);
 	adreno_profile_close(device);
@@ -2246,7 +2250,7 @@ static ssize_t _ft_sysfs_store(const char *buf, size_t count, int *ptr)
  * @buf: value to write
  * @count: size of the value to write
  */
-struct adreno_device *_get_adreno_dev(struct device *dev)
+static struct adreno_device *_get_adreno_dev(struct device *dev)
 {
 	struct kgsl_device *device = kgsl_device_from_dev(dev);
 	return device ? ADRENO_DEVICE(device) : NULL;
@@ -2546,15 +2550,15 @@ static ssize_t _wake_nice_show(struct device *dev,
 #define FT_DEVICE_ATTR(name) \
 	DEVICE_ATTR(name, 0644,	_ ## name ## _show, _ ## name ## _store);
 
-FT_DEVICE_ATTR(ft_policy);
-FT_DEVICE_ATTR(ft_pagefault_policy);
-FT_DEVICE_ATTR(ft_fast_hang_detect);
-FT_DEVICE_ATTR(ft_long_ib_detect);
+static FT_DEVICE_ATTR(ft_policy);
+static FT_DEVICE_ATTR(ft_pagefault_policy);
+static FT_DEVICE_ATTR(ft_fast_hang_detect);
+static FT_DEVICE_ATTR(ft_long_ib_detect);
 
 static FT_DEVICE_ATTR(wake_nice);
 static FT_DEVICE_ATTR(wake_timeout);
 
-const struct device_attribute *ft_attr_list[] = {
+static const struct device_attribute *ft_attr_list[] = {
 	&dev_attr_ft_policy,
 	&dev_attr_ft_pagefault_policy,
 	&dev_attr_ft_fast_hang_detect,
@@ -2564,12 +2568,12 @@ const struct device_attribute *ft_attr_list[] = {
 	NULL,
 };
 
-int adreno_ft_init_sysfs(struct kgsl_device *device)
+static int adreno_ft_init_sysfs(struct kgsl_device *device)
 {
 	return kgsl_create_device_sysfs_files(device->dev, ft_attr_list);
 }
 
-void adreno_ft_uninit_sysfs(struct kgsl_device *device)
+static void adreno_ft_uninit_sysfs(struct kgsl_device *device)
 {
 	kgsl_remove_device_sysfs_files(device->dev, ft_attr_list);
 }
@@ -2826,7 +2830,7 @@ bool adreno_hw_isidle(struct kgsl_device *device)
  * The GPU hardware is reset but we never pull power so we can skip
  * a lot of the standard adreno_stop/adreno_start sequence
  */
-int adreno_soft_reset(struct kgsl_device *device)
+static int adreno_soft_reset(struct kgsl_device *device)
 {
 	struct adreno_device *adreno_dev = ADRENO_DEVICE(device);
 	int ret;
@@ -2999,7 +3003,6 @@ static int adreno_suspend_context(struct kgsl_device *device)
 }
 
 /* Find a memory structure attached to an adreno context */
-
 struct kgsl_memdesc *adreno_find_ctxtmem(struct kgsl_device *device,
 	phys_addr_t pt_base, unsigned int gpuaddr, unsigned int size)
 {
@@ -3034,7 +3037,7 @@ struct kgsl_memdesc *adreno_find_ctxtmem(struct kgsl_device *device,
 	return desc;
 }
 
-struct kgsl_memdesc *adreno_find_region(struct kgsl_device *device,
+static struct kgsl_memdesc *adreno_find_region(struct kgsl_device *device,
 						phys_addr_t pt_base,
 						unsigned int gpuaddr,
 						unsigned int size)
@@ -3333,7 +3336,7 @@ static void adreno_power_stats(struct kgsl_device *device,
 	stats->ram_wait = busy_data.vbif_starved_ram;
 }
 
-void adreno_irqctrl(struct kgsl_device *device, int state)
+static void adreno_irqctrl(struct kgsl_device *device, int state)
 {
 	struct adreno_device *adreno_dev = ADRENO_DEVICE(device);
 	adreno_dev->gpudev->irq_control(adreno_dev, state);

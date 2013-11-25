@@ -54,14 +54,6 @@
 #define KGSL_END_OF_PROFILE_IDENTIFIER	0x2DEFADE2
 #define KGSL_PWRON_FIXUP_IDENTIFIER	0x2AFAFAFA
 
-#ifdef CONFIG_MSM_SCM
-#define ADRENO_DEFAULT_PWRSCALE_POLICY  (&kgsl_pwrscale_policy_tz)
-#elif defined CONFIG_MSM_SLEEP_STATS_DEVICE
-#define ADRENO_DEFAULT_PWRSCALE_POLICY  (&kgsl_pwrscale_policy_idlestats)
-#else
-#define ADRENO_DEFAULT_PWRSCALE_POLICY  NULL
-#endif
-
 void adreno_debugfs_init(struct kgsl_device *device);
 
 #define ADRENO_ISTORE_START 0x5000 /* Istore offset */
@@ -372,8 +364,8 @@ struct adreno_gpudev {
 	struct adreno_perfcounters *perfcounters;
 
 	/* GPU specific function hooks */
-	int (*ctxt_create)(struct adreno_device *, struct adreno_context *);
 	irqreturn_t (*irq_handler)(struct adreno_device *);
+	int (*ctxt_create)(struct adreno_device *, struct adreno_context *);
 	void (*irq_control)(struct adreno_device *, int);
 	unsigned int (*irq_pending)(struct adreno_device *);
 	void * (*snapshot)(struct adreno_device *, void *, int *, int);
@@ -477,11 +469,6 @@ void adreno_dump_fields(struct kgsl_device *device,
 unsigned int adreno_a3xx_rbbm_clock_ctl_default(struct adreno_device
 							*adreno_dev);
 
-struct kgsl_memdesc *adreno_find_region(struct kgsl_device *device,
-						phys_addr_t pt_base,
-						unsigned int gpuaddr,
-						unsigned int size);
-
 uint8_t *adreno_convertaddr(struct kgsl_device *device,
 	phys_addr_t pt_base, unsigned int gpuaddr, unsigned int size);
 
@@ -509,9 +496,6 @@ void adreno_dispatcher_queue_context(struct kgsl_device *device,
 	struct adreno_context *drawctxt);
 int adreno_reset(struct kgsl_device *device);
 
-int adreno_ft_init_sysfs(struct kgsl_device *device);
-void adreno_ft_uninit_sysfs(struct kgsl_device *device);
-
 int adreno_perfcounter_get_groupid(struct adreno_device *adreno_dev,
 					const char *name);
 
@@ -524,8 +508,6 @@ int adreno_perfcounter_get(struct adreno_device *adreno_dev,
 
 int adreno_perfcounter_put(struct adreno_device *adreno_dev,
 	unsigned int groupid, unsigned int countable, unsigned int flags);
-
-int adreno_soft_reset(struct kgsl_device *device);
 
 int adreno_a3xx_pwron_fixup_init(struct adreno_device *adreno_dev);
 
