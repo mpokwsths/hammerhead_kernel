@@ -152,7 +152,7 @@ void kgsl_signal_event(struct kgsl_device *device,
 
 	BUG_ON(!mutex_is_locked(&device->mutex));
 
-	cur = kgsl_readtimestamp(device, context, KGSL_TIMESTAMP_RETIRED);
+	kgsl_readtimestamp(device, context, KGSL_TIMESTAMP_RETIRED, &cur);
 	_signal_event(device, head, timestamp, cur, type);
 
 	if (context && list_empty(&context->events))
@@ -181,7 +181,7 @@ void kgsl_signal_events(struct kgsl_device *device,
 	 * signal occured
 	 */
 
-	cur = kgsl_readtimestamp(device, context, KGSL_TIMESTAMP_RETIRED);
+	kgsl_readtimestamp(device, context, KGSL_TIMESTAMP_RETIRED, &cur);
 
 	_signal_events(device, head, cur, type);
 
@@ -231,9 +231,7 @@ int kgsl_add_event(struct kgsl_device *device, u32 id, u32 ts,
 	 */
 	if (context == NULL ||
 		((context->flags & KGSL_CONTEXT_USER_GENERATED_TS) == 0)) {
-
-		queued = kgsl_readtimestamp(device, context,
-						KGSL_TIMESTAMP_QUEUED);
+		kgsl_readtimestamp(device, context, KGSL_TIMESTAMP_QUEUED, &queued);
 
 		if (timestamp_cmp(ts, queued) > 0) {
 			kgsl_context_put(context);
@@ -241,7 +239,7 @@ int kgsl_add_event(struct kgsl_device *device, u32 id, u32 ts,
 		}
 	}
 
-	cur_ts = kgsl_readtimestamp(device, context, KGSL_TIMESTAMP_RETIRED);
+	kgsl_readtimestamp(device, context, KGSL_TIMESTAMP_RETIRED, &cur_ts);
 
 	/*
 	 * Check to see if the requested timestamp has already fired.  If it
@@ -309,7 +307,7 @@ void kgsl_cancel_events(struct kgsl_device *device, void *owner)
 
 	BUG_ON(!mutex_is_locked(&device->mutex));
 
-	cur = kgsl_readtimestamp(device, NULL, KGSL_TIMESTAMP_RETIRED);
+	kgsl_readtimestamp(device, NULL, KGSL_TIMESTAMP_RETIRED, &cur);
 
 	list_for_each_entry_safe(event, event_tmp, &device->events, list) {
 		if (event->owner != owner)
@@ -347,8 +345,9 @@ void kgsl_cancel_event(struct kgsl_device *device, struct kgsl_context *context,
 	event = _find_event(device, head, timestamp, func, priv);
 
 	if (event) {
-		unsigned int cur = kgsl_readtimestamp(device, context,
-			KGSL_TIMESTAMP_RETIRED);
+		unsigned int cur;
+		kgsl_readtimestamp(device, context, KGSL_TIMESTAMP_RETIRED,
+			&cur);
 
 		_do_signal_event(device, event, cur, KGSL_EVENT_CANCELLED);
 	}
@@ -358,8 +357,8 @@ EXPORT_SYMBOL(kgsl_cancel_event);
 static int kgsl_process_context_events(struct kgsl_device *device,
 		struct kgsl_context *context)
 {
-	unsigned int timestamp = kgsl_readtimestamp(device, context,
-		KGSL_TIMESTAMP_RETIRED);
+	unsigned int timestamp;
+	kgsl_readtimestamp(device, context, KGSL_TIMESTAMP_RETIRED, &timestamp);
 
 	_retire_events(device, &context->events, timestamp);
 
@@ -380,7 +379,7 @@ void kgsl_process_events(struct work_struct *work)
 
 	kgsl_mutex_lock(&device->mutex, &device->mutex_owner);
 
-	timestamp = kgsl_readtimestamp(device, NULL, KGSL_TIMESTAMP_RETIRED);
+	kgsl_readtimestamp(device, NULL, KGSL_TIMESTAMP_RETIRED, &timestamp);
 	_retire_events(device, &device->events, timestamp);
 
 	/* Now process all of the pending contexts */

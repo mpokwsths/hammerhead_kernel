@@ -671,8 +671,8 @@ int kgsl_check_timestamp(struct kgsl_device *device,
 {
 	unsigned int ts_processed;
 
-	ts_processed = kgsl_readtimestamp(device, context,
-					  KGSL_TIMESTAMP_RETIRED);
+	kgsl_readtimestamp(device, context, KGSL_TIMESTAMP_RETIRED,
+		&ts_processed);
 
 	return (timestamp_cmp(ts_processed, timestamp) >= 0);
 }
@@ -1468,19 +1468,20 @@ static long _device_waittimestamp(struct kgsl_device_private *dev_priv,
 	int result = 0;
 	struct kgsl_device *device = dev_priv->device;
 	unsigned int context_id = context ? context->id : KGSL_MEMSTORE_GLOBAL;
+	unsigned int temp_cur_ts = 0;
 
-	trace_kgsl_waittimestamp_entry(device, context_id,
-				       kgsl_readtimestamp(device, context,
-							KGSL_TIMESTAMP_RETIRED),
-				       timestamp, timeout);
+	kgsl_readtimestamp(device, context, KGSL_TIMESTAMP_RETIRED,
+			   &temp_cur_ts);
+
+	trace_kgsl_waittimestamp_entry(device, context_id, temp_cur_ts,
+		timestamp, timeout);
 
 	result = device->ftbl->waittimestamp(dev_priv->device,
-					context, timestamp, timeout);
+	context, timestamp, timeout);
 
-	trace_kgsl_waittimestamp_exit(device,
-				      kgsl_readtimestamp(device, context,
-							KGSL_TIMESTAMP_RETIRED),
-				      result);
+	kgsl_readtimestamp(device, context, KGSL_TIMESTAMP_RETIRED,
+		&temp_cur_ts);
+	trace_kgsl_waittimestamp_exit(device, temp_cur_ts, result);
 
 	return result;
 }
@@ -1573,8 +1574,8 @@ static void _kgsl_cmdbatch_timer(unsigned long data)
 		case KGSL_CMD_SYNCPOINT_TYPE_TIMESTAMP: {
 			unsigned int retired;
 
-			 retired = kgsl_readtimestamp(event->device,
-				event->context, KGSL_TIMESTAMP_RETIRED);
+			kgsl_readtimestamp(event->device,
+				event->context, KGSL_TIMESTAMP_RETIRED, &retired);
 
 			pr_err("  [timestamp] context %d timestamp %d (retired %d)\n",
 				event->context->id, event->timestamp,
@@ -1874,8 +1875,9 @@ static int kgsl_cmdbatch_add_sync_timestamp(struct kgsl_device *device,
 	 */
 
 	if (context == cmdbatch->context) {
-		unsigned int queued = kgsl_readtimestamp(device, context,
-			KGSL_TIMESTAMP_QUEUED);
+		unsigned int queued;
+		kgsl_readtimestamp(device, context, KGSL_TIMESTAMP_QUEUED,
+			&queued);
 
 		if (timestamp_cmp(sync->timestamp, queued) > 0) {
 			KGSL_DRV_ERR(device,
@@ -2285,13 +2287,14 @@ static long _cmdstream_readtimestamp(struct kgsl_device_private *dev_priv,
 		struct kgsl_context *context, unsigned int type,
 		unsigned int *timestamp)
 {
-	*timestamp = kgsl_readtimestamp(dev_priv->device, context, type);
+	int ret;
+	ret = kgsl_readtimestamp(dev_priv->device, context, type, timestamp);
 
 	trace_kgsl_readtimestamp(dev_priv->device,
 			context ? context->id : KGSL_MEMSTORE_GLOBAL,
 			type, *timestamp);
 
-	return 0;
+	return ret;
 }
 
 static long kgsl_ioctl_cmdstream_readtimestamp(struct kgsl_device_private
@@ -2338,8 +2341,9 @@ static long _cmdstream_freememontimestamp(struct kgsl_device_private *dev_priv,
 {
 	int result = 0;
 	struct kgsl_mem_entry *entry = NULL;
-	struct kgsl_device *device = dev_priv->device;
 	unsigned int context_id = context ? context->id : KGSL_MEMSTORE_GLOBAL;
+	unsigned int temp_cur_ts = 0;
+	struct kgsl_device *device = dev_priv->device;
 
 	entry = kgsl_sharedmem_find(dev_priv->process_priv, gpuaddr);
 
@@ -2355,10 +2359,10 @@ static long _cmdstream_freememontimestamp(struct kgsl_device_private *dev_priv,
 		return -EBUSY;
 	}
 
+	kgsl_readtimestamp(device, context, KGSL_TIMESTAMP_RETIRED,
+		&temp_cur_ts);
 	trace_kgsl_mem_timestamp_queue(device, entry, context_id,
-				       kgsl_readtimestamp(device, context,
-						  KGSL_TIMESTAMP_RETIRED),
-				       timestamp);
+		temp_cur_ts, timestamp);
 	result = kgsl_add_event(dev_priv->device, context_id, timestamp,
 				kgsl_freemem_event_cb, entry, dev_priv);
 	kgsl_mem_entry_put(entry);
