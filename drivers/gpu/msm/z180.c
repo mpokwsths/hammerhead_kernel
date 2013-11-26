@@ -845,13 +845,17 @@ static void z180_cmdwindow_write(struct kgsl_device *device,
 	z180_regwrite(device, ADDR_VGC_COMMANDSTREAM >> 2, data);
 }
 
-static unsigned int z180_readtimestamp(struct kgsl_device *device,
-		struct kgsl_context *context, enum kgsl_timestamp_type type)
+static int z180_readtimestamp(struct kgsl_device *device,
+					struct kgsl_context *context,
+					enum kgsl_timestamp_type type,
+					unsigned int *timestamp)
 {
 	struct z180_device *z180_dev = Z180_DEVICE(device);
-	(void)context;
-	/* get current EOP timestamp */
-	return z180_dev->timestamp;
+	int status = 0;
+
+	*timestamp = z180_dev->timestamp;
+
+	return status;
 }
 
 static int z180_waittimestamp(struct kgsl_device *device,
