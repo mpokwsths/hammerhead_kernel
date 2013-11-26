@@ -957,6 +957,7 @@ int ion_vm_fault(struct vm_area_struct *vma, struct vm_fault *vmf)
 	struct ion_buffer *buffer = vma->vm_private_data;
 	struct scatterlist *sg;
 	int i;
+	unsigned long pfn;
 
 	mutex_lock(&buffer->lock);
 	set_bit(vmf->pgoff, buffer->dirty);
@@ -965,8 +966,8 @@ int ion_vm_fault(struct vm_area_struct *vma, struct vm_fault *vmf)
 		if (i != vmf->pgoff)
 			continue;
 		dma_sync_sg_for_cpu(NULL, sg, 1, DMA_BIDIRECTIONAL);
-		vm_insert_page(vma, (unsigned long)vmf->virtual_address,
-			       sg_page(sg));
+		pfn = page_to_pfn(sg_page(sg));
+		vm_insert_pfn(vma, (unsigned long)vmf->virtual_address, pfn);
 		break;
 	}
 	mutex_unlock(&buffer->lock);
@@ -1027,6 +1028,8 @@ static int ion_mmap(struct dma_buf *dmabuf, struct vm_area_struct *vma)
 	}
 
 	if (ion_buffer_fault_user_mappings(buffer)) {
+		vma->vm_flags |= VM_IO | VM_PFNMAP | VM_DONTEXPAND |
+							VM_DONTDUMP;
 		vma->vm_private_data = buffer;
 		vma->vm_ops = &ion_vma_ops;
 		vma->vm_flags |= VM_MIXEDMAP;
