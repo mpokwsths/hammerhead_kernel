@@ -36,7 +36,6 @@
 #endif
 #include <mach/msm_bus.h>
 #include <mach/jtag.h>
-#include "acpuclock.h"
 #include "avs.h"
 #include "idle.h"
 #include "pm.h"
@@ -62,8 +61,6 @@ static int msm_pm_debug_mask = 1;
 module_param_named(
 	debug_mask, msm_pm_debug_mask, int, S_IRUGO | S_IWUSR | S_IWGRP
 );
-
-static bool use_acpuclk_apis;
 
 enum {
 	MSM_PM_DEBUG_SUSPEND = BIT(0),
@@ -377,7 +374,6 @@ static enum msm_pm_time_stats_id msm_pm_retention(bool from_idle)
 {
 	int ret = 0;
 	int cpu = smp_processor_id();
-	int saved_rate = 0;
 	struct clk *cpu_clk = per_cpu(cpu_clks, cpu);
 
 	spin_lock(&retention_lock);
@@ -388,24 +384,15 @@ static enum msm_pm_time_stats_id msm_pm_retention(bool from_idle)
 	cpumask_set_cpu(cpu, &retention_cpus);
 	spin_unlock(&retention_lock);
 
-	if (use_acpuclk_apis)
-		saved_rate = acpuclk_power_collapse();
-	else
-		clk_disable(cpu_clk);
+	clk_disable(cpu_clk);
 
 	ret = msm_spm_set_low_power_mode(MSM_SPM_MODE_POWER_RETENTION, false);
 	WARN_ON(ret);
 
 	msm_arch_idle();
 
-	if (use_acpuclk_apis) {
-		if (acpuclk_set_rate(cpu, saved_rate, SETRATE_PC))
-			pr_err("%s(): Error setting acpuclk_set_rate\n",
-					__func__);
-	} else {
-		if (clk_enable(cpu_clk))
-			pr_err("%s(): Error restoring cpu clk\n", __func__);
-	}
+	if (clk_enable(cpu_clk))
+		pr_err("%s(): Error restore cpu clk\n", __func__);
 
 	spin_lock(&retention_lock);
 	cpumask_clear_cpu(cpu, &retention_cpus);
@@ -570,19 +557,13 @@ static int ramp_down_last_cpu(int cpu)
 	struct clk *cpu_clk = per_cpu(cpu_clks, cpu);
 	int ret = 0;
 
-	if (use_acpuclk_apis) {
-		ret = acpuclk_power_collapse();
-		if (MSM_PM_DEBUG_CLOCK & msm_pm_debug_mask)
-			pr_info("CPU%u: %s: change clk rate(old rate = %d)\n",
-					cpu, __func__, ret);
-	} else {
-		clk_disable(cpu_clk);
-		clk_disable(l2_clk);
-	}
+	clk_disable(cpu_clk);
+	clk_disable(l2_clk);
+
 	return ret;
 }
 
-static int ramp_up_first_cpu(int cpu, int saved_rate)
+static int ramp_up_first_cpu(int cpu)
 {
 	struct clk *cpu_clk = per_cpu(cpu_clks, cpu);
 	int rc = 0;
@@ -591,27 +572,21 @@ static int ramp_up_first_cpu(int cpu, int saved_rate)
 		pr_info("CPU%u: %s: restore clock rate\n",
 				cpu, __func__);
 
-	if (use_acpuclk_apis) {
-		rc = acpuclk_set_rate(cpu, saved_rate, SETRATE_PC);
+	if (l2_clk) {
+		rc = clk_enable(l2_clk);
 		if (rc)
-			pr_err("CPU:%u: Error restoring cpu clk\n", cpu);
-	} else {
-		if (l2_clk) {
-			rc = clk_enable(l2_clk);
-			if (rc)
-				pr_err("%s(): Error restoring l2 clk\n",
-						__func__);
-		}
+			pr_err("%s(): Error restoring l2 clk\n",
+					__func__);
+	}
 
-		if (cpu_clk) {
-			int ret = clk_enable(cpu_clk);
+	if (cpu_clk) {
+		int ret = clk_enable(cpu_clk);
 
-			if (ret) {
-				pr_err("%s(): Error restoring cpu clk\n",
-						__func__);
-				return ret;
-			}
-		}
+		if (ret) {
+			pr_err("%s(): Error restoring cpu clk\n",
+					__func__);
+			return ret;
+ 		}
 	}
 
 	return rc;
@@ -620,7 +595,6 @@ static int ramp_up_first_cpu(int cpu, int saved_rate)
 static enum msm_pm_time_stats_id msm_pm_power_collapse(bool from_idle)
 {
 	unsigned int cpu = smp_processor_id();
-	unsigned long saved_acpuclk_rate = 0;
 	unsigned int avsdscr;
 	unsigned int avscsr;
 	bool collapsed;
@@ -645,12 +619,12 @@ static enum msm_pm_time_stats_id msm_pm_power_collapse(bool from_idle)
 	avs_set_avscsr(0); /* Disable AVS */
 
 	if (cpu_online(cpu) && !msm_no_ramp_down_pc)
-		saved_acpuclk_rate = ramp_down_last_cpu(cpu);
+		ramp_down_last_cpu(cpu);
 
 	collapsed = msm_pm_spm_power_collapse(cpu, from_idle, true);
 
 	if (cpu_online(cpu) && !msm_no_ramp_down_pc)
-		ramp_up_first_cpu(cpu, saved_acpuclk_rate);
+		ramp_up_first_cpu(cpu);
 
 	avs_set_avsdscr(avsdscr);
 	avs_set_avscsr(avscsr);
@@ -1109,16 +1083,7 @@ static int msm_pm_clk_init(struct platform_device *pdev)
 	bool synced_clocks;
 	u32 cpu;
 	char clk_name[] = "cpu??_clk";
-	bool cpu_as_clocks;
 	char *key;
-
-	key = "qcom,cpus-as-clocks";
-	cpu_as_clocks = of_property_read_bool(pdev->dev.of_node, key);
-
-	if (!cpu_as_clocks) {
-		use_acpuclk_apis = true;
-		return 0;
-	}
 
 	key = "qcom,synced-clocks";
 	synced_clocks = of_property_read_bool(pdev->dev.of_node, key);
