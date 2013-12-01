@@ -15,8 +15,6 @@
 #include <linux/kernel.h>
 #include <linux/slab.h>
 #include <linux/io.h>
-#include <linux/spinlock.h>
-#include <linux/cpufreq.h>
 #include <mach/socinfo.h>
 #include <mach/scm.h>
 
@@ -47,16 +45,15 @@ struct gpu_thresh_tbl {
     }
 
 static struct gpu_thresh_tbl thresh_tbl[] = {
-	GPU_SCALE(110, 50),
+	GPU_SCALE(110, 40),
 	GPU_SCALE(85, 35),
-	GPU_SCALE(70, 20),
-	GPU_SCALE(50, 0),
+	GPU_SCALE(70, 30),
+	GPU_SCALE(65, 25),
+	GPU_SCALE(60, 20),
+	GPU_SCALE(50, 20),
+	GPU_SCALE(45, 0),
 	GPU_SCALE(100, 0),
 };
-
-#define BOOSTED_POWERLEVEL 2
-static unsigned int enable_boost = 0;
-static unsigned int boosted_pwrlevel = BOOSTED_POWERLEVEL;
 
 static void conservative_wake(struct kgsl_device *device,
 			      struct kgsl_pwrscale *pwrscale)
@@ -83,13 +80,6 @@ static void conservative_idle(struct kgsl_device *device,
 	struct kgsl_power_stats stats;
 	int val = 0;
 	unsigned int loadpct;
-
-	if (enable_boost == 1 && hammerhead_boosted == 1) {
-		if (boosted_pwrlevel < pwr->active_pwrlevel)
-			kgsl_pwrctrl_pwrlevel_change(device, boosted_pwrlevel);
-
-		return;
-	}
 
 	device->ftbl->power_stats(device, &stats);
 
@@ -166,9 +156,6 @@ static ssize_t conservative_stats_store(struct kgsl_device *device,
 	return count;
 }
 
-PWRSCALE_POLICY_ATTR(print_stats, 0644, conservative_stats_show,
-		     conservative_stats_store);
-
 static ssize_t conservative_polling_interval_show(struct kgsl_device *device, struct kgsl_pwrscale
 						  *pwrscale, char *buf)
 {
@@ -201,9 +188,6 @@ static ssize_t conservative_polling_interval_store(struct kgsl_device *device, s
 
 	return count;
 }
-
-PWRSCALE_POLICY_ATTR(polling_interval, 0644, conservative_polling_interval_show,
-		     conservative_polling_interval_store);
 
 static ssize_t conservative_threshold_table_show(struct kgsl_device *device, struct kgsl_pwrscale
 						 *pwrscale, char *buf)
@@ -247,82 +231,17 @@ static ssize_t conservative_threshold_table_store(struct kgsl_device *device, st
 	return err;
 }
 
+PWRSCALE_POLICY_ATTR(print_stats, 0644, conservative_stats_show,
+		     conservative_stats_store);
+PWRSCALE_POLICY_ATTR(polling_interval, 0644, conservative_polling_interval_show,
+		     conservative_polling_interval_store);
 PWRSCALE_POLICY_ATTR(threshold_table, 0644, conservative_threshold_table_show,
 		     conservative_threshold_table_store);
-
-static ssize_t conservative_boosted_pwrlevel_show(struct kgsl_device *device, struct kgsl_pwrscale
-						  *pwrscale, char *buf)
-{
-	return sprintf(buf, "%d\n", boosted_pwrlevel);
-}
-
-static ssize_t conservative_boosted_pwrlevel_store(struct kgsl_device *device, struct kgsl_pwrscale
-						   *pwrscale, const char *buf,
-						   size_t count)
-{
-	unsigned long tmp;
-	int err;
-	struct kgsl_pwrctrl *pwr = &device->pwrctrl;
-
-	err = kstrtoul(buf, 0, &tmp);
-	if (err) {
-		pr_err("%s: failed setting new boosted powerlevel!\n", KGSL_NAME);
-		return err;
-	}
-
-	if (tmp < pwr->max_pwrlevel)
-		tmp = pwr->max_pwrlevel;
-	else if (tmp > pwr->min_pwrlevel)
-		tmp = pwr->min_pwrlevel;
-
-	boosted_pwrlevel = tmp;
-
-	if (g_show_stats == 1)
-		pr_info("%s: new boosted powerlevel: %d\n", KGSL_NAME, boosted_pwrlevel);
-
-	return count;
-}
-
-PWRSCALE_POLICY_ATTR(boosted_pwrlevel, 0644, conservative_boosted_pwrlevel_show,
-		     conservative_boosted_pwrlevel_store);
-
-static ssize_t conservative_boost_enabled_show(struct kgsl_device *device, struct kgsl_pwrscale
-						  *pwrscale, char *buf)
-{
-	return sprintf(buf, "%d\n", enable_boost);
-}
-
-static ssize_t conservative_boost_enabled_store(struct kgsl_device *device, struct kgsl_pwrscale
-						   *pwrscale, const char *buf,
-						   size_t count)
-{
-	unsigned long tmp;
-	int err;
-
-	err = kstrtoul(buf, 0, &tmp);
-	if (err) {
-		pr_err("%s: failed enabling/disabling boost!\n", KGSL_NAME);
-		return err;
-	}
-
-	enable_boost = tmp;
-
-	if (g_show_stats == 1)
-		pr_info("%s: boost %s\n", KGSL_NAME,
-			enable_boost ? "enabled" : "disabled");
-
-	return count;
-}
-
-PWRSCALE_POLICY_ATTR(boost_enabled, 0644, conservative_boost_enabled_show,
-		     conservative_boost_enabled_store);
 
 static struct attribute *conservative_attrs[] = {
 	&policy_attr_print_stats.attr,
 	&policy_attr_polling_interval.attr,
 	&policy_attr_threshold_table.attr,
-	&policy_attr_boosted_pwrlevel.attr,
-	&policy_attr_boost_enabled.attr,
 	NULL
 };
 
