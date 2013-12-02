@@ -55,7 +55,7 @@ MODULE_PARM_DESC(kgsl_pagetable_count,
 "Minimum number of pagetables for KGSL to allocate at initialization time");
 module_param_named(mmutype, ksgl_mmu_type, charp, 0);
 MODULE_PARM_DESC(ksgl_mmu_type,
-"Type of MMU to be used for graphics. Valid values are 'iommu' or 'gpummu' or 'nommu'");
+"Type of MMU to be used for graphics. Valid values are 'iommu' or 'nommu'");
 
 struct kgsl_dma_buf_meta {
 	struct dma_buf_attachment *attach;
@@ -126,14 +126,6 @@ static struct {
 	int head;
 	int tail;
 } memfree;
-
-static int kgsl_memfree_init(void)
-{
-	memfree.list = kzalloc(MEMFREE_ENTRIES * sizeof(struct memfree_entry),
-		GFP_KERNEL);
-
-	return (memfree.list) ? 0 : -ENOMEM;
-}
 
 static void kgsl_memfree_exit(void)
 {
@@ -4295,21 +4287,8 @@ void kgsl_device_platform_remove(struct kgsl_device *device)
 }
 EXPORT_SYMBOL(kgsl_device_platform_remove);
 
-static int __devinit
-kgsl_ptdata_init(void)
-{
-	kgsl_driver.ptpool = kgsl_mmu_ptpool_init(kgsl_pagetable_count);
-
-	if (!kgsl_driver.ptpool)
-		return -ENOMEM;
-	return 0;
-}
-
 static void kgsl_core_exit(void)
 {
-	kgsl_mmu_ptpool_destroy(kgsl_driver.ptpool);
-	kgsl_driver.ptpool = NULL;
-
 	kgsl_drm_exit();
 	kgsl_cffdump_destroy();
 	kgsl_core_debugfs_close();
@@ -4395,14 +4374,6 @@ static int __init kgsl_core_init(void)
 	INIT_LIST_HEAD(&kgsl_driver.pagetable_list);
 
 	kgsl_mmu_set_mmutype(ksgl_mmu_type);
-
-	if (KGSL_MMU_TYPE_GPU == kgsl_mmu_get_mmutype()) {
-		result = kgsl_ptdata_init();
-		if (result)
-			goto err;
-	}
-
-	kgsl_memfree_init();
 
 	return 0;
 

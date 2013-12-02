@@ -105,8 +105,6 @@ struct kgsl_driver {
 	/* Mutex for protecting the device list */
 	struct mutex devlock;
 
-	void *ptpool;
-
 	struct {
 		unsigned int vmalloc;
 		unsigned int vmalloc_max;

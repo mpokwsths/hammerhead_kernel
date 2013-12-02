@@ -138,15 +138,6 @@ struct kgsl_functable {
 	void (*resume)(struct kgsl_device *device);
 };
 
-/* MH register values */
-struct kgsl_mh {
-	unsigned int     mharb;
-	unsigned int     mh_intf_cfg1;
-	unsigned int     mh_intf_cfg2;
-	uint32_t         mpu_base;
-	int              mpu_range;
-};
-
 typedef void (*kgsl_event_func)(struct kgsl_device *, void *, u32, u32, u32);
 
 struct kgsl_event {
@@ -238,7 +229,6 @@ struct kgsl_device {
 	const char *iomemname;
 	const char *shadermemname;
 
-	struct kgsl_mh mh;
 	struct kgsl_mmu mmu;
 	struct completion hwaccess_gate;
 	struct completion cmdbatch_gate;
