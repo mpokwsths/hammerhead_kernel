@@ -27,6 +27,7 @@
 #include <linux/timer.h>
 #include <linux/kernel.h>
 #include <linux/workqueue.h>
+#include <linux/ratelimit.h>
 #include <mach/clk.h>
 #include <mach/iommu_domains.h>
 #include <mach/iommu.h>
@@ -1800,6 +1801,7 @@ long msm_cpp_subdev_ioctl(struct v4l2_subdev *sd,
 		break;
 	}
 	default:
+		pr_err_ratelimited("invalid value: cmd=0x%x\n", cmd);
 		break;
 	}
 	mutex_unlock(&cpp_dev->mutex);
