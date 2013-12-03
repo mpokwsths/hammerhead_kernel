@@ -14,6 +14,7 @@
 #include <linux/module.h>
 #include <linux/of.h>
 #include <linux/irqreturn.h>
+#include <linux/ratelimit.h>
 #include "msm_csid.h"
 #include "msm_csid_hwreg.h"
 #include "msm_sd.h"
@@ -552,7 +553,7 @@ static long msm_csid_subdev_ioctl(struct v4l2_subdev *sd,
 		rc = msm_csid_release(csid_dev);
 		break;
 	default:
-		pr_err("%s: command not found\n", __func__);
+		pr_err_ratelimited("%s: command not found\n", __func__);
 	}
 	CDBG("%s:%d\n", __func__, __LINE__);
 	mutex_unlock(&csid_dev->mutex);

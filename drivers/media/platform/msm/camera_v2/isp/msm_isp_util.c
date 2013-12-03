@@ -11,8 +11,8 @@
  */
 #include <linux/mutex.h>
 #include <linux/io.h>
-#include <media/v4l2-subdev.h>
 #include <linux/ratelimit.h>
+#include <media/v4l2-subdev.h>
 
 #include "msm.h"
 #include "msm_isp_util.h"
@@ -406,7 +406,7 @@ long msm_isp_ioctl(struct v4l2_subdev *sd,
 		break;
 
 	default:
-		pr_err("%s: Invalid ISP command\n", __func__);
+		pr_err_ratelimited("%s: Invalid ISP command\n", __func__);
 		rc = -EINVAL;
 	}
 	return rc;

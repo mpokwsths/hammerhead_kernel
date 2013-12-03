@@ -16,6 +16,7 @@
 #include <linux/of.h>
 #include <linux/module.h>
 #include <linux/irqreturn.h>
+#include <linux/ratelimit.h>
 #include <mach/vreg.h>
 #include "msm_csiphy.h"
 #include "msm_sd.h"
@@ -636,7 +637,7 @@ static long msm_csiphy_subdev_ioctl(struct v4l2_subdev *sd,
 		rc = msm_csiphy_release(csiphy_dev, arg);
 		break;
 	default:
-		pr_err("%s: command not found\n", __func__);
+		pr_err_ratelimited("%s: command not found\n", __func__);
 	}
 	mutex_unlock(&csiphy_dev->mutex);
 	CDBG("%s:%d\n", __func__, __LINE__);
