@@ -31,6 +31,14 @@
 	qcom,msm-imem@fc42b000 {
 		compatible = "qcom,msm-imem";
 		reg = <0xfc42b000 0x1000>; /* Address and size of IMEM */
+		ranges = <0x0 0xfc42b000 0x1000>;
+		#address-cells = <1>;
+		#size-cells = <1>;
+
+		pil@94c {
+			compatible = "qcom,msm-imem-pil";
+			reg = <0x94c 200>;
+		};
 	};
 };
 
