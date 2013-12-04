@@ -34,6 +34,12 @@ Required properties:
 -compatible: "qcom,msm-imem-cache_erp"
 -reg: start address and size of cache_erp region in imem
 
+Memory Dump:
+------------
+Required properties:
+-compatible: "qcom,msm-imem-mem_dump_table"
+-reg: start address and size of mem_dump_table region in imem
+
 Example:
 
 	qcom,msm-imem {
