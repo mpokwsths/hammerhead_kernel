@@ -1692,14 +1692,11 @@ static void mdss_mdp_parse_dt_fudge_factors(struct platform_device *pdev,
 	char *prop_name, struct mdss_fudge_factor *ff)
 {
 	int rc;
-	u32 data[2] = {0, 0};
-
-	ff->numer = 1;
-	ff->denom = 1;
+	u32 data[2] = {1, 1};
 
 	rc = mdss_mdp_parse_dt_handler(pdev, prop_name, data, 2);
 	if (rc) {
-		pr_debug("err reading %s\n", prop_name);
+		pr_err("err reading %s\n", prop_name);
 	} else {
 		ff->numer = data[0];
 		ff->denom = data[1];
@@ -1723,12 +1720,27 @@ static int mdss_mdp_parse_dt_misc(struct platform_device *pdev)
 	mdata->has_wfd_blk = of_property_read_bool(pdev->dev.of_node,
 		"qcom,mdss-has-wfd-blk");
 
+	/*
+	 * 2x factor on AB because bus driver will divide by 2
+	 * due to 2x ports to BIMC
+	 */
+	mdata->ab_factor.numer = 2;
+	mdata->ab_factor.denom = 1;
 	mdss_mdp_parse_dt_fudge_factors(pdev, "qcom,mdss-ab-factor",
 		&mdata->ab_factor);
+
+	/*
+	 * 1.2 factor on ib as default value. This value is
+	 * experimentally determined and should be tuned in device
+	 * tree.
+	 */
+	mdata->ib_factor.numer = 6;
+	mdata->ib_factor.denom = 5;
 	mdss_mdp_parse_dt_fudge_factors(pdev, "qcom,mdss-ib-factor",
 		&mdata->ib_factor);
-	mdss_mdp_parse_dt_fudge_factors(pdev, "qcom,mdss-high-ib-factor",
-		&mdata->high_ib_factor);
+
+	mdata->clk_factor.numer = 1;
+	mdata->clk_factor.denom = 1;
 	mdss_mdp_parse_dt_fudge_factors(pdev, "qcom,mdss-clk-factor",
 		&mdata->clk_factor);
 
