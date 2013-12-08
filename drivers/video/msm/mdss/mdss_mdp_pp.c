@@ -996,10 +996,9 @@ static int pp_hist_setup(u32 *op, u32 block, struct mdss_mdp_mixer *mix)
 		mutex_lock(&hist_info->hist_mutex);
 		spin_lock_irqsave(&hist_info->hist_lock, flag);
 		col_state = hist_info->col_state;
-		if (hist_info->is_kick_ready &&
-			((col_state == HIST_IDLE) ||
-			((false == hist_info->read_request) &&
-				col_state == HIST_READY))) {
+		if (hist_info->col_en && ((col_state == HIST_IDLE) ||
+				((false == hist_info->read_request) &&
+					col_state == HIST_READY))) {
 			/* Kick off collection */
 			writel_relaxed(1, base + kick_base);
 			hist_info->col_state = HIST_START;
@@ -2269,7 +2268,6 @@ static int pp_hist_enable(struct pp_hist_col_info *hist_info,
 	hist_info->col_state = HIST_RESET;
 	hist_info->col_en = true;
 	spin_unlock_irqrestore(&hist_info->hist_lock, flag);
-	hist_info->is_kick_ready = true;
 	mdss_mdp_hist_intr_req(&mdata->hist_intr, 3 << shift_bit, true);
 	writel_relaxed(req->frame_cnt, ctl_base + 8);
 	/* Kick out reset start */
@@ -2376,7 +2374,6 @@ static int pp_hist_disable(struct pp_hist_col_info *hist_info,
 	hist_info->col_en = false;
 	hist_info->col_state = HIST_UNKNOWN;
 	spin_unlock_irqrestore(&hist_info->hist_lock, flag);
-	hist_info->is_kick_ready = false;
 	mdss_mdp_hist_intr_req(&mdata->hist_intr, done_bit, false);
 	writel_relaxed(BIT(1), ctl_base);/* cancel */
 	ret = 0;
