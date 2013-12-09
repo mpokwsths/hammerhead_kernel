@@ -29,7 +29,7 @@
 #include <mach/clk-provider.h>
 #include "board-dt.h"
 #include "clock.h"
-#include "devices.h"
+#include "spm.h"
 
 static struct of_dev_auxdata msmkrypton_auxdata_lookup[] __initdata = {
 	{}
@@ -43,7 +43,6 @@ static struct of_dev_auxdata msmkrypton_auxdata_lookup[] __initdata = {
  */
 void __init msmkrypton_add_drivers(void)
 {
-	msm_init_modem_notifier_list();
 	msm_smd_init();
 	msm_clock_init(&msm_dummy_clock_init_data);
 }

@@ -68,7 +68,6 @@ static struct of_dev_auxdata mpq8092_auxdata_lookup[] __initdata = {
  */
 void __init mpq8092_add_drivers(void)
 {
-	msm_init_modem_notifier_list();
 	msm_smd_init();
 	msm_rpm_driver_init();
 	rpm_regulator_smd_driver_init();

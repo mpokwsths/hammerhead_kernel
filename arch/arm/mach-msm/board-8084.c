@@ -32,7 +32,7 @@
 #include "clock.h"
 #include "devices.h"
 #include "platsmp.h"
-#include "modem_notifier.h"
+#include "pm.h"
 
 static struct of_dev_auxdata apq8084_auxdata_lookup[] __initdata = {
 	OF_DEV_AUXDATA("qcom,msm-sdcc", 0xF9824000, \
@@ -60,7 +60,6 @@ static void __init apq8084_early_memory(void)
  */
 void __init apq8084_add_drivers(void)
 {
-	msm_init_modem_notifier_list();
 	msm_smd_init();
 	msm_clock_init(&msm8084_clock_init_data);
 }

@@ -48,7 +48,6 @@
 #include "platsmp.h"
 #include "spm.h"
 #include "pm.h"
-#include "modem_notifier.h"
 
 static struct of_dev_auxdata msm8226_auxdata_lookup[] __initdata = {
 	OF_DEV_AUXDATA("qcom,msm-sdcc", 0xF9824000, \
@@ -80,7 +79,6 @@ static void __init msm8226_reserve(void)
  */
 void __init msm8226_add_drivers(void)
 {
-	msm_init_modem_notifier_list();
 	msm_smd_init();
 	msm_rpm_driver_init();
 	msm_spm_device_init();
