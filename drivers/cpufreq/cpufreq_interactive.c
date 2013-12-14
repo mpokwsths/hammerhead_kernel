@@ -127,6 +127,8 @@ static bool io_is_busy;
  * If the max load among the other CPUs is higher than sync_freq_load_threshold
  * then do not let the frequency to drop below sync_freq
  */
+#define DEFAULT_SYNC_FREQ_LOAD 50
+#define DEFAULT_SYNC_FREQ 1036800
 static unsigned int sync_freq_load_threshold;
 static unsigned int sync_freq;
 
