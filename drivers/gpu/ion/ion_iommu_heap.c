@@ -89,6 +89,10 @@ static struct page_info *alloc_largest_available(struct ion_iommu_heap *heap,
 	struct page_info *info;
 	int i;
 
+	info = kmalloc(sizeof(struct page_info), GFP_KERNEL);
+	if (!info)
+		return NULL;
+
 	for (i = 0; i < num_orders; i++) {
 		gfp_t gfp;
 		int idx = order_to_index(orders[i]);
@@ -126,13 +130,12 @@ static struct page_info *alloc_largest_available(struct ion_iommu_heap *heap,
 			continue;
 		}
 
-		info = kmalloc(sizeof(struct page_info), GFP_KERNEL);
-		if (info) {
-			info->page = page;
-			info->order = orders[i];
-		}
+		info->page = page;
+		info->order = orders[i];
 		return info;
 	}
+	kfree(info);
+
 	return NULL;
 }
 
