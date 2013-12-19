@@ -1123,6 +1123,137 @@ out:
 	return page;
 }
 
+/* NUMA hinting page fault entry point for trans huge pmds */
+int do_huge_pmd_numa_page(struct mm_struct *mm, struct vm_area_struct *vma,
+				unsigned long addr, pmd_t pmd, pmd_t *pmdp)
+{
+	spinlock_t *ptl;
+	struct anon_vma *anon_vma = NULL;
+	struct page *page;
+	unsigned long haddr = addr & HPAGE_PMD_MASK;
+	int page_nid = -1, this_nid = numa_node_id();
+	int target_nid, last_cpupid = -1;
+	bool page_locked;
+	bool migrated = false;
+	int flags = 0;
+
+	ptl = pmd_lock(mm, pmdp);
+	if (unlikely(!pmd_same(pmd, *pmdp)))
+		goto out_unlock;
+
+	/*
+	 * If there are potential migrations, wait for completion and retry
+	 * without disrupting NUMA hinting information. Do not relock and
+	 * check_same as the page may no longer be mapped.
+	 */
+	if (unlikely(pmd_trans_migrating(*pmdp))) {
+		spin_unlock(ptl);
+		wait_migrate_huge_page(vma->anon_vma, pmdp);
+		goto out;
+	}
+
+	page = pmd_page(pmd);
+	BUG_ON(is_huge_zero_page(page));
+	page_nid = page_to_nid(page);
+	last_cpupid = page_cpupid_last(page);
+	count_vm_numa_event(NUMA_HINT_FAULTS);
+	if (page_nid == this_nid) {
+		count_vm_numa_event(NUMA_HINT_FAULTS_LOCAL);
+		flags |= TNF_FAULT_LOCAL;
+	}
+
+	/*
+	 * Avoid grouping on DSO/COW pages in specific and RO pages
+	 * in general, RO pages shouldn't hurt as much anyway since
+	 * they can be in shared cache state.
+	 */
+	if (!pmd_write(pmd))
+		flags |= TNF_NO_GROUP;
+
+	/*
+	 * Acquire the page lock to serialise THP migrations but avoid dropping
+	 * page_table_lock if at all possible
+	 */
+	page_locked = trylock_page(page);
+	target_nid = mpol_misplaced(page, vma, haddr);
+	if (target_nid == -1) {
+		/* If the page was locked, there are no parallel migrations */
+		if (page_locked)
+			goto clear_pmdnuma;
+	}
+
+	/* Migration could have started since the pmd_trans_migrating check */
+	if (!page_locked) {
+		spin_unlock(ptl);
+		wait_on_page_locked(page);
+		page_nid = -1;
+		goto out;
+	}
+
+	/*
+	 * Page is misplaced. Page lock serialises migrations. Acquire anon_vma
+	 * to serialises splits
+	 */
+	get_page(page);
+	spin_unlock(ptl);
+	anon_vma = page_lock_anon_vma_read(page);
+
+	/* Confirm the PMD did not change while page_table_lock was released */
+	spin_lock(ptl);
+	if (unlikely(!pmd_same(pmd, *pmdp))) {
+		unlock_page(page);
+		put_page(page);
+		page_nid = -1;
+		goto out_unlock;
+	}
+
+	/* Bail if we fail to protect against THP splits for any reason */
+	if (unlikely(!anon_vma)) {
+		put_page(page);
+		page_nid = -1;
+		goto clear_pmdnuma;
+	}
+
+	/*
+	 * The page_table_lock above provides a memory barrier
+	 * with change_protection_range.
+	 */
+	if (mm_tlb_flush_pending(mm))
+		flush_tlb_range(vma, haddr, haddr + HPAGE_PMD_SIZE);
+
+	/*
+	 * Migrate the THP to the requested node, returns with page unlocked
+	 * and pmd_numa cleared.
+	 */
+	spin_unlock(ptl);
+	migrated = migrate_misplaced_transhuge_page(mm, vma,
+				pmdp, pmd, addr, page, target_nid);
+	if (migrated) {
+		flags |= TNF_MIGRATED;
+		page_nid = target_nid;
+	}
+
+	goto out;
+clear_pmdnuma:
+	BUG_ON(!PageLocked(page));
+	pmd = pmd_mknonnuma(pmd);
+	set_pmd_at(mm, haddr, pmdp, pmd);
+	VM_BUG_ON(pmd_numa(*pmdp));
+	update_mmu_cache_pmd(vma, addr, pmdp);
+	unlock_page(page);
+out_unlock:
+	spin_unlock(ptl);
+
+out:
+	if (anon_vma)
+		page_unlock_anon_vma_read(anon_vma);
+
+	if (page_nid != -1)
+		task_numa_fault(last_cpupid, page_nid, HPAGE_PMD_NR, flags);
+
+	return 0;
+}
+
 int zap_huge_pmd(struct mmu_gather *tlb, struct vm_area_struct *vma,
 		 pmd_t *pmd, unsigned long addr)
 {
