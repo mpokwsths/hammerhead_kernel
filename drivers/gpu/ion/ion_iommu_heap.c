@@ -132,6 +132,7 @@ static struct page_info *alloc_largest_available(struct ion_iommu_heap *heap,
 
 		info->page = page;
 		info->order = orders[i];
+		INIT_LIST_HEAD(&info->list);
 		return info;
 	}
 	kfree(info);
@@ -220,6 +221,9 @@ static int ion_iommu_heap_allocate(struct ion_heap *heap,
 		unsigned long size_remaining = PAGE_ALIGN(size);
 		unsigned int max_order = ION_IS_CACHED(flags) ? 0 : orders[0];
 		unsigned int page_tbl_size;
+
+		if (size / PAGE_SIZE > totalram_pages / 2)
+			return -ENOMEM;
 
 		data = kmalloc(sizeof(*data), GFP_KERNEL);
 		if (!data)
