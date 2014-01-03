@@ -18,9 +18,6 @@
 #include <linux/slab.h>
 #include <linux/iommu.h>
 #include <linux/msm_kgsl.h>
-#include <mach/socinfo.h>
-#include <mach/msm_iomap.h>
-#include <mach/board.h>
 #include <mach/iommu_domains.h>
 #include <stddef.h>
 
