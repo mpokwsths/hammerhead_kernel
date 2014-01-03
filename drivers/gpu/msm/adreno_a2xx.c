@@ -13,7 +13,6 @@
 
 #include <linux/delay.h>
 #include <linux/sched.h>
-#include <mach/socinfo.h>
 
 #include "kgsl.h"
 #include "kgsl_sharedmem.h"

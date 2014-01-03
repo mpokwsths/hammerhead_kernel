@@ -15,7 +15,6 @@
 #include <linux/interrupt.h>
 #include <asm/page.h>
 #include <linux/pm_runtime.h>
-#include <mach/msm_iomap.h>
 #include <mach/msm_bus.h>
 #include <linux/ktime.h>
 #include <linux/delay.h>
