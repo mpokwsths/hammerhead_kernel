@@ -27,7 +27,6 @@
 #include <linux/ashmem.h>
 #include <linux/major.h>
 #include <linux/io.h>
-#include <mach/socinfo.h>
 #include <linux/mman.h>
 #include <linux/sort.h>
 #include <asm/cacheflush.h>
