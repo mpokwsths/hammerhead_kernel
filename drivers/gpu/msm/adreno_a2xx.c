@@ -1532,7 +1532,7 @@ static int a2xx_drawctxt_save(struct adreno_device *adreno_dev,
 		if (ret)
 			return ret;
 
-		if (test_bit(ADRENO_CONTEXT_SHADER_SAVE, &context->priv)) {
+		if (test_bit(ADRENO_CONTEXT_SHADER_SAVE, &context->base.priv)) {
 			kgsl_cffdump_syncmem(context->base.device,
 				&context->gpustate,
 				context->shader_save[1],
@@ -1559,11 +1559,11 @@ static int a2xx_drawctxt_save(struct adreno_device *adreno_dev,
 			if (ret)
 				return ret;
 
-			set_bit(ADRENO_CONTEXT_SHADER_RESTORE, &context->priv);
+			set_bit(ADRENO_CONTEXT_SHADER_RESTORE, &context->base.priv);
 		}
 	}
 
-	if (test_bit(ADRENO_CONTEXT_GMEM_SAVE, &context->priv)) {
+	if (test_bit(ADRENO_CONTEXT_GMEM_SAVE, &context->base.priv)) {
 		kgsl_cffdump_syncmem(context->base.device, &context->gpustate,
 			context->context_gmem_shadow.gmem_save[1],
 			context->context_gmem_shadow.gmem_save[2] << 2, true);
@@ -1591,7 +1591,7 @@ static int a2xx_drawctxt_save(struct adreno_device *adreno_dev,
 				return ret;
 		}
 
-		set_bit(ADRENO_CONTEXT_GMEM_RESTORE, &context->priv);
+		set_bit(ADRENO_CONTEXT_GMEM_RESTORE, &context->base.priv);
 	} else if (adreno_is_a2xx(adreno_dev))
 		return a2xx_drawctxt_draw_workaround(adreno_dev, context);
 
@@ -1612,7 +1612,7 @@ static int a2xx_drawctxt_restore(struct adreno_device *adreno_dev,
 	 *  restore gmem.
 	 *  (note: changes shader. shader must not already be restored.)
 	 */
-	if (test_bit(ADRENO_CONTEXT_GMEM_RESTORE, &context->priv)) {
+	if (test_bit(ADRENO_CONTEXT_GMEM_RESTORE, &context->base.priv)) {
 		kgsl_cffdump_syncmem(context->base.device, &context->gpustate,
 			context->context_gmem_shadow.gmem_restore[1],
 			context->context_gmem_shadow.gmem_restore[2] << 2,
@@ -1637,7 +1637,7 @@ static int a2xx_drawctxt_restore(struct adreno_device *adreno_dev,
 			if (ret)
 				return ret;
 		}
-		clear_bit(ADRENO_CONTEXT_GMEM_RESTORE, &context->priv);
+		clear_bit(ADRENO_CONTEXT_GMEM_RESTORE, &context->base.priv);
 	}
 
 	if (!(context->base.flags & KGSL_CONTEXT_PREAMBLE)) {
@@ -1652,7 +1652,7 @@ static int a2xx_drawctxt_restore(struct adreno_device *adreno_dev,
 			return ret;
 
 		/* restore shader instructions & partitioning. */
-		if (test_bit(ADRENO_CONTEXT_SHADER_RESTORE, &context->priv)) {
+		if (test_bit(ADRENO_CONTEXT_SHADER_RESTORE, &context->base.priv)) {
 			kgsl_cffdump_syncmem(context->base.device,
 				&context->gpustate,
 				context->shader_restore[1],

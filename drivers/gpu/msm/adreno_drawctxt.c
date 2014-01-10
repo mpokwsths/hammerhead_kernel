@@ -168,7 +168,7 @@ static int _check_context_timestamp(struct kgsl_device *device,
 
 	/* Bail if the drawctxt has been invalidated or destroyed */
 	if (kgsl_context_detached(&drawctxt->base) ||
-		drawctxt->state != ADRENO_CONTEXT_STATE_ACTIVE)
+			kgsl_context_invalid(&drawctxt->base))
 		return 1;
 
 	mutex_lock(&device->mutex);
@@ -202,7 +202,7 @@ int adreno_drawctxt_wait(struct adreno_device *adreno_dev,
 	if (kgsl_context_detached(context))
 		return -EINVAL;
 
-	if (drawctxt->state == ADRENO_CONTEXT_STATE_INVALID)
+	if (kgsl_context_invalid(context))
 		return -EDEADLK;
 
 	/* Needs to hold the device mutex */
@@ -248,7 +248,7 @@ int adreno_drawctxt_wait(struct adreno_device *adreno_dev,
 	mutex_lock(&device->mutex);
 
 	/* -EDEADLK if the context was invalidated while we were waiting */
-	if (drawctxt->state == ADRENO_CONTEXT_STATE_INVALID)
+	if (kgsl_context_invalid(context))
 		ret = -EDEADLK;
 
 
@@ -270,10 +270,10 @@ static void global_wait_callback(struct kgsl_device *device,
 }
 
 static int _check_global_timestamp(struct kgsl_device *device,
-		struct adreno_context *drawctxt, unsigned int timestamp)
+		struct kgsl_context *context, unsigned int timestamp)
 {
 	/* Stop waiting if the context is invalidated */
-	if (drawctxt->state == ADRENO_CONTEXT_STATE_INVALID)
+	if (kgsl_context_invalid(context))
 		return 1;
 
 	return kgsl_check_timestamp(device, NULL, timestamp);
@@ -299,7 +299,7 @@ static int adreno_drawctxt_wait_global(struct adreno_device *adreno_dev,
 	 * If the context is invalid then return immediately - we may end up
 	 * waiting for a timestamp that will never come
 	 */
-	if (drawctxt->state == ADRENO_CONTEXT_STATE_INVALID) {
+	if (kgsl_context_invalid(context)) {
 		kgsl_context_put(context);
 		goto done;
 	}
@@ -317,7 +317,7 @@ static int adreno_drawctxt_wait_global(struct adreno_device *adreno_dev,
 
 	if (timeout) {
 		ret = (int) wait_event_timeout(drawctxt->waiting,
-			_check_global_timestamp(device, drawctxt, timestamp),
+			_check_global_timestamp(device, context, timestamp),
 			msecs_to_jiffies(timeout));
 
 		if (ret == 0)
@@ -326,7 +326,7 @@ static int adreno_drawctxt_wait_global(struct adreno_device *adreno_dev,
 			ret = 0;
 	} else {
 		wait_event(drawctxt->waiting,
-			_check_global_timestamp(device, drawctxt, timestamp));
+			_check_global_timestamp(device, context, timestamp));
 	}
 
 	mutex_lock(&device->mutex);
@@ -353,7 +353,7 @@ void adreno_drawctxt_invalidate(struct kgsl_device *device,
 {
 	struct adreno_context *drawctxt = ADRENO_CONTEXT(context);
 
-	drawctxt->state = ADRENO_CONTEXT_STATE_INVALID;
+	set_bit(KGSL_CONTEXT_PRIV_INVALID, &context->priv);
 
 	/* Clear the pending queue */
 	mutex_lock(&drawctxt->mutex);
@@ -650,7 +650,7 @@ static inline int context_save(struct adreno_device *adreno_dev,
 {
 	if (context->ops->save == NULL
 		|| kgsl_context_detached(&context->base)
-		|| context->state == ADRENO_CONTEXT_STATE_INVALID)
+		|| kgsl_context_invalid(&context->base))
 		return 0;
 
 	return context->ops->save(adreno_dev, context);
@@ -703,10 +703,10 @@ int adreno_drawctxt_switch(struct adreno_device *adreno_dev,
 		if (flags & KGSL_CONTEXT_SAVE_GMEM)
 			/* Set the flag in context so that the save is done
 			* when this context is switched out. */
-			set_bit(ADRENO_CONTEXT_GMEM_SAVE, &drawctxt->priv);
+			set_bit(ADRENO_CONTEXT_GMEM_SAVE, &drawctxt->base.priv);
 		else
 			/* Remove GMEM saving flag from the context */
-			clear_bit(ADRENO_CONTEXT_GMEM_SAVE, &drawctxt->priv);
+			clear_bit(ADRENO_CONTEXT_GMEM_SAVE, &drawctxt->base.priv);
 	}
 
 	/* already current? */
