@@ -224,6 +224,7 @@ static void adreno_input_event(struct input_handle *handle, unsigned int type,
 		schedule_work(&adreno_dev->input_work);
 }
 
+#ifdef CONFIG_INPUT
 static int adreno_input_connect(struct input_handler *handler,
 		struct input_dev *dev, const struct input_device_id *id)
 {
@@ -259,6 +260,14 @@ static void adreno_input_disconnect(struct input_handle *handle)
 	input_unregister_handle(handle);
 	kfree(handle);
 }
+#else
+static int adreno_input_connect(struct input_handler *handler,
+		struct input_dev *dev, const struct input_device_id *id)
+{
+	return 0;
+}
+static void adreno_input_disconnect(struct input_handle *handle) {}
+#endif
 
 /*
  * We are only interested in EV_ABS events so only register handlers for those
@@ -1533,13 +1542,14 @@ adreno_probe(struct platform_device *pdev)
 
 	adreno_input_handler.private = device;
 
+#ifdef CONFIG_INPUT
 	/*
 	 * It isn't fatal if we cannot register the input handler.  Sad,
 	 * perhaps, but not fatal
 	 */
 	if (input_register_handler(&adreno_input_handler))
 		KGSL_DRV_ERR(device, "Unable to register the input handler\n");
-
+#endif
 	return 0;
 
 error_close_device:
@@ -1559,9 +1569,9 @@ static int __devexit adreno_remove(struct platform_device *pdev)
 
 	device = (struct kgsl_device *)pdev->id_entry->driver_data;
 	adreno_dev = ADRENO_DEVICE(device);
-
+#ifdef CONFIG_INPUT
 	input_unregister_handler(&adreno_input_handler);
-
+#endif
 	adreno_ft_uninit_sysfs(device);
 
 	adreno_coresight_remove(pdev);
