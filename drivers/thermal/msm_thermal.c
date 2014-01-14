@@ -1,4 +1,4 @@
-/* Copyright (c) 2012-2013, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2012-2014, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -181,7 +181,7 @@ enum ocr_request {
 
 #define OCR_RW_ATTRIB(_rail, ko_attr, j, _name) \
 	ko_attr.attr.name = __stringify(_name); \
-	ko_attr.attr.mode = 644; \
+	ko_attr.attr.mode = 0644; \
 	ko_attr.show = ocr_reg_##_name##_show; \
 	ko_attr.store = ocr_reg_##_name##_store; \
 	sysfs_attr_init(&ko_attr.attr); \
