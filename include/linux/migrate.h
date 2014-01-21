@@ -33,9 +33,6 @@ extern int migrate_pages(struct list_head *l, new_page_t x,
 extern int migrate_huge_page(struct page *, new_page_t x,
 		unsigned long private, enum migrate_mode mode);
 
-extern int fail_migrate_page(struct address_space *,
-			struct page *, struct page *);
-
 extern int migrate_prep(void);
 extern int migrate_prep_local(void);
 extern int migrate_vmas(struct mm_struct *mm,
@@ -75,7 +72,6 @@ static inline int migrate_huge_page_move_mapping(struct address_space *mapping,
 
 /* Possible settings for the migrate_page() method in address_operations */
 #define migrate_page NULL
-#define fail_migrate_page NULL
 
 #endif /* CONFIG_MIGRATION */
 #endif /* _LINUX_MIGRATE_H */
