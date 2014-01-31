@@ -123,7 +123,7 @@ static void linkwatch_schedule_work(int urgent)
 	 * This is true if we've scheduled it immeditately or if we don't
 	 * need an immediate execution and it's already pending.
 	 */
-	if (schedule_delayed_work(&linkwatch_work, delay) == !delay)
+	if (queue_delayed_work(system_power_efficient_wq, &linkwatch_work, delay) == !delay)
 		return;
 
 	/* Don't bother if there is nothing urgent. */
@@ -135,7 +135,7 @@ static void linkwatch_schedule_work(int urgent)
 		return;
 
 	/* Otherwise we reschedule it again for immediate execution. */
-	schedule_delayed_work(&linkwatch_work, 0);
+	queue_delayed_work(system_power_efficient_wq, &linkwatch_work, 0);
 }
 
 
