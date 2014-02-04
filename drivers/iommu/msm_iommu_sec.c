@@ -27,6 +27,7 @@
 #include <linux/of_device.h>
 #include <linux/kmemleak.h>
 
+#include <asm/cacheflush.h>
 #include <asm/sizes.h>
 
 #include <mach/iommu_perfmon.h>
@@ -118,8 +119,7 @@ static int msm_iommu_dump_fault_regs(int smmu_id, int cb_num,
 	ret = scm_call(SCM_SVC_UTIL, IOMMU_DUMP_SMMU_FAULT_REGS,
 		&req_info, sizeof(req_info), &resp, 1);
 
-	invalidate_caches((unsigned long) regs, sizeof(*regs),
-			(unsigned long)virt_to_phys(regs));
+	dmac_inv_range(regs, regs + sizeof(*regs));
 
 	return ret;
 }
@@ -374,7 +374,7 @@ static int msm_iommu_sec_ptbl_map(struct msm_iommu_drvdata *iommu_drvdata,
 	/*
 	 * Ensure that the buffer is in RAM by the time it gets to TZ
 	 */
-	clean_caches((unsigned long) flush_va, len, flush_pa);
+	dmac_clean_range(flush_va, flush_va + len);
 
 	if (scm_call(SCM_SVC_MP, IOMMU_SECURE_MAP2, &map, sizeof(map), &ret,
 								sizeof(ret)))
@@ -383,7 +383,7 @@ static int msm_iommu_sec_ptbl_map(struct msm_iommu_drvdata *iommu_drvdata,
 		return -EINVAL;
 
 	/* Invalidate cache since TZ touched this address range */
-	invalidate_caches((unsigned long) flush_va, len, flush_pa);
+	dmac_inv_range(flush_va, flush_va + len);
 
 	return 0;
 }
@@ -461,9 +461,8 @@ static int msm_iommu_sec_ptbl_map_range(struct msm_iommu_drvdata *iommu_drvdata,
 	/*
 	 * Ensure that the buffer is in RAM by the time it gets to TZ
 	 */
-	clean_caches((unsigned long) flush_va,
-		sizeof(unsigned long) * map.plist.list_size,
-		virt_to_phys(flush_va));
+	dmac_clean_range(flush_va,
+		flush_va + sizeof(unsigned long) * map.plist.list_size);
 
 	ret = scm_call(SCM_SVC_MP, IOMMU_SECURE_MAP2, &map, sizeof(map),
 			&scm_ret, sizeof(scm_ret));
