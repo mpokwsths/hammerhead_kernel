@@ -361,6 +361,20 @@ static inline int mdss_panel_get_vtotal(struct mdss_panel_info *pinfo)
 			pinfo->lcdc.v_pulse_width;
 }
 
+/*
+ * mdss_panel_get_htotal() - return panel horizontal width
+ * @pinfo: Pointer to panel info containing all panel information
+ *
+ * Returns the total width of the panel including any blanking regions
+ * which are not visible to user but used for calculations.
+ */
+static inline int mdss_panel_get_htotal(struct mdss_panel_info *pinfo)
+{
+	return pinfo->xres + pinfo->lcdc.h_back_porch +
+			pinfo->lcdc.h_front_porch +
+			pinfo->lcdc.h_pulse_width;
+}
+
 int mdss_register_panel(struct platform_device *pdev,
 	struct mdss_panel_data *pdata);
 #endif /* MDSS_PANEL_H */
