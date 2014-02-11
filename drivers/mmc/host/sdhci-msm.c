@@ -2854,7 +2854,7 @@ static int __devexit sdhci_msm_remove(struct platform_device *pdev)
 	return 0;
 }
 
-#ifdef CONFIG_PM_RUNTIME
+#ifdef CONFIG_PM
 static int sdhci_msm_cfg_sdio_wakeup(struct sdhci_host *host, bool enable)
 {
 	struct sdhci_pltfm_host *pltfm_host = sdhci_priv(host);
@@ -3007,7 +3007,9 @@ static int sdhci_msm_resume(struct device *dev)
 out:
 	return ret;
 }
+#endif
 
+#ifdef CONFIG_PM
 static int sdhci_msm_suspend_noirq(struct device *dev)
 {
 	struct sdhci_host *host = dev_get_drvdata(dev);
@@ -3027,9 +3029,7 @@ static int sdhci_msm_suspend_noirq(struct device *dev)
 
 	return ret;
 }
-#endif
 
-#ifdef CONFIG_PM
 static const struct dev_pm_ops sdhci_msm_pmops = {
 	SET_SYSTEM_SLEEP_PM_OPS(sdhci_msm_suspend, sdhci_msm_resume)
 	SET_RUNTIME_PM_OPS(sdhci_msm_runtime_suspend, sdhci_msm_runtime_resume,
