@@ -1,4 +1,4 @@
-/* Copyright (c) 2012-2013, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2012-2014, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -749,6 +749,9 @@ static ssize_t snapshot_show(struct file *filep, struct kobject *kobj,
 	kgsl_mutex_lock(&device->mutex, &device->mutex_owner);
 
 	obj_itr_init(&itr, buf, off, count);
+
+	if (0 == device->snapshot_frozen)
+		goto done;
 
 	ret = obj_itr_out(&itr, device->snapshot, device->snapshot_size);
 
