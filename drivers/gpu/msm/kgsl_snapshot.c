@@ -754,6 +754,9 @@ static ssize_t snapshot_show(struct file *filep, struct kobject *kobj,
 
 	obj_itr_init(&itr, buf, off, count);
 
+	if (0 == device->snapshot_frozen)
+		goto done;
+
 	ret = obj_itr_out(&itr, device->snapshot, device->snapshot_size);
 
 	if (ret == 0)
