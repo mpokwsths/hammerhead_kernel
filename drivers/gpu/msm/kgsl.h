@@ -179,6 +179,9 @@ struct kgsl_mem_entry {
 #define MMU_CONFIG 1
 #endif
 
+int kgsl_cmdbatch_add_memobj(struct kgsl_cmdbatch *cmdbatch,
+			struct kgsl_ibdesc *ibdesc);
+
 void kgsl_mem_entry_destroy(struct kref *kref);
 
 struct kgsl_mem_entry *kgsl_get_mem_entry(struct kgsl_device *device,
