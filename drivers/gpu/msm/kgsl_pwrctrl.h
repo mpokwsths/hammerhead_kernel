@@ -114,7 +114,6 @@ struct kgsl_pwrctrl {
 	struct pm_qos_request pm_qos_req_dma;
 	unsigned int pm_qos_latency;
 	unsigned int step_mul;
-	unsigned int irq_last;
 	struct kgsl_pwr_constraint constraint;
 };
 
