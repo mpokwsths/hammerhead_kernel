@@ -1,4 +1,4 @@
-/* Copyright (c) 2013, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2013-2014, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -153,7 +153,7 @@ static void a4xx_start(struct adreno_device *adreno_dev)
 	kgsl_regwrite(device, A4XX_RBBM_INTERFACE_HANG_INT_CTL,
 			(1 << 16) | 0xFFF);
 
-	/* Set the OCMEM base address for A4XX */
+	/* Set the GMEM/OCMEM base address for A4XX */
 	kgsl_regwrite(device, A4XX_RB_GMEM_BASE_ADDR,
 			(unsigned int)(adreno_dev->ocmem_base >> 14));
 }

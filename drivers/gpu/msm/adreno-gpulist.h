@@ -21,10 +21,11 @@
  * @major: Match for the major version of the GPU
  * @minor: Match for the minor version of the GPU
  * @patchid: Match for the patch revision of the GPU
+ * @features: Common adreno features supported by this core
  * @pm4fw: Filename for th PM4 firmware
  * @pfpfw: Filename for the PFP firmware
  * @gpudev: Pointer to the GPU family specific functions for this core
- * @gmem_size: Size of GMEM (or OCMEM) for the core
+ * @gmem_size: Amount of binning memory (GMEM/OCMEM) to reserve for the core
  * @sync_lock_pm4_ver: For IOMMUv0 cores the version of PM4 microcode that
  * supports the sync lock mechanism
  * @sync_lock_pfp_ver: For IOMMUv0 cores the version of PFP microcode that
@@ -40,6 +41,7 @@
 static const struct adreno_gpulist {
 	enum adreno_gpurev gpurev;
 	unsigned int core, major, minor, patchid;
+	unsigned long features;
 	const char *pm4fw;
 	const char *pfpfw;
 	struct adreno_gpudev *gpudev;
@@ -138,6 +140,7 @@ static const struct adreno_gpulist {
 		.major = 3,
 		.minor = 0,
 		.patchid = ANY_ID,
+		.features = ADRENO_USES_OCMEM,
 		.pm4fw = "a330_pm4.fw",
 		.pfpfw = "a330_pfp.fw",
 		.gpudev = &adreno_a3xx_gpudev,
@@ -161,6 +164,7 @@ static const struct adreno_gpulist {
 		.patchid = 0x10,
 		.pm4fw = "a330_pm4.fw",
 		.pfpfw = "a330_pfp.fw",
+		.features = ADRENO_USES_OCMEM,
 		.gpudev = &adreno_a3xx_gpudev,
 		.gmem_size = SZ_128K,
 		.sync_lock_pm4_ver = NO_VER,
@@ -177,6 +181,7 @@ static const struct adreno_gpulist {
 		.major = 0,
 		.minor = 5,
 		.patchid = 0x12,
+		.features = ADRENO_USES_OCMEM,
 		.pm4fw = "a330_pm4.fw",
 		.pfpfw = "a330_pfp.fw",
 		.gpudev = &adreno_a3xx_gpudev,
@@ -201,5 +206,50 @@ static const struct adreno_gpulist {
 		.gmem_size = SZ_128K,
 		.sync_lock_pm4_ver = 0x3FF037,
 		.sync_lock_pfp_ver = 0x3FF016,
+	},
+	{
+		.gpurev = ADRENO_REV_A306,
+		.core = 3,
+		.major = 0,
+		.minor = 6,
+		.patchid = 0x00,
+		.pm4fw = "a300_pm4.fw",
+		.pfpfw = "a300_pfp.fw",
+		.gpudev = &adreno_a3xx_gpudev,
+		.gmem_size = SZ_128K,
+		.sync_lock_pm4_ver = NO_VER,
+		.sync_lock_pfp_ver = NO_VER,
+	},
+	{
+		.gpurev = ADRENO_REV_A310,
+		.core = 3,
+		.major = 1,
+		.minor = 0,
+		.patchid = 0x10,
+		.features = ADRENO_USES_OCMEM,
+		.pm4fw = "a330_pm4.fw",
+		.pfpfw = "a330_pfp.fw",
+		.gpudev = &adreno_a3xx_gpudev,
+		.gmem_size = SZ_512K,
+		.sync_lock_pm4_ver = NO_VER,
+		.sync_lock_pfp_ver = NO_VER,
+		.pm4_jt_idx = 0x8AD,
+		.pm4_jt_addr = 0x2E4,
+		.pfp_jt_idx = 0x201,
+		.pfp_jt_addr = 0x200,
+	},
+	{
+		.gpurev = ADRENO_REV_A420,
+		.core = 4,
+		.major = 2,
+		.minor = 0,
+		.patchid = ANY_ID,
+		.features = ADRENO_USES_OCMEM,
+		.pm4fw = "a420_pm4.fw",
+		.pfpfw = "a420_pfp.fw",
+		.gpudev = &adreno_a4xx_gpudev,
+		.gmem_size = (SZ_1M + SZ_512K),
+		.sync_lock_pm4_ver = NO_VER,
+		.sync_lock_pfp_ver = NO_VER,
 	},
 };
