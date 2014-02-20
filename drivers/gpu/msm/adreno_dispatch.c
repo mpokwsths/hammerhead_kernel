@@ -878,10 +878,10 @@ static void remove_invalidated_cmdbatches(struct kgsl_device *device,
 			drawctxt->state == ADRENO_CONTEXT_STATE_INVALID) {
 			replay[i] = NULL;
 
-			kgsl_mutex_lock(&device->mutex, &device->mutex_owner);
-			kgsl_cancel_events_timestamp(device, cmd->context,
-				cmd->timestamp);
-			kgsl_mutex_unlock(&device->mutex, &device->mutex_owner);
+			mutex_lock(&device->mutex);
+			kgsl_cancel_events_timestamp(device,
+				&cmd->context->events, cmd->timestamp);
+			mutex_unlock(&device->mutex);
 
 			kgsl_cmdbatch_destroy(cmd);
 		}
@@ -1412,11 +1412,8 @@ static void adreno_dispatcher_work(struct work_struct *work)
 	 * If inflight went to 0, queue back up the event processor to catch
 	 * stragglers
 	 */
-	if (dispatcher->inflight == 0 && count) {
-		kgsl_mutex_lock(&device->mutex, &device->mutex_owner);
-		queue_work(device->work_queue, &device->ts_expired_ws);
-		kgsl_mutex_unlock(&device->mutex, &device->mutex_owner);
-	}
+	if (dispatcher->inflight == 0 && count)
+		queue_work(device->work_queue, &device->event_work);
 
 	/* Dispatch new commands if we have the room */
 	if (dispatcher->inflight < _dispatcher_inflight)
