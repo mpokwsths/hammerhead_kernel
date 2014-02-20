@@ -181,28 +181,20 @@ const unsigned int a225_registers_count = ARRAY_SIZE(a225_registers) / 2;
 
 #define ALU_SHADOW_SIZE		LCC_SHADOW_SIZE	/* 8KB */
 #define REG_SHADOW_SIZE		0x1000	/* 4KB */
-#ifdef CONFIG_MSM_KGSL_DISABLE_SHADOW_WRITES
-#define CMD_BUFFER_SIZE		0x9000	/* 36KB */
-#else
-#define CMD_BUFFER_SIZE		0x3000	/* 12KB */
-#endif
+#define CMD_BUFFER_SIZE		(5*1024) /* 5KB */
 #define TEX_SHADOW_SIZE		(TEX_CONSTANTS*4)	/* 768 bytes */
 
 #define REG_OFFSET		LCC_SHADOW_SIZE
 #define CMD_OFFSET		(REG_OFFSET + REG_SHADOW_SIZE)
 #define TEX_OFFSET		(CMD_OFFSET + CMD_BUFFER_SIZE)
 #define SHADER_OFFSET		((TEX_OFFSET + TEX_SHADOW_SIZE + 32) & ~31)
+#define SHADER_SHADOW_SIZE	(8*1024) /* 8KB */
 
-static inline int _shader_shadow_size(struct adreno_device *adreno_dev)
-{
-	return adreno_dev->istore_size *
-		(adreno_dev->instruction_size * sizeof(unsigned int));
-}
-
-static inline int _context_size(struct adreno_device *adreno_dev)
-{
-	return SHADER_OFFSET + 3*_shader_shadow_size(adreno_dev);
-}
+/* Total context size, excluding GMEM shadow */
+#define CONTEXT_SIZE                         \
+	(ALU_SHADOW_SIZE+REG_SHADOW_SIZE +   \
+	CMD_BUFFER_SIZE+SHADER_SHADOW_SIZE + \
+	TEX_SHADOW_SIZE)
 
 /* A scratchpad used to build commands during context create */
 
@@ -704,15 +696,12 @@ static unsigned int *build_gmem2sys_cmds(struct adreno_device *adreno_dev,
 
 	/* Repartition shaders */
 	*cmds++ = cp_type0_packet(REG_SQ_INST_STORE_MANAGMENT, 1);
-	*cmds++ = adreno_dev->pix_shader_start;
 
 	/* Invalidate Vertex & Pixel instruction code address and sizes */
 	*cmds++ = cp_type3_packet(CP_INVALIDATE_STATE, 1);
 	*cmds++ = 0x00003F00;
 
 	*cmds++ = cp_type3_packet(CP_SET_SHADER_BASES, 1);
-	*cmds++ = adreno_encode_istore_size(adreno_dev)
-		  | adreno_dev->pix_shader_start;
 
 	/* load the patched vertex shader stream */
 	cmds = program_shader(cmds, 0, gmem2sys_vtx_pgm, GMEM2SYS_VTX_PGM_LEN);
@@ -905,15 +894,12 @@ static unsigned int *build_sys2gmem_cmds(struct adreno_device *adreno_dev,
 
 	/* Repartition shaders */
 	*cmds++ = cp_type0_packet(REG_SQ_INST_STORE_MANAGMENT, 1);
-	*cmds++ = adreno_dev->pix_shader_start;
 
 	/* Invalidate Vertex & Pixel instruction code address and sizes */
 	*cmds++ = cp_type3_packet(CP_INVALIDATE_STATE, 1);
 	*cmds++ = 0x00000300; /* 0x100 = Vertex, 0x200 = Pixel */
 
 	*cmds++ = cp_type3_packet(CP_SET_SHADER_BASES, 1);
-	*cmds++ = adreno_encode_istore_size(adreno_dev)
-		  | adreno_dev->pix_shader_start;
 
 	/* Load the patched fragment shader stream */
 	cmds =
@@ -1209,9 +1195,9 @@ build_shader_save_restore_cmds(struct adreno_device *adreno_dev,
 	/* compute vertex, pixel and shared instruction shadow GPU addresses */
 	tmp_ctx.shader_vertex = drawctxt->gpustate.gpuaddr + SHADER_OFFSET;
 	tmp_ctx.shader_pixel = tmp_ctx.shader_vertex
-				+ _shader_shadow_size(adreno_dev);
+				+ SHADER_SHADOW_SIZE;
 	tmp_ctx.shader_shared = tmp_ctx.shader_pixel
-				+  _shader_shadow_size(adreno_dev);
+				+ SHADER_SHADOW_SIZE;
 
 	/* restore shader partitioning and instructions */
 
@@ -1267,8 +1253,6 @@ build_shader_save_restore_cmds(struct adreno_device *adreno_dev,
 	*cmd++ = REG_SCRATCH_REG2;
 	/* AND off invalid bits. */
 	*cmd++ = 0x0FFF0FFF;
-	/* OR in instruction memory size.  */
-	*cmd++ = adreno_encode_istore_size(adreno_dev);
 
 	/* write the computed value to the SET_SHADER_BASES data field */
 	*cmd++ = cp_type3_packet(CP_REG_TO_MEM, 2);
@@ -1450,13 +1434,13 @@ static int a2xx_drawctxt_create(struct adreno_device *adreno_dev,
 	 */
 
 	ret = kgsl_allocate(&drawctxt->gpustate,
-		drawctxt->base.proc_priv->pagetable, _context_size(adreno_dev));
+		drawctxt->base.proc_priv->pagetable, CONTEXT_SIZE);
 
 	if (ret)
 		return ret;
 
 	kgsl_sharedmem_set(drawctxt->base.device, &drawctxt->gpustate,
-		0, 0, _context_size(adreno_dev));
+		0, 0, CONTEXT_SIZE);
 
 	tmp_ctx.cmd = tmp_ctx.start
 	    = (unsigned int *)((char *)drawctxt->gpustate.hostptr + CMD_OFFSET);
@@ -1534,8 +1518,6 @@ static int a2xx_drawctxt_draw_workaround(struct adreno_device *adreno_dev,
 		 * this wait.
 		 */
 		*cmds++ = cp_type3_packet(CP_SET_SHADER_BASES, 1);
-		*cmds++ = adreno_encode_istore_size(adreno_dev)
-					| adreno_dev->pix_shader_start;
 	}
 
 	return adreno_ringbuffer_issuecmds(device, context,
@@ -1940,10 +1922,6 @@ static int a2xx_rb_init(struct adreno_device *adreno_dev,
 	GSL_RB_WRITE(rb->device, cmds, cmds_gpu,
 		SUBBLOCK_OFFSET(REG_PA_SU_POLY_OFFSET_FRONT_SCALE));
 
-	/* Instruction memory size: */
-	GSL_RB_WRITE(rb->device, cmds, cmds_gpu,
-		(adreno_encode_istore_size(adreno_dev)
-		| adreno_dev->pix_shader_start));
 	/* Maximum Contexts */
 	GSL_RB_WRITE(rb->device, cmds, cmds_gpu, 0x00000001);
 	/* Write Confirm Interval and The CP will wait the
