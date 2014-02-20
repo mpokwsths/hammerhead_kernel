@@ -3008,7 +3008,7 @@ static unsigned int adreno_readtimestamp(struct kgsl_device *device,
 		struct kgsl_context *context, enum kgsl_timestamp_type type)
 {
 	unsigned int timestamp = 0;
-	unsigned int id = context ? context->id : KGSL_MEMSTORE_GLOBAL;
+	unsigned int id = KGSL_CONTEXT_ID(context);
 
 	switch (type) {
 	case KGSL_TIMESTAMP_QUEUED: {
