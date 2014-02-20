@@ -25,8 +25,6 @@
 #include <linux/regulator/consumer.h>
 #include <linux/mm.h>
 
-#define KGSL_NAME "kgsl"
-
 /* The number of memstore arrays limits the number of contexts allowed.
  * If more contexts are needed, update multiple for MEMSTORE_SIZE
  */
@@ -41,25 +39,6 @@
 /*cache coherency ops */
 #define DRM_KGSL_GEM_CACHE_OP_TO_DEV	0x0001
 #define DRM_KGSL_GEM_CACHE_OP_FROM_DEV	0x0002
-
-/* The size of each entry in a page table */
-#define KGSL_PAGETABLE_ENTRY_SIZE  4
-
-/* Extra accounting entries needed in the pagetable */
-#define KGSL_PT_EXTRA_ENTRIES      16
-
-#define KGSL_PAGETABLE_ENTRIES(_sz) (((_sz) >> PAGE_SHIFT) + \
-				     KGSL_PT_EXTRA_ENTRIES)
-
-#ifdef CONFIG_KGSL_PER_PROCESS_PAGE_TABLE
-#define KGSL_PAGETABLE_COUNT (CONFIG_MSM_KGSL_PAGE_TABLE_COUNT)
-#else
-#define KGSL_PAGETABLE_COUNT 1
-#endif
-
-/* Casting using container_of() for structures that kgsl owns. */
-#define KGSL_CONTAINER_OF(ptr, type, member) \
-		container_of(ptr, type, member)
 
 /* A macro for memory statistics - add the new size to the stat and if
    the statisic is greater then _max, set _max
@@ -175,11 +154,63 @@ struct kgsl_mem_entry {
 	struct kgsl_device_private *dev_priv;
 };
 
+<<<<<<< HEAD
 #ifdef CONFIG_MSM_KGSL_MMU_PAGE_FAULT
 #define MMU_CONFIG 2
 #else
 #define MMU_CONFIG 1
 #endif
+=======
+long kgsl_ioctl_device_getproperty(struct kgsl_device_private *dev_priv,
+					  unsigned int cmd, void *data);
+long kgsl_ioctl_device_setproperty(struct kgsl_device_private *dev_priv,
+					unsigned int cmd, void *data);
+long kgsl_ioctl_device_waittimestamp_ctxtid(struct kgsl_device_private
+				*dev_priv, unsigned int cmd, void *data);
+long kgsl_ioctl_rb_issueibcmds(struct kgsl_device_private *dev_priv,
+				      unsigned int cmd, void *data);
+long kgsl_ioctl_submit_commands(struct kgsl_device_private *dev_priv,
+				unsigned int cmd, void *data);
+long kgsl_ioctl_cmdstream_readtimestamp_ctxtid(struct kgsl_device_private
+					*dev_priv, unsigned int cmd,
+					void *data);
+long kgsl_ioctl_cmdstream_freememontimestamp_ctxtid(
+						struct kgsl_device_private
+						*dev_priv, unsigned int cmd,
+						void *data);
+long kgsl_ioctl_drawctxt_create(struct kgsl_device_private *dev_priv,
+					unsigned int cmd, void *data);
+long kgsl_ioctl_drawctxt_destroy(struct kgsl_device_private *dev_priv,
+					unsigned int cmd, void *data);
+long kgsl_ioctl_sharedmem_free(struct kgsl_device_private *dev_priv,
+					unsigned int cmd, void *data);
+long kgsl_ioctl_gpumem_free_id(struct kgsl_device_private *dev_priv,
+					unsigned int cmd, void *data);
+long kgsl_ioctl_map_user_mem(struct kgsl_device_private *dev_priv,
+					unsigned int cmd, void *data);
+long kgsl_ioctl_gpumem_sync_cache(struct kgsl_device_private *dev_priv,
+					unsigned int cmd, void *data);
+long kgsl_ioctl_gpumem_sync_cache_bulk(struct kgsl_device_private *dev_priv,
+					unsigned int cmd, void *data);
+long kgsl_ioctl_sharedmem_flush_cache(struct kgsl_device_private *dev_priv,
+					unsigned int cmd, void *data);
+long kgsl_ioctl_gpumem_alloc(struct kgsl_device_private *dev_priv,
+					unsigned int cmd, void *data);
+long kgsl_ioctl_gpumem_alloc_id(struct kgsl_device_private *dev_priv,
+					unsigned int cmd, void *data);
+long kgsl_ioctl_gpumem_get_info(struct kgsl_device_private *dev_priv,
+					unsigned int cmd, void *data);
+long kgsl_ioctl_cff_syncmem(struct kgsl_device_private *dev_priv,
+					unsigned int cmd, void *data);
+long kgsl_ioctl_cff_user_event(struct kgsl_device_private *dev_priv,
+					unsigned int cmd, void *data);
+long kgsl_ioctl_timestamp_event(struct kgsl_device_private *dev_priv,
+					unsigned int cmd, void *data);
+
+int kgsl_cmdbatch_add_sync(struct kgsl_device *device,
+			struct kgsl_cmdbatch *cmdbatch,
+			struct kgsl_cmd_syncpoint *sync);
+>>>>>>> 1e98183... msm: kgsl: Remove some uneeded MMU infrastructure
 
 void kgsl_mem_entry_destroy(struct kref *kref);
 
