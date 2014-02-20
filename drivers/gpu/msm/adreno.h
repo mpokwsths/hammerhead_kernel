@@ -36,6 +36,9 @@
 #define ADRENO_CHIPID_MINOR(_id) (((_id) >> 8) & 0xFF)
 #define ADRENO_CHIPID_PATCH(_id) ((_id) & 0xFF)
 
+/* Adreno core features */
+#define ADRENO_USES_OCMEM BIT(0)
+
 /* Flags to control command packet settings */
 #define KGSL_CMD_FLAGS_NONE             0
 #define KGSL_CMD_FLAGS_PMODE		BIT(0)
@@ -167,6 +170,7 @@ struct adreno_device {
 	unsigned int pm4_fw_version;
 	struct adreno_ringbuffer ringbuffer;
 	struct adreno_gpudev *gpudev;
+	unsigned long features;
 	unsigned int wait_timeout;
 	unsigned int pm4_jt_idx;
 	unsigned int pm4_jt_addr;
@@ -184,7 +188,6 @@ struct adreno_device {
 	unsigned int ft_pf_policy;
 	unsigned int gpulist_index;
 	struct ocmem_buf *ocmem_hdl;
-	unsigned int ocmem_base;
 	struct adreno_profile profile;
 	struct kgsl_memdesc pwron_fixup;
 	unsigned int pwron_fixup_dwords;
@@ -354,9 +357,7 @@ struct adreno_gpudev {
 	 * These registers are in a different location on different devices,
 	 * so define them in the structure and use them as variables.
 	 */
-	struct adreno_reg_offsets *reg_offsets;
-	/* keeps track of when we need to execute the draw workaround code */
-	int ctx_switches_since_last_draw;
+	const struct adreno_reg_offsets *reg_offsets;
 
 	struct adreno_perfcounters *perfcounters;
 
