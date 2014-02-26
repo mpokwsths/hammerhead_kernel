@@ -2399,7 +2399,7 @@ static int a3xx_create_gpustate_shadow(struct adreno_device *adreno_dev,
 static int a3xx_create_gmem_shadow(struct adreno_device *adreno_dev,
 				 struct adreno_context *drawctxt)
 {
-	int result;
+	int result, ret;
 
 	calc_gmemsize(&drawctxt->context_gmem_shadow, adreno_dev->gmem_size);
 	tmp_ctx.gmem_base = adreno_dev->gmem_base;
@@ -2420,8 +2420,12 @@ static int a3xx_create_gmem_shadow(struct adreno_device *adreno_dev,
 	tmp_ctx.cmd = build_sys2gmem_cmds(adreno_dev, drawctxt,
 		&drawctxt->context_gmem_shadow);
 
-	kgsl_cache_range_op(&drawctxt->context_gmem_shadow.gmemshadow,
-		KGSL_CACHE_OP_FLUSH);
+	ret = kgsl_cache_range_op(&drawctxt->context_gmem_shadow.gmemshadow,
+				0,
+				drawctxt->context_gmem_shadow.size,
+				KGSL_CACHE_OP_FLUSH);
+//	kgsl_cache_range_op(&drawctxt->context_gmem_shadow.gmemshadow,
+//		KGSL_CACHE_OP_FLUSH);
 
 	return 0;
 }
