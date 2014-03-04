@@ -843,7 +843,7 @@ static unsigned int _adreno_iommu_setstate_v1(struct kgsl_device *device,
 					int num_iommu_units, uint32_t flags)
 {
 	struct adreno_device *adreno_dev = ADRENO_DEVICE(device);
-	phys_addr_t ttbr0_val;
+	uint64_t ttbr0_val;
 	unsigned int reg_pt_val;
 	unsigned int *cmds = cmds_orig;
 	int i;
@@ -892,9 +892,14 @@ static unsigned int _adreno_iommu_setstate_v1(struct kgsl_device *device,
 				KGSL_IOMMU_IMPLDEF_MICRO_MMU_CTRL_IDLE,
 				KGSL_IOMMU_IMPLDEF_MICRO_MMU_CTRL_IDLE, 0xF);
 			}
-			/* set ttbr0 */
-			if (sizeof(phys_addr_t) > sizeof(unsigned long)) {
-				reg_pt_val = ttbr0_val & 0xFFFFFFFF;
+			/*
+			 * set ttbr0, only need to set the higer bits if the
+			 * address bits lie in the higher bits
+			 */
+			if (KGSL_IOMMU_CTX_TTBR0_ADDR_MASK &
+				0xFFFFFFFF00000000ULL) {
+				reg_pt_val = (unsigned int)ttbr0_val &
+						0xFFFFFFFF;
 				*cmds++ = cp_type0_packet(ttbr0, 1);
 				*cmds++ = reg_pt_val;
 				reg_pt_val = (unsigned int)
