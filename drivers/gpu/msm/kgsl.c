@@ -3762,7 +3762,8 @@ err_put:
 static inline bool
 mmap_range_valid(unsigned long addr, unsigned long len)
 {
-	return ((ULONG_MAX - addr) > len) && ((addr + len) < TASK_SIZE);
+	return ((ULONG_MAX - addr) > len) && ((addr + len) <
+		TASK_SIZE);
 }
 
 /**
@@ -3839,7 +3840,15 @@ static int kgsl_check_gpu_addr_collision(
 			if (flag_top_down) {
 				addr = collision_entry->memdesc.gpuaddr - len;
 				if (addr > collision_entry->memdesc.gpuaddr) {
-					ret = -EOVERFLOW;
+					KGSL_CORE_ERR_ONCE(
+					"Underflow err ent:%x/%zx, addr:%lx/%lx align:%u",
+					collision_entry->memdesc.gpuaddr,
+					kgsl_memdesc_mmapsize(
+						&collision_entry->memdesc),
+					addr, len, align);
+					*gpumap_free_addr =
+						TASK_SIZE;
+					ret = -EAGAIN;
 					break;
 				}
 			} else {
@@ -3847,8 +3856,17 @@ static int kgsl_check_gpu_addr_collision(
 					kgsl_memdesc_mmapsize(
 						&collision_entry->memdesc);
 				/* overflow check */
-				if (addr < collision_entry->memdesc.gpuaddr) {
-					ret = -EOVERFLOW;
+				if (addr < collision_entry->memdesc.gpuaddr ||
+					!mmap_range_valid(addr, len)) {
+					KGSL_CORE_ERR_ONCE(
+					"Overflow err ent:%x/%zx, addr:%lx/%lx align:%u",
+					collision_entry->memdesc.gpuaddr,
+					kgsl_memdesc_mmapsize(
+						&collision_entry->memdesc),
+					addr, len, align);
+					*gpumap_free_addr =
+						TASK_SIZE;
+					ret = -EAGAIN;
 					break;
 				}
 			}
