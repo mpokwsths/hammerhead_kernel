@@ -25,7 +25,9 @@
 #define KGSL_CONTEXT_NO_FAULT_TOLERANCE 0x00000200
 #define KGSL_CONTEXT_SYNC               0x00000400
 #define KGSL_CONTEXT_PWR_CONSTRAINT     0x00000800
-/* bits [12:15] are reserved for future use */
+
+#define KGSL_CONTEXT_IFH_NOP		0x00010000
+
 #define KGSL_CONTEXT_TYPE_MASK          0x01F00000
 #define KGSL_CONTEXT_TYPE_SHIFT         20
 
