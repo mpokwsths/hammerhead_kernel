@@ -654,6 +654,11 @@ int adreno_dispatcher_queue_cmd(struct adreno_device *adreno_dev,
 	if (test_and_clear_bit(ADRENO_CONTEXT_FORCE_PREAMBLE, &drawctxt->priv))
 		set_bit(CMDBATCH_FLAG_FORCE_PREAMBLE, &cmdbatch->priv);
 
+
+	/* Skip this cmdbatch commands if IFH_NOP is enabled */
+	if (drawctxt->base.flags & KGSL_CONTEXT_IFH_NOP)
+		set_bit(CMDBATCH_FLAG_SKIP, &cmdbatch->priv);
+
 	/*
 	 * If we are waiting for the end of frame and it hasn't appeared yet,
 	 * then mark the command batch as skipped.  It will still progress
