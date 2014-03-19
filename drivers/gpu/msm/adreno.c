@@ -104,9 +104,10 @@ static unsigned int _wake_timeout = 100;
 
 /*
  * A workqueue callback responsible for actually turning on the GPU after a
- * touch event. kgsl_pwrctrl_wake() is used without any active_count protection
- * to avoid the need to maintain state.  Either somebody will start using the
- * GPU or the idle timer will fire and put the GPU back into slumber
+ * touch event. kgsl_pwrctrl_change_state(ACTIVE) is used without any
+ * active_count protection to avoid the need to maintain state.  Either
+ * somebody will start using the GPU or the idle timer will fire and put the
+ * GPU back into slumber.
  */
 static void adreno_input_work(struct work_struct *work)
 {
@@ -122,9 +123,10 @@ static void adreno_input_work(struct work_struct *work)
 	device->flags |= KGSL_FLAG_WAKE_ON_TOUCH;
 
 	/*
-	 * Schedule adreno_start in a high priority workqueue.
+	 * Don't schedule adreno_start in a high priority workqueue, we are
+	 * already in a workqueue which should be sufficient
 	 */
-	kgsl_pwrctrl_wake(device, 1);
+	kgsl_pwrctrl_change_state(device, KGSL_STATE_ACTIVE);
 
 	/*
 	 * When waking up from a touch event we want to stay active long enough
@@ -1542,7 +1544,7 @@ static int adreno_init(struct kgsl_device *device)
 	/* Make a high priority workqueue for starting the GPU */
 	adreno_wq = alloc_workqueue("adreno", WQ_HIGHPRI | WQ_UNBOUND, 1);
 
-	kgsl_pwrctrl_set_state(device, KGSL_STATE_INIT);
+	kgsl_pwrctrl_change_state(device, KGSL_STATE_INIT);
 	/*
 	 * initialization only needs to be done once initially until
 	 * device is shutdown
@@ -1574,7 +1576,7 @@ static int adreno_init(struct kgsl_device *device)
 		BUG_ON(1);
 	}
 
-	kgsl_pwrctrl_set_state(device, KGSL_STATE_INIT);
+	kgsl_pwrctrl_change_state(device, KGSL_STATE_INIT);
 	/*
 	 * Check if firmware supports the sync lock PM4 packets needed
 	 * for IOMMUv1
@@ -1634,7 +1636,7 @@ static int _adreno_start(struct adreno_device *adreno_dev)
 
 	kgsl_cffdump_open(device);
 
-	kgsl_pwrctrl_set_state(device, KGSL_STATE_INIT);
+	kgsl_pwrctrl_change_state(device, KGSL_STATE_INIT);
 
 	regulator_left_on = (regulator_is_enabled(device->pwrctrl.gpu_reg) ||
 				(device->pwrctrl.gpu_cx &&
@@ -1704,7 +1706,7 @@ error_mmu_off:
 error_clk_off:
 	kgsl_pwrctrl_disable(device);
 	/* set the state back to original state */
-	kgsl_pwrctrl_set_state(device, state);
+	kgsl_pwrctrl_change_state(device, state);
 
 	return status;
 }
@@ -1857,7 +1859,7 @@ int adreno_reset(struct kgsl_device *device)
 	 */
 
 	if (atomic_read(&device->active_cnt))
-		kgsl_pwrctrl_set_state(device, KGSL_STATE_ACTIVE);
+		kgsl_pwrctrl_change_state(device, KGSL_STATE_ACTIVE);
 
 	/* Set the page table back to the default page table */
 	kgsl_mmu_setstate(&device->mmu, device->mmu.defaultpagetable,
@@ -2398,7 +2400,8 @@ static int adreno_setproperty(struct kgsl_device_private *dev_priv,
 
 				kgsl_pwrscale_enable(device);
 			} else {
-				kgsl_pwrctrl_wake(device, 0);
+				kgsl_pwrctrl_change_state(device,
+							KGSL_STATE_ACTIVE);
 				device->pwrctrl.ctrl_flags = KGSL_PWR_ON;
 				adreno_dev->fast_hang_detect = 0;
 				if (adreno_dev->gpudev->fault_detect_stop)
