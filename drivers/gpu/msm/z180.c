@@ -224,10 +224,6 @@ static irqreturn_t z180_irq_handler(struct kgsl_device *device)
 		}
 	}
 
-	if (device->requested_state == KGSL_STATE_NONE) {
-		kgsl_pwrctrl_request_state(device, KGSL_STATE_NAP);
-		queue_work(device->work_queue, &device->idle_check_ws);
-	}
 	mod_timer_pending(&device->idle_timer,
 			jiffies + device->pwrctrl.interval_timeout);
 
@@ -601,7 +597,7 @@ static int z180_start(struct kgsl_device *device, int priority)
 {
 	int status = 0;
 
-	kgsl_pwrctrl_set_state(device, KGSL_STATE_INIT);
+	kgsl_pwrctrl_change_state(device, KGSL_STATE_INIT);
 
 	kgsl_pwrctrl_enable(device);
 
@@ -899,7 +895,7 @@ static int z180_wait(struct kgsl_device *device,
 		status = 0;
 	else if (timeout == 0) {
 		status = -ETIMEDOUT;
-		kgsl_pwrctrl_set_state(device, KGSL_STATE_HUNG);
+		kgsl_pwrctrl_change_state(device, KGSL_STATE_HUNG);
 	} else
 		status = timeout;
 

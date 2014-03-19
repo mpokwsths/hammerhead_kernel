@@ -629,11 +629,14 @@ int kgsl_cff_dump_enable_set(void *data, u64 val)
 		if (!device->cff_dump_enable) {
 			device->cff_dump_enable = 1;
 			/*
-			 * put device to slumber so that we ensure that the
+			 * force device to slumber so that we ensure that the
 			 * start opcode in CFF is present
 			 */
 			mutex_lock(&device->mutex);
-			ret = kgsl_pwrctrl_slumber(device);
+			ret = kgsl_pwrctrl_change_state(device,
+				KGSL_STATE_SUSPEND);
+			ret |= kgsl_pwrctrl_change_state(device,
+				KGSL_STATE_SLUMBER);
 			if (ret)
 				device->cff_dump_enable = 0;
 			mutex_unlock(&device->mutex);

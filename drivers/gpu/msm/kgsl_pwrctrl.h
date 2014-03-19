@@ -88,6 +88,8 @@ struct kgsl_pwr_constraint {
  * @pm_qos_latency - allowed CPU latency in microseconds
  * @step_mul - multiplier for moving between power levels
  * @constraint - currently active power constraint
+ * @superfast - Boolean flag to indicate that the GPU start should be run in the
+ * higher priority thread
  */
 
 struct kgsl_pwrctrl {
@@ -115,6 +117,7 @@ struct kgsl_pwrctrl {
 	unsigned int pm_qos_latency;
 	unsigned int step_mul;
 	struct kgsl_pwr_constraint constraint;
+	bool superfast;
 };
 
 void kgsl_pwrctrl_irq(struct kgsl_device *device, int state);
@@ -123,8 +126,6 @@ void kgsl_pwrctrl_close(struct kgsl_device *device);
 void kgsl_timer(unsigned long data);
 void kgsl_idle_check(struct work_struct *work);
 void kgsl_pre_hwaccess(struct kgsl_device *device);
-int kgsl_pwrctrl_sleep(struct kgsl_device *device);
-int kgsl_pwrctrl_wake(struct kgsl_device *device, int priority);
 void kgsl_pwrctrl_pwrlevel_change(struct kgsl_device *device,
 	unsigned int level);
 int kgsl_pwrctrl_init_sysfs(struct kgsl_device *device);
@@ -132,18 +133,15 @@ void kgsl_pwrctrl_uninit_sysfs(struct kgsl_device *device);
 void kgsl_pwrctrl_enable(struct kgsl_device *device);
 void kgsl_pwrctrl_disable(struct kgsl_device *device);
 bool kgsl_pwrctrl_isenabled(struct kgsl_device *device);
+int kgsl_pwrctrl_change_state(struct kgsl_device *device, int state);
 
 static inline unsigned long kgsl_get_clkrate(struct clk *clk)
 {
 	return (clk != NULL) ? clk_get_rate(clk) : 0;
 }
 
-void kgsl_pwrctrl_set_state(struct kgsl_device *device, unsigned int state);
-void kgsl_pwrctrl_request_state(struct kgsl_device *device, unsigned int state);
 
 int __must_check kgsl_active_count_get(struct kgsl_device *device);
 void kgsl_active_count_put(struct kgsl_device *device);
 int kgsl_active_count_wait(struct kgsl_device *device, int count);
-int kgsl_pwrctrl_slumber(struct kgsl_device *device);
-
 #endif /* __KGSL_PWRCTRL_H */
