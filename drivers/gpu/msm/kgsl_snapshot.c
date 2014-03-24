@@ -832,22 +832,6 @@ static ssize_t timestamp_show(struct kgsl_device *device, char *buf)
 	return snprintf(buf, PAGE_SIZE, "%d\n", device->snapshot_timestamp);
 }
 
-/* manually trigger a new snapshot to be collected */
-static ssize_t trigger_store(struct kgsl_device *device, const char *buf,
-	size_t count)
-{
-	if (device && count > 0) {
-		mutex_lock(&device->mutex);
-		if (!kgsl_active_count_get(device)) {
-				kgsl_device_snapshot(device, 0);
-				kgsl_active_count_put(device);
-		}
-		mutex_unlock(&device->mutex);
-	}
-
-	return count;
-}
-
 static struct bin_attribute snapshot_attr = {
 	.attr.name = "dump",
 	.attr.mode = 0444,
@@ -862,7 +846,6 @@ struct kgsl_snapshot_attribute attr_##_name = { \
 	.store = _store, \
 }
 
-static SNAPSHOT_ATTR(trigger, 0600, NULL, trigger_store);
 static SNAPSHOT_ATTR(timestamp, 0444, timestamp_show, NULL);
 static SNAPSHOT_ATTR(faultcount, 0644, faultcount_show, faultcount_store);
 
@@ -946,10 +929,6 @@ int kgsl_device_snapshot_init(struct kgsl_device *device)
 	if (ret)
 		goto done;
 
-	ret  = sysfs_create_file(&device->snapshot_kobj, &attr_trigger.attr);
-	if (ret)
-		goto done;
-
 	ret  = sysfs_create_file(&device->snapshot_kobj, &attr_timestamp.attr);
 	if (ret)
 		goto done;
@@ -971,7 +950,6 @@ EXPORT_SYMBOL(kgsl_device_snapshot_init);
 void kgsl_device_snapshot_close(struct kgsl_device *device)
 {
 	sysfs_remove_bin_file(&device->snapshot_kobj, &snapshot_attr);
-	sysfs_remove_file(&device->snapshot_kobj, &attr_trigger.attr);
 	sysfs_remove_file(&device->snapshot_kobj, &attr_timestamp.attr);
 
 	kobject_put(&device->snapshot_kobj);
