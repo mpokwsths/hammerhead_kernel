@@ -126,7 +126,6 @@ struct msm8x10_wcd_priv {
 	u32 adc_count;
 	u32 rx_bias_count;
 	s32 dmic_1_2_clk_cnt;
-<<<<<<< HEAD
 	enum msm8x10_wcd_bandgap_type bandgap_type;
 	bool mclk_enabled;
 	bool clock_active;
@@ -135,16 +134,6 @@ struct msm8x10_wcd_priv {
 	struct mutex codec_resource_lock;
 	/* resmgr module */
 	struct wcd9xxx_resmgr resmgr;
-=======
-	struct on_demand_supply on_demand_list[ON_DEMAND_SUPPLIES_MAX];
-	/* resmgr module */
-	struct wcd9xxx_resmgr resmgr;
-	/* mbhc module */
-	struct wcd9xxx_mbhc mbhc;
-
-	struct delayed_work hs_detect_work;
-	struct wcd9xxx_mbhc_config *mbhc_cfg;
->>>>>>> 8e5fe25... ASoC: wcd9xxx: Bringup headset detection on msm8x10 codec
 };
 
 static unsigned short rx_digital_gain_reg[] = {
@@ -316,20 +305,8 @@ int msm8x10_wcd_i2c_write(unsigned short reg, int bytes, void *src)
 	return msm8x10_wcd_i2c_write_device(reg, src, bytes);
 }
 
-<<<<<<< HEAD
 static int msm8x10_wcd_reg_read(struct msm8x10_wcd *msm8x10_wcd,
 				u16 reg, unsigned int *val)
-=======
-static unsigned short msm8x10_wcd_mask_reg(unsigned short reg)
-{
-	if (reg >= 0x3C0 && reg <= 0x3DF)
-		reg = reg & 0x00FF;
-	return reg;
-}
-
-static int __msm8x10_wcd_reg_read(struct msm8x10_wcd *msm8x10_wcd,
-				unsigned short reg)
->>>>>>> 8e5fe25... ASoC: wcd9xxx: Bringup headset detection on msm8x10 codec
 {
 	int ret = -EINVAL;
 	u8 temp;
@@ -1819,21 +1796,14 @@ int msm8x10_wcd_mclk_enable(struct snd_soc_codec *codec,
 
 	dev_dbg(codec->dev, "%s: mclk_enable = %u, dapm = %d\n",
 		__func__, mclk_enable, dapm);
-<<<<<<< HEAD
 	if (dapm)
 		MSM8X10_WCD_ACQUIRE_LOCK(msm8x10_wcd->codec_resource_lock);
-=======
-
-	WCD9XXX_BG_CLK_LOCK(&msm8x10_wcd->resmgr);
-
->>>>>>> 8e5fe25... ASoC: wcd9xxx: Bringup headset detection on msm8x10 codec
 	if (mclk_enable) {
 		wcd9xxx_resmgr_get_bandgap(&msm8x10_wcd->resmgr,
 				WCD9XXX_BANDGAP_AUDIO_MODE);
 		wcd9xxx_resmgr_get_clk_block(&msm8x10_wcd->resmgr,
 				WCD9XXX_CLK_MCLK);
 	} else {
-<<<<<<< HEAD
 		if (!msm8x10_wcd->mclk_enabled) {
 			if (dapm)
 				MSM8X10_WCD_RELEASE_LOCK(
@@ -1848,14 +1818,6 @@ int msm8x10_wcd_mclk_enable(struct snd_soc_codec *codec,
 	}
 	if (dapm)
 		MSM8X10_WCD_RELEASE_LOCK(msm8x10_wcd->codec_resource_lock);
-=======
-		wcd9xxx_resmgr_put_clk_block(&msm8x10_wcd->resmgr,
-					WCD9XXX_CLK_MCLK);
-		wcd9xxx_resmgr_put_bandgap(&msm8x10_wcd->resmgr,
-					WCD9XXX_BANDGAP_AUDIO_MODE);
-	}
-	WCD9XXX_BG_CLK_UNLOCK(&msm8x10_wcd->resmgr);
->>>>>>> 8e5fe25... ASoC: wcd9xxx: Bringup headset detection on msm8x10 codec
 	return 0;
 }
 
@@ -2259,10 +2221,6 @@ static const struct msm8x10_wcd_reg_mask_val msm8x10_wcd_reg_defaults[] = {
 	/* Disable TX7 internal biasing path which can cause leakage */
 	MSM8X10_WCD_REG_VAL(MSM8X10_WCD_A_BIAS_CURR_CTL_2, 0x04),
 	MSM8X10_WCD_REG_VAL(MSM8X10_WCD_A_MICB_CFILT_1_VAL, 0x60),
-<<<<<<< HEAD
-=======
-	/* Enable pulldown to reduce leakage */
->>>>>>> 8e5fe25... ASoC: wcd9xxx: Bringup headset detection on msm8x10 codec
 	MSM8X10_WCD_REG_VAL(MSM8X10_WCD_A_MICB_1_CTL, 0x82),
 	MSM8X10_WCD_REG_VAL(MSM8X10_WCD_A_TX_COM_BIAS, 0xE0),
 	MSM8X10_WCD_REG_VAL(MSM8X10_WCD_A_TX_1_EN, 0x32),
@@ -2274,16 +2232,6 @@ static const struct msm8x10_wcd_reg_mask_val msm8x10_wcd_reg_defaults[] = {
 	MSM8X10_WCD_REG_VAL(MSM8X10_WCD_A_CDC_CLSG_FREQ_THRESH_B3_CTL, 0x1A),
 	MSM8X10_WCD_REG_VAL(MSM8X10_WCD_A_CDC_CLSG_FREQ_THRESH_B4_CTL, 0x47),
 	MSM8X10_WCD_REG_VAL(MSM8X10_WCD_A_CDC_CLSG_GAIN_THRESH_CTL, 0x23),
-<<<<<<< HEAD
-=======
-
-	/* Always set TXD_CLK_EN bit to reduce the leakage */
-	MSM8X10_WCD_REG_VAL(MSM8X10_WCD_A_CDC_DIG_CLK_CTL, 0x10),
-
-	/* Always disable clock gating for MCLK to mbhc clock gate */
-	MSM8X10_WCD_REG_VAL(MSM8X10_WCD_A_CDC_ANA_CLK_CTL, 0x20),
-	MSM8X10_WCD_REG_VAL(MSM8X10_WCD_A_CDC_DIG_CLK_CTL, 0x10),
->>>>>>> 8e5fe25... ASoC: wcd9xxx: Bringup headset detection on msm8x10 codec
 };
 
 static void msm8x10_wcd_update_reg_defaults(struct snd_soc_codec *codec)
@@ -2514,71 +2462,10 @@ static int msm8x10_wcd_codec_probe(struct snd_soc_codec *codec)
 	}
 
 	codec->control_data = dev_get_drvdata(codec->dev);
-<<<<<<< HEAD
 	snd_soc_codec_set_drvdata(codec, msm8x10_wcd);
 	msm8x10_wcd->codec = codec;
 	msm8x10_wcd_codec_init_reg(codec);
 	msm8x10_wcd_update_reg_defaults(codec);
-=======
-	snd_soc_codec_set_drvdata(codec, msm8x10_wcd_priv);
-	msm8x10_wcd_priv->codec = codec;
-
-	/* map digital codec registers once */
-	msm8x10_wcd = codec->control_data;
-	msm8x10_wcd->pdino_base = ioremap(MSM8X10_DINO_CODEC_BASE_ADDR,
-					  MSM8X10_DINO_CODEC_REG_SIZE);
-	INIT_DELAYED_WORK(&msm8x10_wcd_priv->hs_detect_work,
-			delayed_hs_detect_fn);
-
-	/* codec resmgr module init */
-	msm8x10_wcd = codec->control_data;
-	core_res = &msm8x10_wcd->wcd9xxx_res;
-	ret = wcd9xxx_resmgr_init(&msm8x10_wcd_priv->resmgr,
-				codec, core_res, NULL, NULL,
-				WCD9XXX_CDC_TYPE_HELICON);
-	if (ret) {
-		dev_err(codec->dev,
-				"%s: wcd9xxx init failed %d\n",
-				__func__, ret);
-		goto exit_probe;
-	}
-
-	msm8x10_wcd_bringup(codec);
-	msm8x10_wcd_codec_init_reg(codec);
-	msm8x10_wcd_update_reg_defaults(codec);
-	msm8x10_wcd_priv->on_demand_list[ON_DEMAND_CP].supply =
-				wcd8x10_wcd_codec_find_regulator(
-				codec->control_data,
-				on_demand_supply_name[ON_DEMAND_CP]);
-	atomic_set(&msm8x10_wcd_priv->on_demand_list[ON_DEMAND_CP].ref, 0);
-	msm8x10_wcd_priv->on_demand_list[ON_DEMAND_MICBIAS].supply =
-				wcd8x10_wcd_codec_find_regulator(
-				codec->control_data,
-				on_demand_supply_name[ON_DEMAND_MICBIAS]);
-	atomic_set(&msm8x10_wcd_priv->on_demand_list[ON_DEMAND_MICBIAS].ref, 0);
-
-	ret = wcd9xxx_mbhc_init(&msm8x10_wcd_priv->mbhc,
-				&msm8x10_wcd_priv->resmgr,
-				codec, NULL, &mbhc_cb,
-				HELICON_MCLK_CLK_9P6MHZ, false);
-	if (ret) {
-		pr_err("%s: Failed to initialize mbhc\n", __func__);
-		goto exit_probe;
-	}
-
-	registered_codec = codec;
-	adsp_state_notifier =
-	    subsys_notif_register_notifier("adsp",
-					   &adsp_state_notifier_block);
-	if (!adsp_state_notifier) {
-		pr_err("%s: Failed to register adsp state notifier\n",
-		       __func__);
-		registered_codec = NULL;
-		return -ENOMEM;
-	}
-	return 0;
->>>>>>> 8e5fe25... ASoC: wcd9xxx: Bringup headset detection on msm8x10 codec
-
 	msm8x10_wcd->mclk_enabled = false;
 	msm8x10_wcd->bandgap_type = MSM8X10_WCD_BANDGAP_OFF;
 	msm8x10_wcd->clock_active = false;
