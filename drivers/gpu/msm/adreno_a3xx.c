@@ -3345,6 +3345,7 @@ static int a3xx_perfcounter_enable(struct adreno_device *adreno_dev,
 
 	/* Select the desired perfcounter */
 	kgsl_regwrite(device, reg->select, countable);
+	adreno_dev->gpudev->perfcounters->groups[group].regs[counter].value = 0;
 
 	return 0;
 }
@@ -3376,7 +3377,9 @@ static uint64_t a3xx_perfcounter_read_pwr(struct adreno_device *adreno_dev,
 	/* restore the counter control value */
 	adreno_writereg(adreno_dev, ADRENO_REG_RBBM_RBBM_CTL, in);
 
-	return (((uint64_t) hi) << 32) | lo;
+	return ((((uint64_t) hi) << 32) | lo)
+		+ counters->groups[KGSL_PERFCOUNTER_GROUP_PWR]
+				.regs[counter].value;
 }
 
 static uint64_t a3xx_perfcounter_read_vbif(struct adreno_device *adreno_dev,
@@ -3405,7 +3408,9 @@ static uint64_t a3xx_perfcounter_read_vbif(struct adreno_device *adreno_dev,
 	/* restore the perfcounter value */
 	kgsl_regwrite(device, A3XX_VBIF_PERF_CNT_EN, in);
 
-	return (((uint64_t) hi) << 32) | lo;
+	return ((((uint64_t) hi) << 32) | lo)
+		+ counters->groups[KGSL_PERFCOUNTER_GROUP_VBIF]
+				.regs[counter].value;
 }
 
 static uint64_t a3xx_perfcounter_read_vbif_pwr(struct adreno_device *adreno_dev,
@@ -3433,7 +3438,9 @@ static uint64_t a3xx_perfcounter_read_vbif_pwr(struct adreno_device *adreno_dev,
 	/* restore the perfcounter value */
 	kgsl_regwrite(device, A3XX_VBIF_PERF_CNT_EN, in);
 
-	return (((uint64_t) hi) << 32) | lo;
+	return ((((uint64_t) hi) << 32) | lo)
+		+ counters->groups[KGSL_PERFCOUNTER_GROUP_VBIF_PWR]
+				.regs[counter].value;
 }
 
 static uint64_t a3xx_perfcounter_read(struct adreno_device *adreno_dev,
@@ -3513,9 +3520,6 @@ static void a3xx_perfcounter_save(struct adreno_device *adreno_dev)
 	unsigned int regid, groupid;
 
 	for (groupid = 0; groupid < counters->group_count; groupid++) {
-		if (!loadable_perfcounter_group(groupid))
-			continue;
-
 		group = &(counters->groups[groupid]);
 
 		/* group/counter iterator */
@@ -3523,9 +3527,14 @@ static void a3xx_perfcounter_save(struct adreno_device *adreno_dev)
 			if (!active_countable(group->regs[regid].countable))
 				continue;
 
+			/* accumulate values for non-loadable counters */
+			if (loadable_perfcounter_group(groupid))
+				group->regs[regid].value = 0;
+
 			group->regs[regid].value =
-				adreno_dev->gpudev->perfcounter_read(
-				adreno_dev, groupid, regid);
+				group->regs[regid].value
+					+ adreno_dev->gpudev->perfcounter_read
+						(adreno_dev, groupid, regid);
 		}
 	}
 }
