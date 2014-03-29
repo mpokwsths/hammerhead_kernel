@@ -1321,6 +1321,7 @@ static void ttwu_activate(struct rq *rq, struct task_struct *p, int en_flags)
 		wq_worker_waking_up(p, cpu_of(rq));
 }
 
+#ifdef CONFIG_SCHED_FREQ_INPUT
 /* Window size (in ns) */
 __read_mostly unsigned int sched_ravg_window = 10000000;
 
@@ -1444,6 +1445,12 @@ void update_task_ravg(struct task_struct *p, struct rq *rq, int update_sum)
 
 	p->ravg.mark_start = wallclock;
 }
+#else	/* CONFIG_SCHED_FREQ_INPUT */
+static inline void
+update_task_ravg(struct task_struct *p, struct rq *rq, int update_sum)
+{
+}
+#endif	/* CONFIG_SCHED_FREQ_INPUT */
 
 /*
  * Mark the task runnable and perform wakeup-preemption.
@@ -6393,6 +6400,7 @@ void __init sched_init_smp(void)
 #endif /* CONFIG_SMP */
 
 
+#ifdef CONFIG_SCHED_FREQ_INPUT
 /*
  * Maximum possible frequency across all cpus. Task demand and cpu
  * capacity (cpu_power) metrics are scaled in reference to it.
@@ -6478,6 +6486,7 @@ static int register_sched_callback(void)
  * for further information.
  */
 core_initcall(register_sched_callback);
+#endif /* CONFIG_SCHED_FREQ_INPUT */
 
 const_debug unsigned int sysctl_timer_migration = 1;
 
@@ -6626,11 +6635,13 @@ void __init sched_init(void)
 		rq->idle_stamp = 0;
 		rq->max_idle_balance_cost = sysctl_sched_migration_cost;
 		rq->avg_idle = 2*sysctl_sched_migration_cost;
+#ifdef CONFIG_SCHED_FREQ_INPUT
 		rq->cur_freq = 1;
 		rq->max_freq = 1;
 		rq->min_freq = 1;
 		rq->max_possible_freq = 1;
 		rq->cumulative_runnable_avg = 0;
+#endif
 
 		INIT_LIST_HEAD(&rq->cfs_tasks);
 
