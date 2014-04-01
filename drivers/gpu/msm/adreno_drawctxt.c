@@ -384,7 +384,7 @@ void adreno_drawctxt_invalidate(struct kgsl_device *device,
 
 		mutex_unlock(&drawctxt->mutex);
 
-		mutex_lock(&device->mutex);
+		kgsl_mutex_lock(&device->mutex, &device->mutex_owner);
 		kgsl_cancel_events_timestamp(device, &context->events,
 			cmdbatch->timestamp);
 		kgsl_mutex_unlock(&device->mutex, &device->mutex_owner);

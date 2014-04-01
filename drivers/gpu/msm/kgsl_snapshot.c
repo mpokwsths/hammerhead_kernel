@@ -1035,7 +1035,7 @@ void kgsl_snapshot_save_frozen_objs(struct work_struct *work)
 	unsigned int remain = 0;
 	void *snapshot_dest;
 
-	mutex_lock(&device->mutex);
+	kgsl_mutex_lock(&device->mutex, &device->mutex_owner);
 
 	kgsl_snapshot_process_ib_obj_list(device);
 
@@ -1072,5 +1072,5 @@ void kgsl_snapshot_save_frozen_objs(struct work_struct *work)
 		kgsl_snapshot_put_object(device, snapshot_obj);
 	}
 done:
-	mutex_unlock(&device->mutex);
+	kgsl_mutex_unlock(&device->mutex, &device->mutex_owner);
 }
