@@ -2575,13 +2575,12 @@ int mdss_mdp_hist_collect(struct mdss_mdp_ctl *ctl,
 			goto hist_collect_exit;
 		}
 		if (hist_cnt > 1) {
-			hist_concat = kmalloc(HIST_V_SIZE * sizeof(u32),
+			hist_concat = kzalloc(HIST_V_SIZE * sizeof(u32),
 								GFP_KERNEL);
 			if (!hist_concat) {
 				ret = -ENOMEM;
 				goto hist_collect_exit;
 			}
-			memset(hist_concat, 0, HIST_V_SIZE * sizeof(u32));
 			for (i = 0; i < hist_cnt; i++) {
 				dspp_num = mixer_id[i];
 				hist_info = &mdss_pp_res->dspp_hist[dspp_num];
@@ -2646,15 +2645,13 @@ int mdss_mdp_hist_collect(struct mdss_mdp_ctl *ctl,
 			goto hist_collect_exit;
 		}
 		if (pipe_cnt > 1) {
-			hist_concat = kmalloc(HIST_V_SIZE * pipe_cnt *
+			hist_concat = kzalloc(HIST_V_SIZE * pipe_cnt *
 						sizeof(u32), GFP_KERNEL);
 			if (!hist_concat) {
 				ret = -ENOMEM;
 				goto hist_collect_exit;
 			}
 
-			memset(hist_concat, 0, pipe_cnt * HIST_V_SIZE *
-								sizeof(u32));
 			for (i = pipe_num; i < MDSS_PP_ARG_NUM; i++) {
 				if (!PP_ARG(i, hist->block))
 					continue;
