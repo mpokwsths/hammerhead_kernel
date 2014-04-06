@@ -69,6 +69,11 @@ struct mdss_fudge_factor {
 	u32 denom;
 };
 
+struct mdss_perf_tune {
+	unsigned long min_mdp_clk;
+	u64 min_bus_vote;
+};
+
 struct mdss_prefill_data {
 	u32 ot_bytes;
 	u32 y_buf_bytes;
@@ -101,7 +106,6 @@ struct mdss_data_type {
 	u8 clk_ena;
 	u8 fs_ena;
 	u8 vsync_ena;
-	unsigned long min_mdp_clk;
 
 	u32 res_init;
 
@@ -161,6 +165,7 @@ struct mdss_data_type {
 	struct mdss_prefill_data prefill_data;
 
 	int handoff_pending;
+	struct mdss_perf_tune perf_tune;
 };
 extern struct mdss_data_type *mdss_res;
 
