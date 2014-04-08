@@ -637,65 +637,6 @@ static irqreturn_t adreno_irq_handler(struct kgsl_device *device)
 	return adreno_dev->gpudev->irq_handler(adreno_dev);
 }
 
-static void adreno_cleanup_pt(struct kgsl_device *device,
-			struct kgsl_pagetable *pagetable)
-{
-	struct adreno_device *adreno_dev = ADRENO_DEVICE(device);
-	struct adreno_ringbuffer *rb = &adreno_dev->ringbuffer;
-
-	kgsl_mmu_unmap(pagetable, &rb->buffer_desc);
-
-	kgsl_mmu_unmap(pagetable, &device->memstore);
-
-	kgsl_mmu_unmap(pagetable, &adreno_dev->pwron_fixup);
-
-	kgsl_mmu_unmap(pagetable, &device->mmu.setstate_memory);
-}
-
-static int adreno_setup_pt(struct kgsl_device *device,
-			struct kgsl_pagetable *pagetable)
-{
-	int result;
-	struct adreno_device *adreno_dev = ADRENO_DEVICE(device);
-	struct adreno_ringbuffer *rb = &adreno_dev->ringbuffer;
-
-	result = kgsl_mmu_map_global(pagetable, &rb->buffer_desc);
-
-	/*
-	 * ALERT: Order of these mapping is important to
-	 * Keep the most used entries like memstore
-	 * and mmu setstate memory by TLB prefetcher.
-	 */
-
-	if (!result)
-		result = kgsl_mmu_map_global(pagetable, &device->memstore);
-
-	if (!result)
-		result = kgsl_mmu_map_global(pagetable,
-			&adreno_dev->pwron_fixup);
-
-
-	if (!result)
-		result = kgsl_mmu_map_global(pagetable,
-			&device->mmu.setstate_memory);
-
-	if (result) {
-		/* On error clean up what we have wrought */
-		adreno_cleanup_pt(device, pagetable);
-		return result;
-	}
-
-	/*
-	 * Set the mpu end to the last "normal" global memory we use.
-	 * For the IOMMU, this will be used to restrict access to the
-	 * mapped registers.
-	 */
-	device->mh.mpu_range = device->mmu.setstate_memory.gpuaddr +
-				device->mmu.setstate_memory.size;
-
-	return 0;
-}
-
 static unsigned int _adreno_iommu_setstate_v0(struct kgsl_device *device,
 					unsigned int *cmds_orig,
 					phys_addr_t pt_val,
@@ -3032,8 +2973,6 @@ static const struct kgsl_functable adreno_functable = {
 	.readtimestamp = adreno_readtimestamp,
 	.issueibcmds = adreno_ringbuffer_issueibcmds,
 	.ioctl = adreno_ioctl,
-	.setup_pt = adreno_setup_pt,
-	.cleanup_pt = adreno_cleanup_pt,
 	.power_stats = adreno_power_stats,
 	.irqctrl = adreno_irqctrl,
 	.gpuid = adreno_gpuid,

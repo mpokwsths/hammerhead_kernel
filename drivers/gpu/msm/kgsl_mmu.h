@@ -19,12 +19,12 @@
  * These defines control the address range for allocations that
  * are mapped into all pagetables.
  */
+#define KGSL_GLOBAL_PT_SIZE	SZ_4M
 #ifndef CONFIG_MSM_KGSL_CFF_DUMP
 #define KGSL_IOMMU_GLOBAL_MEM_BASE	0xf8000000
 #else
 #define KGSL_IOMMU_GLOBAL_MEM_BASE      (0x09F00000 - SZ_4M)
 #endif
-#define KGSL_IOMMU_GLOBAL_MEM_SIZE	SZ_4M
 
 #define KGSL_MMU_ALIGN_MASK     (~((1 << PAGE_SHIFT) - 1))
 
@@ -112,7 +112,6 @@ struct kgsl_pagetable {
 	struct kref refcount;
 	unsigned int   max_entries;
 	struct gen_pool *pool;
-	struct gen_pool *kgsl_pool;
 	struct list_head list;
 	unsigned int name;
 	struct kobject *kobj;
@@ -169,10 +168,6 @@ struct kgsl_mmu_ops {
 	phys_addr_t (*mmu_get_pt_base_addr)
 			(struct kgsl_mmu *mmu,
 			struct kgsl_pagetable *pt);
-	int (*mmu_setup_pt) (struct kgsl_mmu *mmu,
-			struct kgsl_pagetable *pt);
-	void (*mmu_cleanup_pt) (struct kgsl_mmu *mmu,
-			struct kgsl_pagetable *pt);
 	unsigned int (*mmu_sync_lock)
 			(struct kgsl_mmu *mmu, unsigned int *cmds);
 	unsigned int (*mmu_sync_unlock)
@@ -214,6 +209,8 @@ struct kgsl_mmu {
 	unsigned long pt_size;
 	bool pt_per_process;
 	bool use_cpu_map;
+	unsigned long global_pt_base;
+	size_t global_pt_size;
 };
 
 extern struct kgsl_mmu_ops iommu_ops;
@@ -254,6 +251,13 @@ int kgsl_mmu_enabled(void);
 void kgsl_mmu_set_mmutype(char *mmutype);
 enum kgsl_mmutype kgsl_mmu_get_mmutype(void);
 int kgsl_mmu_gpuaddr_in_range(struct kgsl_pagetable *pt, unsigned int gpuaddr);
+
+int kgsl_add_global_pt_entry(struct kgsl_device *device,
+	struct kgsl_memdesc *memdesc);
+void kgsl_remove_global_pt_entry(struct kgsl_memdesc *memdesc);
+
+struct kgsl_memdesc *kgsl_search_global_pt_entries(unsigned int gpuaddr,
+		unsigned int size);
 
 /*
  * Static inline functions of MMU that simply call the SMMU specific
