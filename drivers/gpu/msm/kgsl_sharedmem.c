@@ -456,13 +456,6 @@ static int kgsl_contiguous_vmfault(struct kgsl_memdesc *memdesc,
 	return VM_FAULT_NOPAGE;
 }
 
-static void kgsl_coherent_free(struct kgsl_memdesc *memdesc)
-{
-	kgsl_driver.stats.coherent -= memdesc->size;
-	dma_free_coherent(NULL, memdesc->size,
-			  memdesc->hostptr, memdesc->physaddr);
-}
-
 static void kgsl_cma_coherent_free(struct kgsl_memdesc *memdesc)
 {
 	if (memdesc->hostptr) {
@@ -486,10 +479,6 @@ static struct kgsl_memdesc_ops kgsl_cma_ops = {
 	.free = kgsl_cma_coherent_free,
 	.vmflags = VM_IO | VM_PFNMAP | VM_DONTEXPAND,
 	.vmfault = kgsl_contiguous_vmfault,
-};
-
-static struct kgsl_memdesc_ops kgsl_coherent_ops = {
-	.free = kgsl_coherent_free,
 };
 
 void kgsl_cache_range_op(struct kgsl_memdesc *memdesc, int op)
@@ -735,42 +724,6 @@ kgsl_sharedmem_page_alloc_user(struct kgsl_memdesc *memdesc,
 }
 EXPORT_SYMBOL(kgsl_sharedmem_page_alloc_user);
 
-int
-kgsl_sharedmem_alloc_coherent(struct kgsl_memdesc *memdesc, size_t size)
-{
-	int result = 0;
-
-	size = ALIGN(size, PAGE_SIZE);
-	if (size == 0)
-		return -EINVAL;
-
-	memdesc->size = size;
-	memdesc->ops = &kgsl_coherent_ops;
-
-	memdesc->hostptr = dma_alloc_coherent(NULL, size, &memdesc->physaddr,
-					      GFP_KERNEL);
-	if (memdesc->hostptr == NULL) {
-		result = -ENOMEM;
-		goto err;
-	}
-
-	result = memdesc_sg_phys(memdesc, memdesc->physaddr, size);
-	if (result)
-		goto err;
-
-	/* Record statistics */
-
-	KGSL_STATS_ADD(size, kgsl_driver.stats.coherent,
-		       kgsl_driver.stats.coherent_max);
-
-err:
-	if (result)
-		kgsl_sharedmem_free(memdesc);
-
-	return result;
-}
-EXPORT_SYMBOL(kgsl_sharedmem_alloc_coherent);
-
 void kgsl_sharedmem_free(struct kgsl_memdesc *memdesc)
 {
 	if (memdesc == NULL || memdesc->size == 0)
@@ -894,8 +847,7 @@ void kgsl_get_memory_usage(char *name, size_t name_size, unsigned int memflags)
 }
 EXPORT_SYMBOL(kgsl_get_memory_usage);
 
-int kgsl_cma_alloc_coherent(struct kgsl_device *device,
-			struct kgsl_memdesc *memdesc,
+int kgsl_cma_alloc_coherent(struct kgsl_memdesc *memdesc,
 			struct kgsl_pagetable *pagetable, size_t size)
 {
 	int result = 0;
@@ -906,9 +858,8 @@ int kgsl_cma_alloc_coherent(struct kgsl_device *device,
 	memdesc->size = size;
 	memdesc->pagetable = pagetable;
 	memdesc->ops = &kgsl_cma_ops;
-	memdesc->dev = device->dev->parent;
 
-	memdesc->hostptr = dma_alloc_coherent(memdesc->dev, size,
+	memdesc->hostptr = dma_alloc_coherent(NULL, size,
 					&memdesc->physaddr, GFP_KERNEL);
 
 	if (memdesc->hostptr == NULL) {

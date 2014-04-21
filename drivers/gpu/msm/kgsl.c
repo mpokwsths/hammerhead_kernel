@@ -3203,8 +3203,8 @@ _gpumem_alloc(struct kgsl_device_private *dev_priv,
 	if (kgsl_mmu_get_mmutype() == KGSL_MMU_TYPE_IOMMU)
 		entry->memdesc.priv |= KGSL_MEMDESC_GUARD_PAGE;
 
-	result = kgsl_allocate_user(dev_priv->device, &entry->memdesc,
-				private->pagetable, size, flags);
+	result = kgsl_allocate_user(&entry->memdesc, private->pagetable,
+					size, flags);
 	if (result != 0)
 		goto err;
 
