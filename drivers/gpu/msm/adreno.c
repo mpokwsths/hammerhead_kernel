@@ -1145,7 +1145,7 @@ static unsigned int
 a3xx_getchipid(struct kgsl_device *device)
 {
 	struct kgsl_device_platform_data *pdata =
-		kgsl_device_get_drvdata(device);
+		dev_get_platdata(&device->pdev->dev);
 
 	/*
 	 * All current A3XX chipids are detected at the SOC level. Leave this
@@ -1162,7 +1162,7 @@ a2xx_getchipid(struct kgsl_device *device)
 	unsigned int chipid = 0;
 	unsigned int coreid, majorid, minorid, patchid, revid;
 	struct kgsl_device_platform_data *pdata =
-		kgsl_device_get_drvdata(device);
+		dev_get_platdata(&device->pdev->dev);
 
 	/* If the chip id is set at the platform level, then just use that */
 
@@ -1204,7 +1204,7 @@ static unsigned int
 adreno_getchipid(struct kgsl_device *device)
 {
 	struct kgsl_device_platform_data *pdata =
-		kgsl_device_get_drvdata(device);
+		dev_get_platdata(&device->pdev->dev);
 
 	/*
 	 * All A3XX chipsets will have pdata set, so assume !pdata->chipid is
@@ -1603,11 +1603,11 @@ adreno_probe(struct platform_device *pdev)
 
 	device = (struct kgsl_device *)pdev->id_entry->driver_data;
 	adreno_dev = ADRENO_DEVICE(device);
-	device->parentdev = &pdev->dev;
+	device->pdev = pdev;
 
 	status = kgsl_device_platform_probe(device);
 	if (status) {
-		device->parentdev = NULL;
+		device->pdev = NULL;
 		return status;
 	}
 
@@ -1625,7 +1625,7 @@ adreno_probe(struct platform_device *pdev)
 	kgsl_pwrscale_init(device);
 	kgsl_pwrscale_attach_policy(device, ADRENO_DEFAULT_PWRSCALE_POLICY);
 
-	pdata = kgsl_device_get_drvdata(device);
+	pdata = dev_get_platdata(&device->pdev->dev);
 
 	adreno_coresight_init(pdev);
 
@@ -1643,7 +1643,7 @@ out:
 	if (status) {
 		adreno_ringbuffer_close(&adreno_dev->ringbuffer);
 		kgsl_device_platform_remove(device);
-		device->parentdev = NULL;
+		device->pdev = NULL;
 	}
 
 	return status;

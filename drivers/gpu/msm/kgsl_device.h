@@ -299,7 +299,7 @@ struct kgsl_device {
 	wait_queue_head_t wait_queue;
 	wait_queue_head_t active_cnt_wq;
 	struct workqueue_struct *work_queue;
-	struct device *parentdev;
+	struct platform_device *pdev;
 	struct dentry *d_debugfs;
 	struct idr context_idr;
 	rwlock_t context_lock;
@@ -593,15 +593,6 @@ void kgsl_cancel_event(struct kgsl_device *device,
 int kgsl_add_event(struct kgsl_device *device, struct kgsl_event_group *group,
 		unsigned int timestamp, kgsl_event_func func, void *priv);
 void kgsl_process_events(struct work_struct *work);
-
-static inline struct kgsl_device_platform_data *
-kgsl_device_get_drvdata(struct kgsl_device *dev)
-{
-	struct platform_device *pdev =
-		container_of(dev->parentdev, struct platform_device, dev);
-
-	return pdev->dev.platform_data;
-}
 
 void kgsl_context_destroy(struct kref *kref);
 

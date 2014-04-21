@@ -215,7 +215,6 @@ int adreno_coresight_init(struct platform_device *pdev)
 	if (!desc)
 		return -ENOMEM;
 
-
 	desc->type = CORESIGHT_DEV_TYPE_SOURCE;
 	desc->subtype.source_subtype = CORESIGHT_DEV_SUBTYPE_SOURCE_BUS;
 	desc->ops = &adreno_coresight_cs_ops;

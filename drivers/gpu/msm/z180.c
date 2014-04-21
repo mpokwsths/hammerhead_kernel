@@ -549,7 +549,7 @@ static int __devinit z180_probe(struct platform_device *pdev)
 	struct z180_device *z180_dev;
 
 	device = (struct kgsl_device *)pdev->id_entry->driver_data;
-	device->parentdev = &pdev->dev;
+	device->pdev = pdev;
 
 	z180_dev = Z180_DEVICE(device);
 
@@ -569,7 +569,7 @@ static int __devinit z180_probe(struct platform_device *pdev)
 error_close_ringbuffer:
 	z180_ringbuffer_close(device);
 error:
-	device->parentdev = NULL;
+	device->pdev = NULL;
 	return status;
 }
 
