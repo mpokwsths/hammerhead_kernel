@@ -1876,61 +1876,50 @@ static unsigned int a2xx_irq_pending(struct adreno_device *adreno_dev)
 static int a2xx_rb_init(struct adreno_device *adreno_dev,
 			struct adreno_ringbuffer *rb)
 {
-	unsigned int *cmds, cmds_gpu;
+	unsigned int *cmds;
 
 	/* ME_INIT */
 	cmds = adreno_ringbuffer_allocspace(rb, NULL, 19);
 	if (cmds == NULL)
 		return -ENOMEM;
 
-	cmds_gpu = rb->buffer_desc.gpuaddr + sizeof(uint)*(rb->wptr-19);
+	*cmds++ = cp_type3_packet(CP_ME_INIT, 18);
 
-	GSL_RB_WRITE(rb->device, cmds, cmds_gpu, cp_type3_packet(CP_ME_INIT,
-			18));
 	/* All fields present (bits 9:0) */
-	GSL_RB_WRITE(rb->device, cmds, cmds_gpu, 0x000003ff);
+	*cmds++ = 0x000003ff;
 	/* Disable/Enable Real-Time Stream processing (present but ignored) */
-	GSL_RB_WRITE(rb->device, cmds, cmds_gpu, 0x00000000);
+	*cmds++ = 0x00000000;
 	/* Enable (2D <-> 3D) implicit synchronization (present but ignored) */
-	GSL_RB_WRITE(rb->device, cmds, cmds_gpu, 0x00000000);
+	*cmds++ = 0x00000000;
 
-	GSL_RB_WRITE(rb->device, cmds, cmds_gpu,
-		SUBBLOCK_OFFSET(REG_RB_SURFACE_INFO));
-	GSL_RB_WRITE(rb->device, cmds, cmds_gpu,
-		SUBBLOCK_OFFSET(REG_PA_SC_WINDOW_OFFSET));
-	GSL_RB_WRITE(rb->device, cmds, cmds_gpu,
-		SUBBLOCK_OFFSET(REG_VGT_MAX_VTX_INDX));
-	GSL_RB_WRITE(rb->device, cmds, cmds_gpu,
-		SUBBLOCK_OFFSET(REG_SQ_PROGRAM_CNTL));
-	GSL_RB_WRITE(rb->device, cmds, cmds_gpu,
-		SUBBLOCK_OFFSET(REG_RB_DEPTHCONTROL));
-	GSL_RB_WRITE(rb->device, cmds, cmds_gpu,
-		SUBBLOCK_OFFSET(REG_PA_SU_POINT_SIZE));
-	GSL_RB_WRITE(rb->device, cmds, cmds_gpu,
-		SUBBLOCK_OFFSET(REG_PA_SC_LINE_CNTL));
-	GSL_RB_WRITE(rb->device, cmds, cmds_gpu,
-		SUBBLOCK_OFFSET(REG_PA_SU_POLY_OFFSET_FRONT_SCALE));
+	*cmds++ = SUBBLOCK_OFFSET(REG_RB_SURFACE_INFO);
+	*cmds++ = SUBBLOCK_OFFSET(REG_PA_SC_WINDOW_OFFSET);
+	*cmds++ = SUBBLOCK_OFFSET(REG_VGT_MAX_VTX_INDX);
+	*cmds++ = SUBBLOCK_OFFSET(REG_SQ_PROGRAM_CNTL);
+	*cmds++ = SUBBLOCK_OFFSET(REG_RB_DEPTHCONTROL);
+	*cmds++ = SUBBLOCK_OFFSET(REG_PA_SU_POINT_SIZE);
+	*cmds++ = SUBBLOCK_OFFSET(REG_PA_SC_LINE_CNTL);
+	*cmds++ = SUBBLOCK_OFFSET(REG_PA_SU_POLY_OFFSET_FRONT_SCALE);
 
 	/* Maximum Contexts */
-	GSL_RB_WRITE(rb->device, cmds, cmds_gpu, 0x00000001);
+	*cmds++ = 0x00000001;
 	/* Write Confirm Interval and The CP will wait the
 	* wait_interval * 16 clocks between polling  */
-	GSL_RB_WRITE(rb->device, cmds, cmds_gpu, 0x00000000);
+	*cmds++ = 0x00000000;
 
 	/* NQ and External Memory Swap */
-	GSL_RB_WRITE(rb->device, cmds, cmds_gpu, 0x00000000);
+	*cmds++ = 0x00000000;
 	/* Protected mode error checking
 	 * If iommu is used then protection needs to be turned off
 	 * to enable context bank switching */
 	if (KGSL_MMU_TYPE_IOMMU == kgsl_mmu_get_mmutype())
-		GSL_RB_WRITE(rb->device, cmds, cmds_gpu, 0);
+		*cmds++ = 0;
 	else
-		GSL_RB_WRITE(rb->device, cmds, cmds_gpu,
-				GSL_RB_PROTECTED_MODE_CONTROL);
+		*cmds++ = GSL_RB_PROTECTED_MODE_CONTROL;
 	/* Disable header dumping and Header dump address */
-	GSL_RB_WRITE(rb->device, cmds, cmds_gpu, 0x00000000);
+	*cmds++ = 0x00000000;
 	/* Header dump size */
-	GSL_RB_WRITE(rb->device, cmds, cmds_gpu, 0x00000000);
+	*cmds++ = 0x00000000;
 
 	adreno_ringbuffer_submit(rb);
 
