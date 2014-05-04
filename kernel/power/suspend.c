@@ -25,10 +25,11 @@
 #include <linux/suspend.h>
 #include <linux/syscore_ops.h>
 #include <linux/rtc.h>
+#include <linux/cpuidle.h>
 #include <linux/wakeup_reason.h>
 #include <linux/partialresume.h>
 #include <trace/events/power.h>
-#include <linux/wakeup_reason.h>
+
 
 #include "power.h"
 
@@ -58,7 +59,9 @@ static void freeze_begin(void)
 
 static void freeze_enter(void)
 {
+	cpuidle_use_deepest_state(true);
 	wait_event(suspend_freeze_wait_head, suspend_freeze_wake);
+	cpuidle_use_deepest_state(false);
 }
 
 void freeze_wake(void)
