@@ -54,10 +54,10 @@ struct ion_iommu_priv_data {
 
 static const unsigned int orders[] = {9, 8, 4, 0};
 static const int num_orders = ARRAY_SIZE(orders);
-static unsigned int low_gfp_flags = __GFP_HIGHMEM | GFP_KERNEL | __GFP_ZERO;
-static unsigned int high_gfp_flags = (__GFP_HIGHMEM | __GFP_NORETRY
-				| __GFP_NO_KSWAPD | __GFP_NOWARN |
-				 __GFP_IO | __GFP_FS | __GFP_ZERO);
+static unsigned int low_gfp_flags = (GFP_HIGHUSER | __GFP_ZERO | __GFP_NOWARN);
+static unsigned int high_gfp_flags = (GFP_HIGHUSER | __GFP_ZERO |
+					__GFP_NOWARN | __GFP_NO_KSWAPD |
+					__GFP_NORETRY);
 
 struct page_info {
 	struct page *page;
