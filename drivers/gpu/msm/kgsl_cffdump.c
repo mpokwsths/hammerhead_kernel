@@ -657,3 +657,12 @@ int kgsl_cff_dump_enable_get(void *data, u64 *val)
 	return 0;
 }
 EXPORT_SYMBOL(kgsl_cff_dump_enable_get);
+
+DEFINE_SIMPLE_ATTRIBUTE(kgsl_cff_dump_enable_fops, kgsl_cff_dump_enable_get,
+			kgsl_cff_dump_enable_set, "%llu\n");
+
+void kgsl_cffdump_debugfs_create(struct kgsl_device *device)
+{
+	debugfs_create_file("cff_dump", 0644, device->d_debugfs, device,
+			    &kgsl_cff_dump_enable_fops);
+}
