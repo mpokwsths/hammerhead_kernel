@@ -337,8 +337,10 @@ static int _ringbuffer_bootstrap_ucode(struct adreno_ringbuffer *rb,
 	bootstrap_size = (pm4_size + pfp_size + 5);
 
 	cmds = adreno_ringbuffer_allocspace(rb, NULL, bootstrap_size);
+	if (IS_ERR(cmds))
+		return PTR_ERR(cmds);
 	if (cmds == NULL)
-			return -ENOMEM;
+		return -ENOSPC;
 
 	cmds_gpu = rb->buffer_desc.gpuaddr +
 			sizeof(uint) * (rb->wptr - bootstrap_size);
@@ -652,7 +654,6 @@ adreno_ringbuffer_addcmds(struct adreno_ringbuffer *rb,
 		total_sizedwords += 9;
 
 	ringcmds = adreno_ringbuffer_allocspace(rb, drawctxt, total_sizedwords);
-
 	if (IS_ERR(ringcmds))
 		return PTR_ERR(ringcmds);
 	if (ringcmds == NULL)
