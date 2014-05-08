@@ -50,7 +50,6 @@ void adreno_ringbuffer_submit(struct adreno_ringbuffer *rb)
 
 static int
 adreno_ringbuffer_waitspace(struct adreno_ringbuffer *rb,
-				struct adreno_context *context,
 				unsigned int numcmds, int wptr_ahead)
 {
 	int nopcount;
@@ -107,7 +106,6 @@ adreno_ringbuffer_waitspace(struct adreno_ringbuffer *rb,
 }
 
 unsigned int *adreno_ringbuffer_allocspace(struct adreno_ringbuffer *rb,
-					struct adreno_context *context,
 					unsigned int numcmds)
 {
 	unsigned int *ptr = NULL;
@@ -122,19 +120,16 @@ unsigned int *adreno_ringbuffer_allocspace(struct adreno_ringbuffer *rb,
 		/* reserve dwords for nop packet */
 		if ((rb->wptr + numcmds) > (KGSL_RB_DWORDS -
 				GSL_RB_NOP_SIZEDWORDS))
-			ret = adreno_ringbuffer_waitspace(rb, context,
-							numcmds, 1);
+			ret = adreno_ringbuffer_waitspace(rb, numcmds, 1);
 	} else {
 		/* wptr behind rptr */
 		if ((rb->wptr + numcmds) >= rptr)
-			ret = adreno_ringbuffer_waitspace(rb, context,
-							numcmds, 0);
+			ret = adreno_ringbuffer_waitspace(rb, numcmds, 0);
 		/* check for remaining space */
 		/* reserve dwords for nop packet */
 		if (!ret && (rb->wptr + numcmds) > (KGSL_RB_DWORDS -
 				GSL_RB_NOP_SIZEDWORDS))
-			ret = adreno_ringbuffer_waitspace(rb, context,
-							numcmds, 1);
+			ret = adreno_ringbuffer_waitspace(rb, numcmds, 1);
 	}
 
 	if (!ret) {
@@ -336,7 +331,7 @@ static int _ringbuffer_bootstrap_ucode(struct adreno_ringbuffer *rb,
 
 	bootstrap_size = (pm4_size + pfp_size + 5);
 
-	cmds = adreno_ringbuffer_allocspace(rb, NULL, bootstrap_size);
+	cmds = adreno_ringbuffer_allocspace(rb, bootstrap_size);
 	if (IS_ERR(cmds))
 		return PTR_ERR(cmds);
 	if (cmds == NULL)
@@ -653,7 +648,7 @@ adreno_ringbuffer_addcmds(struct adreno_ringbuffer *rb,
 	if (flags & KGSL_CMD_FLAGS_PWRON_FIXUP)
 		total_sizedwords += 9;
 
-	ringcmds = adreno_ringbuffer_allocspace(rb, drawctxt, total_sizedwords);
+	ringcmds = adreno_ringbuffer_allocspace(rb, total_sizedwords);
 	if (IS_ERR(ringcmds))
 		return PTR_ERR(ringcmds);
 	if (ringcmds == NULL)
