@@ -372,167 +372,36 @@ static const struct platform_suspend_ops acpi_suspend_ops_old = {
 	.recover = acpi_pm_finish,
 };
 
-static int __init init_old_suspend_ordering(const struct dmi_system_id *d)
+static int acpi_freeze_begin(void)
+{
+	acpi_scan_lock_acquire();
+	return 0;
+}
+
+static void acpi_freeze_end(void)
+{
+	acpi_scan_lock_release();
+}
+
+static const struct platform_freeze_ops acpi_freeze_ops = {
+	.begin = acpi_freeze_begin,
+	.end = acpi_freeze_end,
+};
+
+static void acpi_sleep_suspend_setup(void)
 {
 	old_suspend_ordering = true;
 	return 0;
 }
 
-static int __init init_nvs_nosave(const struct dmi_system_id *d)
-{
-	acpi_nvs_nosave();
-	return 0;
+	suspend_set_ops(old_suspend_ordering ?
+		&acpi_suspend_ops_old : &acpi_suspend_ops);
+	freeze_set_ops(&acpi_freeze_ops);
 }
 
-static struct dmi_system_id __initdata acpisleep_dmi_table[] = {
-	{
-	.callback = init_old_suspend_ordering,
-	.ident = "Abit KN9 (nForce4 variant)",
-	.matches = {
-		DMI_MATCH(DMI_BOARD_VENDOR, "http://www.abit.com.tw/"),
-		DMI_MATCH(DMI_BOARD_NAME, "KN9 Series(NF-CK804)"),
-		},
-	},
-	{
-	.callback = init_old_suspend_ordering,
-	.ident = "HP xw4600 Workstation",
-	.matches = {
-		DMI_MATCH(DMI_SYS_VENDOR, "Hewlett-Packard"),
-		DMI_MATCH(DMI_PRODUCT_NAME, "HP xw4600 Workstation"),
-		},
-	},
-	{
-	.callback = init_old_suspend_ordering,
-	.ident = "Asus Pundit P1-AH2 (M2N8L motherboard)",
-	.matches = {
-		DMI_MATCH(DMI_BOARD_VENDOR, "ASUSTek Computer INC."),
-		DMI_MATCH(DMI_BOARD_NAME, "M2N8L"),
-		},
-	},
-	{
-	.callback = init_old_suspend_ordering,
-	.ident = "Panasonic CF51-2L",
-	.matches = {
-		DMI_MATCH(DMI_BOARD_VENDOR,
-				"Matsushita Electric Industrial Co.,Ltd."),
-		DMI_MATCH(DMI_BOARD_NAME, "CF51-2L"),
-		},
-	},
-	{
-	.callback = init_nvs_nosave,
-	.ident = "Sony Vaio VGN-FW21E",
-	.matches = {
-		DMI_MATCH(DMI_SYS_VENDOR, "Sony Corporation"),
-		DMI_MATCH(DMI_PRODUCT_NAME, "VGN-FW21E"),
-		},
-	},
-	{
-	.callback = init_nvs_nosave,
-	.ident = "Sony Vaio VPCEB17FX",
-	.matches = {
-		DMI_MATCH(DMI_SYS_VENDOR, "Sony Corporation"),
-		DMI_MATCH(DMI_PRODUCT_NAME, "VPCEB17FX"),
-		},
-	},
-	{
-	.callback = init_nvs_nosave,
-	.ident = "Sony Vaio VGN-SR11M",
-	.matches = {
-		DMI_MATCH(DMI_SYS_VENDOR, "Sony Corporation"),
-		DMI_MATCH(DMI_PRODUCT_NAME, "VGN-SR11M"),
-		},
-	},
-	{
-	.callback = init_nvs_nosave,
-	.ident = "Everex StepNote Series",
-	.matches = {
-		DMI_MATCH(DMI_SYS_VENDOR, "Everex Systems, Inc."),
-		DMI_MATCH(DMI_PRODUCT_NAME, "Everex StepNote Series"),
-		},
-	},
-	{
-	.callback = init_nvs_nosave,
-	.ident = "Sony Vaio VPCEB1Z1E",
-	.matches = {
-		DMI_MATCH(DMI_SYS_VENDOR, "Sony Corporation"),
-		DMI_MATCH(DMI_PRODUCT_NAME, "VPCEB1Z1E"),
-		},
-	},
-	{
-	.callback = init_nvs_nosave,
-	.ident = "Sony Vaio VGN-NW130D",
-	.matches = {
-		DMI_MATCH(DMI_SYS_VENDOR, "Sony Corporation"),
-		DMI_MATCH(DMI_PRODUCT_NAME, "VGN-NW130D"),
-		},
-	},
-	{
-	.callback = init_nvs_nosave,
-	.ident = "Sony Vaio VPCCW29FX",
-	.matches = {
-		DMI_MATCH(DMI_SYS_VENDOR, "Sony Corporation"),
-		DMI_MATCH(DMI_PRODUCT_NAME, "VPCCW29FX"),
-		},
-	},
-	{
-	.callback = init_nvs_nosave,
-	.ident = "Averatec AV1020-ED2",
-	.matches = {
-		DMI_MATCH(DMI_SYS_VENDOR, "AVERATEC"),
-		DMI_MATCH(DMI_PRODUCT_NAME, "1000 Series"),
-		},
-	},
-	{
-	.callback = init_old_suspend_ordering,
-	.ident = "Asus A8N-SLI DELUXE",
-	.matches = {
-		DMI_MATCH(DMI_BOARD_VENDOR, "ASUSTeK Computer INC."),
-		DMI_MATCH(DMI_BOARD_NAME, "A8N-SLI DELUXE"),
-		},
-	},
-	{
-	.callback = init_old_suspend_ordering,
-	.ident = "Asus A8N-SLI Premium",
-	.matches = {
-		DMI_MATCH(DMI_BOARD_VENDOR, "ASUSTeK Computer INC."),
-		DMI_MATCH(DMI_BOARD_NAME, "A8N-SLI Premium"),
-		},
-	},
-	{
-	.callback = init_nvs_nosave,
-	.ident = "Sony Vaio VGN-SR26GN_P",
-	.matches = {
-		DMI_MATCH(DMI_SYS_VENDOR, "Sony Corporation"),
-		DMI_MATCH(DMI_PRODUCT_NAME, "VGN-SR26GN_P"),
-		},
-	},
-	{
-	.callback = init_nvs_nosave,
-	.ident = "Sony Vaio VGN-FW520F",
-	.matches = {
-		DMI_MATCH(DMI_SYS_VENDOR, "Sony Corporation"),
-		DMI_MATCH(DMI_PRODUCT_NAME, "VGN-FW520F"),
-		},
-	},
-	{
-	.callback = init_nvs_nosave,
-	.ident = "Asus K54C",
-	.matches = {
-		DMI_MATCH(DMI_SYS_VENDOR, "ASUSTeK Computer Inc."),
-		DMI_MATCH(DMI_PRODUCT_NAME, "K54C"),
-		},
-	},
-	{
-	.callback = init_nvs_nosave,
-	.ident = "Asus K54HR",
-	.matches = {
-		DMI_MATCH(DMI_SYS_VENDOR, "ASUSTeK Computer Inc."),
-		DMI_MATCH(DMI_PRODUCT_NAME, "K54HR"),
-		},
-	},
-	{},
-};
-#endif /* CONFIG_SUSPEND */
+#else /* !CONFIG_SUSPEND */
+static inline void acpi_sleep_suspend_setup(void) {}
+#endif /* !CONFIG_SUSPEND */
 
 #ifdef CONFIG_HIBERNATION
 static unsigned long s4_hardware_signature;
