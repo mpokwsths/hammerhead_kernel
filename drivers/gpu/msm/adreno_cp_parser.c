@@ -610,12 +610,11 @@ static int adreno_ib_find_objs(struct kgsl_device *device,
 				unsigned int gpuaddrib2 = src[i + 1];
 				unsigned int size = src[i + 2];
 
-				ret = adreno_ib_find_objs(
+				adreno_ib_find_objs(
 						device, ptbase,
 						gpuaddrib2, size,
 						ib_obj_list);
-				if (ret < 0)
-					goto done;
+
 			} else {
 				ret = ib_parse_type3(device, &src[i], ptbase,
 						ib_obj_list,
