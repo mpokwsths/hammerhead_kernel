@@ -654,7 +654,7 @@ static inline int context_save(struct adreno_device *adreno_dev,
 {
 	if (context->ops->save == NULL
 		|| kgsl_context_detached(&context->base)
-		|| context->state == ADRENO_CONTEXT_STATE_INVALID)
+		|| kgsl_context_invalid(&context->base))
 		return 0;
 
 	return context->ops->save(adreno_dev, context);
@@ -686,10 +686,10 @@ int adreno_drawctxt_switch(struct adreno_device *adreno_dev,
 		if (flags & KGSL_CONTEXT_SAVE_GMEM)
 			/* Set the flag in context so that the save is done
 			* when this context is switched out. */
-			set_bit(ADRENO_CONTEXT_GMEM_SAVE, &drawctxt->priv);
+			set_bit(ADRENO_CONTEXT_GMEM_SAVE, &drawctxt->base.priv);
 		else
 			/* Remove GMEM saving flag from the context */
-			clear_bit(ADRENO_CONTEXT_GMEM_SAVE, &drawctxt->priv);
+			clear_bit(ADRENO_CONTEXT_GMEM_SAVE, &drawctxt->base.priv);
 	}
 
 	/* already current? */
