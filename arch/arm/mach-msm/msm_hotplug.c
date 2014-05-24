@@ -232,6 +232,9 @@ EXPORT_SYMBOL_GPL(cpu_down_work);
 
 static void online_cpu(unsigned int target)
 {
+	if (!hotplug.enabled)
+		return;
+
 	if (stats.total_cpus == num_online_cpus())
 		return;
 
@@ -244,6 +247,9 @@ static void offline_cpu(unsigned int target)
 {
 	unsigned int online_cpus = num_online_cpus();
 	u64 now;
+
+	if (!hotplug.enabled)
+		return;
 
 	if (online_cpus == stats.min_cpus)
 		return;
