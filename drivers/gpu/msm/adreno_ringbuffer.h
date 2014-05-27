@@ -37,6 +37,7 @@ struct kgsl_device_private;
  * @wptr: Local copy of the wptr offset
  * @global_ts: Current global timestamp for the ringbuffer
  * @last_wptr: offset of the last H/W committed wptr
+ * @event: Event list for this ringbuffer
  */
 struct adreno_ringbuffer {
 	struct kgsl_device *device;
@@ -46,6 +47,7 @@ struct adreno_ringbuffer {
 	unsigned int wptr;
 	unsigned int global_ts;
 	unsigned int last_wptr;
+	struct kgsl_event_group event;
 };
 
 /* enable timestamp (...scratch0) memory shadowing */

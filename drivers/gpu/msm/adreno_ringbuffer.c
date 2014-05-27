@@ -572,12 +572,14 @@ int adreno_ringbuffer_init(struct kgsl_device *device)
 	int status;
 	struct adreno_device *adreno_dev = ADRENO_DEVICE(device);
 	struct adreno_ringbuffer *rb = &adreno_dev->ringbuffer;
+	char str[20];
 
 	rb->global_ts = 0;
 	rb->device = device;
 
-	status = kgsl_allocate_global(&rb->buffer_desc,
-		KGSL_RB_SIZE, KGSL_MEMFLAGS_GPUREADONLY);
+	kgsl_add_event_group(&rb->event, NULL, str);
+	status = kgsl_allocate_global(&rb->buffer_desc,	KGSL_RB_SIZE,
+			KGSL_MEMFLAGS_GPUREADONLY);
 
 	if (status)
 		adreno_ringbuffer_close(rb);
@@ -597,6 +599,7 @@ void adreno_ringbuffer_close(struct adreno_ringbuffer *rb)
 	adreno_dev->pfp_fw = NULL;
 	adreno_dev->pm4_fw = NULL;
 
+	kgsl_del_event_group(&rb->event);
 	memset(rb, 0, sizeof(struct adreno_ringbuffer));
 }
 

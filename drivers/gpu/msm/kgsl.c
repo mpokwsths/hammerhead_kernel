@@ -4348,9 +4348,6 @@ int kgsl_device_platform_probe(struct kgsl_device *device)
 
 	device->events_wq = create_workqueue("kgsl-events");
 
-	kgsl_add_event_group(&device->global_events, NULL, "global");
-	kgsl_add_event_group(&device->iommu_events, NULL, "iommu");
-
 	/* Initalize the snapshot engine */
 	kgsl_device_snapshot_init(device);
 
@@ -4374,9 +4371,6 @@ EXPORT_SYMBOL(kgsl_device_platform_probe);
 
 void kgsl_device_platform_remove(struct kgsl_device *device)
 {
-	kgsl_del_event_group(&device->global_events);
-	kgsl_del_event_group(&device->iommu_events);
-
 	destroy_workqueue(device->events_wq);
 
 	kgsl_device_snapshot_close(device);
