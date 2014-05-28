@@ -121,7 +121,7 @@ static struct page_info *alloc_largest_available(struct ion_iommu_heap *heap,
 		}
 		trace_alloc_pages_iommu_start(gfp, orders[i]);
 		if (flags & ION_FLAG_POOL_FORCE_ALLOC)
-			page = alloc_pages(gfp, orders[i]);
+			page = alloc_pages(gfp | __GFP_COMP, orders[i]);
 		else
 			page = ion_page_pool_alloc(pool);
 		trace_alloc_pages_iommu_end(gfp, orders[i]);

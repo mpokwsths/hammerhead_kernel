@@ -27,7 +27,6 @@
 #include <linux/vmalloc.h>
 #include "ion_priv.h"
 #include <linux/dma-mapping.h>
-#include <trace/events/kmem.h>
 
 static unsigned int high_order_gfp_flags = (GFP_HIGHUSER | __GFP_ZERO |
 					    __GFP_NOWARN | __GFP_NORETRY |
@@ -79,13 +78,9 @@ static struct page *alloc_buffer_page(struct ion_system_heap *heap,
 
 		if (order > 4)
 			gfp_flags = high_order_gfp_flags;
-		trace_alloc_pages_sys_start(gfp_flags, order);
-		page = alloc_pages(gfp_flags & ~__GFP_ZERO, order);
-		trace_alloc_pages_sys_end(gfp_flags, order);
-		if (!page) {
-			trace_alloc_pages_sys_fail(gfp_flags, order);
-			return 0;
-		}
+		page = alloc_pages((gfp_flags | __GFP_COMP) & ~__GFP_ZERO, order);
+		if (!page)
+			return NULL;
 		if (gfp_flags & __GFP_ZERO) {
 			if (ion_heap_high_order_page_zero(
 					page, order, false)) {
