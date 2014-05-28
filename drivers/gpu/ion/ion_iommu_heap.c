@@ -75,7 +75,7 @@ static int order_to_index(unsigned int order)
 	return BAD_ORDER;
 }
 
-static unsigned int order_to_size(int order)
+static inline unsigned int order_to_size(int order)
 {
 	return PAGE_SIZE << order;
 }
@@ -132,7 +132,6 @@ static struct page_info *alloc_largest_available(struct ion_iommu_heap *heap,
 
 		info->page = page;
 		info->order = orders[i];
-		INIT_LIST_HEAD(&info->list);
 		return info;
 	}
 	kfree(info);
@@ -476,10 +475,10 @@ static int ion_iommu_heap_debug_show(struct ion_heap *heap, struct seq_file *s,
 		struct ion_page_pool *pool = iommu_heap->cached_pools[i];
 		seq_printf(s, "%d order %u highmem pages in pool = %lx total\n",
 			   pool->high_count, pool->order,
-			   (1 << pool->order) * PAGE_SIZE * pool->high_count);
+			   (PAGE_SIZE << pool->order) * pool->high_count);
 		seq_printf(s, "%d order %u lowmem pages in pool = %lx total\n",
 			   pool->low_count, pool->order,
-			   (1 << pool->order) * PAGE_SIZE * pool->low_count);
+			   (PAGE_SIZE << pool->order) * pool->low_count);
 
 		total += (1 << pool->order) * PAGE_SIZE *
 			  (pool->low_count + pool->high_count);
@@ -490,10 +489,10 @@ static int ion_iommu_heap_debug_show(struct ion_heap *heap, struct seq_file *s,
 		struct ion_page_pool *pool = iommu_heap->uncached_pools[i];
 		seq_printf(s, "%d order %u highmem pages in pool = %lx total\n",
 			   pool->high_count, pool->order,
-			   (1 << pool->order) * PAGE_SIZE * pool->high_count);
+			   (PAGE_SIZE << pool->order) * pool->high_count);
 		seq_printf(s, "%d order %u lowmem pages in pool = %lx total\n",
 			   pool->low_count, pool->order,
-			   (1 << pool->order) * PAGE_SIZE * pool->low_count);
+			   (PAGE_SIZE << pool->order) * pool->low_count);
 
 		total += (1 << pool->order) * PAGE_SIZE *
 			  (pool->low_count + pool->high_count);
@@ -546,7 +545,7 @@ struct ion_heap *ion_iommu_heap_create(struct ion_platform_heap *heap_data)
 			gfp_flags = low_gfp_flags | __GFP_ZERO;
 		pool = ion_page_pool_create(gfp_flags, orders[i], true);
 		if (!pool)
-			goto err_create_cached_pool;
+			goto destroy_cached_pool;
 		iommu_heap->cached_pools[i] = pool;
 	}
 
@@ -560,23 +559,21 @@ struct ion_heap *ion_iommu_heap_create(struct ion_platform_heap *heap_data)
 			gfp_flags = low_gfp_flags | __GFP_ZERO;
 		pool = ion_page_pool_create(gfp_flags, orders[i], false);
 		if (!pool)
-			goto err_create_uncached_pool;
+			goto destroy_uncached_pool;
 		iommu_heap->uncached_pools[i] = pool;
 	}
 	iommu_heap->heap.debug_show = ion_iommu_heap_debug_show;
 	return &iommu_heap->heap;
 
-err_create_uncached_pool:
-	for (i = 0; i < num_orders; i++)
+destroy_uncached_pool:
+	while (i--)
 		if (iommu_heap->cached_pools[i])
 			ion_page_pool_destroy(iommu_heap->uncached_pools[i]);
-
-
-err_create_cached_pool:
-	for (i = 0; i < num_orders; i++)
+	kfree(iommu_heap->uncached_pools);
+destroy_cached_pool:
+	while (i--)
 		if (iommu_heap->uncached_pools[i])
 			ion_page_pool_destroy(iommu_heap->cached_pools[i]);
-
 	kfree(iommu_heap->cached_pools);
 err_alloc_cached_pools:
 	kfree(iommu_heap->uncached_pools);

@@ -46,7 +46,7 @@ static int order_to_index(unsigned int order)
 	return -1;
 }
 
-static unsigned int order_to_size(int order)
+static inline unsigned int order_to_size(int order)
 {
 	return PAGE_SIZE << order;
 }
@@ -151,7 +151,6 @@ static struct page_info *alloc_largest_available(struct ion_system_heap *heap,
 
 		info->page = page;
 		info->order = orders[i];
-		INIT_LIST_HEAD(&info->list);
 		return info;
 	}
 	kfree(info);
@@ -182,18 +181,19 @@ static int ion_system_heap_allocate(struct ion_heap *heap,
 
 	INIT_LIST_HEAD(&pages);
 	while (size_remaining > 0) {
-		info = alloc_largest_available(sys_heap, buffer, size_remaining, max_order);
+		info = alloc_largest_available(sys_heap, buffer, size_remaining,
+						max_order);
 		if (!info)
-			goto err;
+			goto free_pages;
 		list_add_tail(&info->list, &pages);
-		size_remaining -= (1 << info->order) * PAGE_SIZE;
+		size_remaining -= PAGE_SIZE << info->order;
 		max_order = info->order;
 		i++;
 	}
 
 	table = kmalloc(sizeof(struct sg_table), GFP_KERNEL);
 	if (!table)
-		goto err;
+		goto free_pages;
 
 	if (split_pages)
 		ret = sg_alloc_table(table, PAGE_ALIGN(size) / PAGE_SIZE,
@@ -202,7 +202,7 @@ static int ion_system_heap_allocate(struct ion_heap *heap,
 		ret = sg_alloc_table(table, i, GFP_KERNEL);
 
 	if (ret)
-		goto err1;
+		goto free_table;
 
 	sg = table->sgl;
 	list_for_each_entry_safe(info, tmp_info, &pages, list) {
@@ -213,8 +213,7 @@ static int ion_system_heap_allocate(struct ion_heap *heap,
 				sg = sg_next(sg);
 			}
 		} else {
-			sg_set_page(sg, page, (1 << info->order) * PAGE_SIZE,
-				    0);
+			sg_set_page(sg, page, PAGE_SIZE << info->order, 0);
 			sg = sg_next(sg);
 		}
 		list_del(&info->list);
@@ -223,9 +222,10 @@ static int ion_system_heap_allocate(struct ion_heap *heap,
 
 	buffer->priv_virt = table;
 	return 0;
-err1:
+
+free_table:
 	kfree(table);
-err:
+free_pages:
 	list_for_each_entry_safe(info, tmp_info, &pages, list) {
 		free_buffer_page(sys_heap, buffer, info->page, info->order);
 		kfree(info);
@@ -235,14 +235,12 @@ err:
 
 void ion_system_heap_free(struct ion_buffer *buffer)
 {
-	struct ion_heap *heap = buffer->heap;
-	struct ion_system_heap *sys_heap = container_of(heap,
+	struct ion_system_heap *sys_heap = container_of(buffer->heap,
 							struct ion_system_heap,
 							heap);
 	struct sg_table *table = buffer->sg_table;
 	bool cached = ion_buffer_cached(buffer);
 	struct scatterlist *sg;
-	LIST_HEAD(pages);
 	int i;
 
 	/* uncached pages come from the page pools, zero them before returning
@@ -291,10 +289,10 @@ static int ion_system_heap_debug_show(struct ion_heap *heap, struct seq_file *s,
 		struct ion_page_pool *pool = sys_heap->pools[i];
 		seq_printf(s, "%d order %u highmem pages in pool = %lu total\n",
 			   pool->high_count, pool->order,
-			   (1 << pool->order) * PAGE_SIZE * pool->high_count);
+			   (PAGE_SIZE << pool->order) * pool->high_count);
 		seq_printf(s, "%d order %u lowmem pages in pool = %lu total\n",
 			   pool->low_count, pool->order,
-			   (1 << pool->order) * PAGE_SIZE * pool->low_count);
+			   (PAGE_SIZE << pool->order) * pool->low_count);
 	}
 	return 0;
 }
@@ -429,4 +427,3 @@ void ion_system_contig_heap_destroy(struct ion_heap *heap)
 {
 	kfree(heap);
 }
-
