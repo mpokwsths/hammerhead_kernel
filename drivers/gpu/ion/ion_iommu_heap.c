@@ -31,8 +31,8 @@
 
 struct ion_iommu_heap {
 	struct ion_heap heap;
-	struct ion_page_pool **cached_pools;
-	struct ion_page_pool **uncached_pools;
+	struct ion_page_pool *cached_pools[0];
+	struct ion_page_pool *uncached_pools[0];
 };
 
 /*
@@ -494,26 +494,16 @@ static struct ion_heap_ops iommu_heap_ops = {
 struct ion_heap *ion_iommu_heap_create(struct ion_platform_heap *heap_data)
 {
 	struct ion_iommu_heap *iommu_heap;
+	int pools_size = sizeof(struct ion_page_pool *) * num_orders;
 	int i;
 
-	iommu_heap = kzalloc(sizeof(struct ion_iommu_heap), GFP_KERNEL);
+	iommu_heap = kzalloc(sizeof(struct ion_iommu_heap) + pools_size * 2,
+			GFP_KERNEL);
 	if (!iommu_heap)
 		return ERR_PTR(-ENOMEM);
 
 	iommu_heap->heap.ops = &iommu_heap_ops;
 	iommu_heap->heap.type = ION_HEAP_TYPE_IOMMU;
-	iommu_heap->uncached_pools = kzalloc(
-			      sizeof(struct ion_page_pool *) * num_orders,
-			      GFP_KERNEL);
-	if (!iommu_heap->uncached_pools)
-		goto err_alloc_uncached_pools;
-
-	iommu_heap->cached_pools = kzalloc(
-			      sizeof(struct ion_page_pool *) * num_orders,
-			      GFP_KERNEL);
-
-	if (!iommu_heap->cached_pools)
-		goto err_alloc_cached_pools;
 
 	for (i = 0; i < num_orders; i++) {
 		struct ion_page_pool *pool;
@@ -549,15 +539,10 @@ destroy_uncached_pool:
 	while (i--)
 		if (iommu_heap->cached_pools[i])
 			ion_page_pool_destroy(iommu_heap->uncached_pools[i]);
-	kfree(iommu_heap->uncached_pools);
 destroy_cached_pool:
 	while (i--)
 		if (iommu_heap->uncached_pools[i])
 			ion_page_pool_destroy(iommu_heap->cached_pools[i]);
-	kfree(iommu_heap->cached_pools);
-err_alloc_cached_pools:
-	kfree(iommu_heap->uncached_pools);
-err_alloc_uncached_pools:
 	kfree(iommu_heap);
 	return ERR_PTR(-ENOMEM);
 }
