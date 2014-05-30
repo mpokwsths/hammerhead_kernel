@@ -61,7 +61,6 @@ static unsigned int high_gfp_flags = (__GFP_HIGHMEM | __GFP_NORETRY
 
 struct page_info {
 	struct page *page;
-	unsigned int order;
 	struct list_head list;
 };
 
@@ -131,7 +130,6 @@ static struct page_info *alloc_largest_available(struct ion_iommu_heap *heap,
 		}
 
 		info->page = page;
-		info->order = orders[i];
 		return info;
 	}
 	kfree(info);
@@ -239,8 +237,8 @@ static int ion_iommu_heap_allocate(struct ion_heap *heap,
 				goto err_free_data;
 			}
 			list_add_tail(&info->list, &pages_list);
-			size_remaining -= order_to_size(info->order);
-			max_order = info->order;
+			size_remaining -= PAGE_SIZE << compound_order(info->page);
+			max_order = compound_order(info->page);
 			num_large_pages++;
 		}
 
@@ -284,10 +282,10 @@ static int ion_iommu_heap_allocate(struct ion_heap *heap,
 		sg = table->sgl;
 		list_for_each_entry_safe(info, tmp_info, &pages_list, list) {
 			struct page *page = info->page;
-			sg_set_page(sg, page, order_to_size(info->order), 0);
+			sg_set_page(sg, page, PAGE_SIZE << compound_order(page), 0);
 			sg_dma_address(sg) = sg_phys(sg);
 			sg = sg_next(sg);
-			for (j = 0; j < (1 << info->order); ++j)
+			for (j = 0; j < (1 << compound_order(page)); ++j)
 				data->pages[i++] = nth_page(page, j);
 			list_del(&info->list);
 			kfree(info);
@@ -331,7 +329,7 @@ err_free_data:
 
 	list_for_each_entry_safe(info, tmp_info, &pages_list, list) {
 		if (info->page)
-			__free_pages(info->page, info->order);
+			__free_pages(info->page, compound_order(info->page));
 		list_del(&info->list);
 		kfree(info);
 	}
