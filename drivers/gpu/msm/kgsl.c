@@ -1447,31 +1447,35 @@ static long _device_waittimestamp(struct kgsl_device_private *dev_priv,
 	return result;
 }
 
-static long kgsl_ioctl_device_waittimestamp(struct kgsl_device_private
-						*dev_priv, unsigned int cmd,
-						void *data)
-{
-	struct kgsl_device_waittimestamp *param = data;
-
-	return _device_waittimestamp(dev_priv, NULL,
-			param->timestamp, param->timeout);
-}
-
 static long kgsl_ioctl_device_waittimestamp_ctxtid(struct kgsl_device_private
 						*dev_priv, unsigned int cmd,
 						void *data)
 {
+	struct kgsl_device *device = dev_priv->device;
 	struct kgsl_device_waittimestamp_ctxtid *param = data;
-	struct kgsl_context *context;
 	long result = -EINVAL;
+	unsigned int temp_cur_ts = 0;
+	struct kgsl_context *context;
+
+	kgsl_mutex_lock(&device->mutex, &device->mutex_owner);
 
 	context = kgsl_context_get_owner(dev_priv, param->context_id);
+	if (context == NULL)
+		goto out;
 
-	if (context)
-		result = _device_waittimestamp(dev_priv, context,
-			param->timestamp, param->timeout);
+	kgsl_readtimestamp(device, context, KGSL_TIMESTAMP_RETIRED,
+		&temp_cur_ts);
 
+	result = _device_waittimestamp(dev_priv, context,
+		param->timestamp, param->timeout);
+
+	kgsl_readtimestamp(device, context, KGSL_TIMESTAMP_RETIRED,
+		&temp_cur_ts);
+
+out:
 	kgsl_context_put(context);
+	kgsl_mutex_unlock(&device->mutex, &device->mutex_owner);
+
 	return result;
 }
 
@@ -2326,45 +2330,24 @@ done:
 	return result;
 }
 
-static long _cmdstream_readtimestamp(struct kgsl_device_private *dev_priv,
-		struct kgsl_context *context, unsigned int type,
-		unsigned int *timestamp)
-{
-	int ret;
-	ret = kgsl_readtimestamp(dev_priv->device, context, type, timestamp);
-
-	trace_kgsl_readtimestamp(dev_priv->device,
-			context ? context->id : KGSL_MEMSTORE_GLOBAL,
-			type, *timestamp);
-
-	return ret;
-}
-
-static long kgsl_ioctl_cmdstream_readtimestamp(struct kgsl_device_private
-						*dev_priv, unsigned int cmd,
-						void *data)
-{
-	struct kgsl_cmdstream_readtimestamp *param = data;
-
-	return _cmdstream_readtimestamp(dev_priv, NULL,
-			param->type, &param->timestamp);
-}
-
 static long kgsl_ioctl_cmdstream_readtimestamp_ctxtid(struct kgsl_device_private
 						*dev_priv, unsigned int cmd,
 						void *data)
 {
 	struct kgsl_cmdstream_readtimestamp_ctxtid *param = data;
+	struct kgsl_device *device = dev_priv->device;
 	struct kgsl_context *context;
 	long result = -EINVAL;
 
+	kgsl_mutex_lock(&device->mutex, &device->mutex_owner);
 	context = kgsl_context_get_owner(dev_priv, param->context_id);
 
 	if (context)
-		result = _cmdstream_readtimestamp(dev_priv, context,
+		result = kgsl_readtimestamp(device, context,
 			param->type, &param->timestamp);
 
 	kgsl_context_put(context);
+	kgsl_mutex_unlock(&device->mutex, &device->mutex_owner);
 	return result;
 }
 
@@ -2382,85 +2365,58 @@ static void kgsl_freemem_event_cb(struct kgsl_device *device,
 	kgsl_mem_entry_put(entry);
 }
 
-/**
- * _cmdstream_freememontimestamp(): Implements core mechanism for freeing
- * memory on timestamp.
- * @dev_priv: Pointer to device private GPU struct
- * @gpuaddr: gpuaddr (memory entry) to be freed
- * @timestamp: Timestamp to be freed on
- * @type: Type of timestamp
- *
- * Implements the core mechanism of freeing a given GPU memory entry (identified
- * by gpuaddr) when the supplied timestamp becomes RETIRED timestamp for
- * the given context. This is done by adding this timestamp expiration as an
- * event to be acted on, on the timeline for this context.
- */
-static long _cmdstream_freememontimestamp(struct kgsl_device_private *dev_priv,
-		unsigned int gpuaddr, struct kgsl_context *context,
-		unsigned int timestamp, unsigned int type)
-{
-	int result = 0;
-	struct kgsl_mem_entry *entry = NULL;
-	unsigned int temp_cur_ts = 0;
-	struct kgsl_device *device = dev_priv->device;
-
-	/*
-	 * If the user supplies incorrect type for timestamp, bail.
-	 */
-	if (type != KGSL_TIMESTAMP_RETIRED)
-		return -EINVAL;
-	entry = kgsl_sharedmem_find(dev_priv->process_priv, gpuaddr);
-
-	if (!entry) {
-		KGSL_DRV_ERR(dev_priv->device,
-				"invalid gpuaddr %08x\n", gpuaddr);
-		return -EINVAL;
-	}
-	if (!kgsl_mem_entry_set_pend(entry)) {
-		KGSL_DRV_WARN(dev_priv->device,
-		"Cannot set pending bit for gpuaddr %08x\n", gpuaddr);
-		kgsl_mem_entry_put(entry);
-		return -EBUSY;
-	}
-
-	kgsl_readtimestamp(device, context, KGSL_TIMESTAMP_RETIRED,
-		&temp_cur_ts);
-	trace_kgsl_mem_timestamp_queue(device, entry, context->id, temp_cur_ts,
-		timestamp);
-	result = kgsl_add_event(dev_priv->device, &context->events,
-		timestamp, kgsl_freemem_event_cb, entry);
-
-	if (result)
-		kgsl_mem_entry_unset_pend(entry);
-
-	kgsl_mem_entry_put(entry);
-	return result;
-}
-
-static long kgsl_ioctl_cmdstream_freememontimestamp(struct kgsl_device_private
-						    *dev_priv, unsigned int cmd,
-						    void *data)
-{
-	struct kgsl_cmdstream_freememontimestamp *param = data;
-
-	return _cmdstream_freememontimestamp(dev_priv, param->gpuaddr,
-			NULL, param->timestamp, param->type);
-}
-
 static long kgsl_ioctl_cmdstream_freememontimestamp_ctxtid(
 						struct kgsl_device_private
 						*dev_priv, unsigned int cmd,
 						void *data)
 {
 	struct kgsl_cmdstream_freememontimestamp_ctxtid *param = data;
+	struct kgsl_device *device = dev_priv->device;
 	struct kgsl_context *context;
-	long result = -EINVAL;
+	struct kgsl_mem_entry *entry = NULL;
+	int result = -EINVAL;
+	unsigned int temp_cur_ts = 0;
+
+	/*
+	 * If the user supplies incorrect type for timestamp, bail.
+	 */
+	if (param->type != KGSL_TIMESTAMP_RETIRED)
+		return -EINVAL;
+
+	kgsl_mutex_lock(&device->mutex, &device->mutex_owner);
 
 	context = kgsl_context_get_owner(dev_priv, param->context_id);
-	if (context)
-		result = _cmdstream_freememontimestamp(dev_priv, param->gpuaddr,
-			context, param->timestamp, param->type);
+	if (context == NULL)
+		goto out;
+
+	entry = kgsl_sharedmem_find(dev_priv->process_priv, param->gpuaddr);
+	if (!entry) {
+		KGSL_DRV_ERR(dev_priv->device, "invalid gpuaddr %08lx\n",
+				param->gpuaddr);
+		goto out;
+	}
+	if (!kgsl_mem_entry_set_pend(entry)) {
+		KGSL_DRV_WARN(dev_priv->device,
+			"Cannot set pending bit for gpuaddr %08lx\n",
+			param->gpuaddr);
+		kgsl_mem_entry_put(entry);
+		return -EBUSY;
+		goto out;
+	}
+
+	kgsl_readtimestamp(device, context, KGSL_TIMESTAMP_RETIRED,
+		&temp_cur_ts);
+	result = kgsl_add_event(dev_priv->device, &context->events,
+		param->timestamp, kgsl_freemem_event_cb, entry);
+
+	if (result)
+		kgsl_mem_entry_unset_pend(entry);
+
+	kgsl_mem_entry_put(entry);
+
+out:
 	kgsl_context_put(context);
+	kgsl_mutex_unlock(&device->mutex, &device->mutex_owner);
 	return result;
 }
 
@@ -2472,6 +2428,7 @@ static long kgsl_ioctl_drawctxt_create(struct kgsl_device_private *dev_priv,
 	struct kgsl_context *context = NULL;
 	struct kgsl_device *device = dev_priv->device;
 
+	kgsl_mutex_lock(&device->mutex, &device->mutex_owner);
 	context = device->ftbl->drawctxt_create(dev_priv, &param->flags);
 	if (IS_ERR(context)) {
 		result = PTR_ERR(context);
@@ -2480,6 +2437,7 @@ static long kgsl_ioctl_drawctxt_create(struct kgsl_device_private *dev_priv,
 	trace_kgsl_context_create(dev_priv->device, context, param->flags);
 	param->drawctxt_id = context->id;
 done:
+	kgsl_mutex_unlock(&device->mutex, &device->mutex_owner);
 	return result;
 }
 
@@ -2487,14 +2445,17 @@ static long kgsl_ioctl_drawctxt_destroy(struct kgsl_device_private *dev_priv,
 					unsigned int cmd, void *data)
 {
 	struct kgsl_drawctxt_destroy *param = data;
+	struct kgsl_device *device = dev_priv->device;
 	struct kgsl_context *context;
 	long result;
 
+	kgsl_mutex_lock(&device->mutex, &device->mutex_owner);
 	context = kgsl_context_get_owner(dev_priv, param->drawctxt_id);
 
 	result = kgsl_context_detach(context);
 
 	kgsl_context_put(context);
+	kgsl_mutex_unlock(&device->mutex, &device->mutex_owner);
 	return result;
 }
 
@@ -3597,81 +3558,54 @@ static long kgsl_ioctl_timestamp_event(struct kgsl_device_private *dev_priv,
 	return ret;
 }
 
-typedef long (*kgsl_ioctl_func_t)(struct kgsl_device_private *,
-	unsigned int, void *);
-
-#define KGSL_IOCTL_FUNC(_cmd, _func, _flags) \
-	[_IOC_NR((_cmd))] = \
-		{ .cmd = (_cmd), .func = (_func), .flags = (_flags) }
-
-#define KGSL_IOCTL_LOCK		BIT(0)
-
-static const struct {
-	unsigned int cmd;
-	kgsl_ioctl_func_t func;
-	unsigned int flags;
-} kgsl_ioctl_funcs[] = {
+static const struct kgsl_ioctl kgsl_ioctl_funcs[] = {
 	KGSL_IOCTL_FUNC(IOCTL_KGSL_DEVICE_GETPROPERTY,
-			kgsl_ioctl_device_getproperty,
-			KGSL_IOCTL_LOCK),
-	KGSL_IOCTL_FUNC(IOCTL_KGSL_DEVICE_WAITTIMESTAMP,
-			kgsl_ioctl_device_waittimestamp,
-			KGSL_IOCTL_LOCK),
+			kgsl_ioctl_device_getproperty),
+	/* IOCTL_KGSL_DEVICE_WAITTIMESTAMP is no longer supported */
 	KGSL_IOCTL_FUNC(IOCTL_KGSL_DEVICE_WAITTIMESTAMP_CTXTID,
-			kgsl_ioctl_device_waittimestamp_ctxtid,
-			KGSL_IOCTL_LOCK),
+			kgsl_ioctl_device_waittimestamp_ctxtid),
 	KGSL_IOCTL_FUNC(IOCTL_KGSL_RINGBUFFER_ISSUEIBCMDS,
-			kgsl_ioctl_rb_issueibcmds, 0),
+			kgsl_ioctl_rb_issueibcmds),
 	KGSL_IOCTL_FUNC(IOCTL_KGSL_SUBMIT_COMMANDS,
-			kgsl_ioctl_submit_commands, 0),
-	KGSL_IOCTL_FUNC(IOCTL_KGSL_CMDSTREAM_READTIMESTAMP,
-			kgsl_ioctl_cmdstream_readtimestamp,
-			KGSL_IOCTL_LOCK),
+			kgsl_ioctl_submit_commands),
+	/* IOCTL_KGSL_CMDSTREAM_READTIMESTAMP is no longer supported */
 	KGSL_IOCTL_FUNC(IOCTL_KGSL_CMDSTREAM_READTIMESTAMP_CTXTID,
-			kgsl_ioctl_cmdstream_readtimestamp_ctxtid,
-			KGSL_IOCTL_LOCK),
-	KGSL_IOCTL_FUNC(IOCTL_KGSL_CMDSTREAM_FREEMEMONTIMESTAMP,
-			kgsl_ioctl_cmdstream_freememontimestamp,
-			KGSL_IOCTL_LOCK),
+			kgsl_ioctl_cmdstream_readtimestamp_ctxtid),
+	/* IOCTL_KGSL_CMDSTREAM_FREEMEMONTIMESTAMP is no longer supported */
 	KGSL_IOCTL_FUNC(IOCTL_KGSL_CMDSTREAM_FREEMEMONTIMESTAMP_CTXTID,
-			kgsl_ioctl_cmdstream_freememontimestamp_ctxtid,
-			KGSL_IOCTL_LOCK),
+			kgsl_ioctl_cmdstream_freememontimestamp_ctxtid),
 	KGSL_IOCTL_FUNC(IOCTL_KGSL_DRAWCTXT_CREATE,
-			kgsl_ioctl_drawctxt_create,
-			KGSL_IOCTL_LOCK),
+			kgsl_ioctl_drawctxt_create),
 	KGSL_IOCTL_FUNC(IOCTL_KGSL_DRAWCTXT_DESTROY,
-			kgsl_ioctl_drawctxt_destroy,
-			KGSL_IOCTL_LOCK),
+			kgsl_ioctl_drawctxt_destroy),
 	KGSL_IOCTL_FUNC(IOCTL_KGSL_MAP_USER_MEM,
-			kgsl_ioctl_map_user_mem, 0),
+			kgsl_ioctl_map_user_mem),
 	KGSL_IOCTL_FUNC(IOCTL_KGSL_SHAREDMEM_FROM_PMEM,
-			kgsl_ioctl_map_user_mem, 0),
+			kgsl_ioctl_map_user_mem),
 	KGSL_IOCTL_FUNC(IOCTL_KGSL_SHAREDMEM_FREE,
-			kgsl_ioctl_sharedmem_free, 0),
+			kgsl_ioctl_sharedmem_free),
 	KGSL_IOCTL_FUNC(IOCTL_KGSL_SHAREDMEM_FLUSH_CACHE,
-			kgsl_ioctl_sharedmem_flush_cache, 0),
+			kgsl_ioctl_sharedmem_flush_cache),
 	KGSL_IOCTL_FUNC(IOCTL_KGSL_GPUMEM_ALLOC,
-			kgsl_ioctl_gpumem_alloc, 0),
+			kgsl_ioctl_gpumem_alloc),
 	KGSL_IOCTL_FUNC(IOCTL_KGSL_CFF_SYNCMEM,
-			kgsl_ioctl_cff_syncmem, 0),
+			kgsl_ioctl_cff_syncmem),
 	KGSL_IOCTL_FUNC(IOCTL_KGSL_CFF_USER_EVENT,
-			kgsl_ioctl_cff_user_event, 0),
+			kgsl_ioctl_cff_user_event),
 	KGSL_IOCTL_FUNC(IOCTL_KGSL_TIMESTAMP_EVENT,
-			kgsl_ioctl_timestamp_event,
-			KGSL_IOCTL_LOCK),
+			kgsl_ioctl_timestamp_event),
 	KGSL_IOCTL_FUNC(IOCTL_KGSL_SETPROPERTY,
-			kgsl_ioctl_device_setproperty,
-			KGSL_IOCTL_LOCK),
+			kgsl_ioctl_device_setproperty),
 	KGSL_IOCTL_FUNC(IOCTL_KGSL_GPUMEM_ALLOC_ID,
-			kgsl_ioctl_gpumem_alloc_id, 0),
+			kgsl_ioctl_gpumem_alloc_id),
 	KGSL_IOCTL_FUNC(IOCTL_KGSL_GPUMEM_FREE_ID,
-			kgsl_ioctl_gpumem_free_id, 0),
+			kgsl_ioctl_gpumem_free_id),
 	KGSL_IOCTL_FUNC(IOCTL_KGSL_GPUMEM_GET_INFO,
-			kgsl_ioctl_gpumem_get_info, 0),
+			kgsl_ioctl_gpumem_get_info),
 	KGSL_IOCTL_FUNC(IOCTL_KGSL_GPUMEM_SYNC_CACHE,
-			kgsl_ioctl_gpumem_sync_cache, 0),
+			kgsl_ioctl_gpumem_sync_cache),
 	KGSL_IOCTL_FUNC(IOCTL_KGSL_GPUMEM_SYNC_CACHE_BULK,
-			kgsl_ioctl_gpumem_sync_cache_bulk, 0),
+			kgsl_ioctl_gpumem_sync_cache_bulk),
 };
 
 static long kgsl_ioctl(struct file *filep, unsigned int cmd, unsigned long arg)
@@ -3679,7 +3613,7 @@ static long kgsl_ioctl(struct file *filep, unsigned int cmd, unsigned long arg)
 	struct kgsl_device_private *dev_priv = filep->private_data;
 	unsigned int nr;
 	kgsl_ioctl_func_t func;
-	int lock, ret;
+	int ret;
 	char ustack[64];
 	void *uptr = NULL;
 
@@ -3736,7 +3670,6 @@ static long kgsl_ioctl(struct file *filep, unsigned int cmd, unsigned long arg)
 		}
 
 		func = kgsl_ioctl_funcs[nr].func;
-		lock = kgsl_ioctl_funcs[nr].flags & KGSL_IOCTL_LOCK;
 	} else {
 		func = dev_priv->device->ftbl->ioctl;
 		if (!func) {
@@ -3745,18 +3678,9 @@ static long kgsl_ioctl(struct file *filep, unsigned int cmd, unsigned long arg)
 			ret = -ENOIOCTLCMD;
 			goto done;
 		}
-		lock = 1;
 	}
 
-	if (lock)
-		kgsl_mutex_lock(&dev_priv->device->mutex,
-			&dev_priv->device->mutex_owner);
-
 	ret = func(dev_priv, cmd, uptr);
-
-	if (lock)
-		kgsl_mutex_unlock(&dev_priv->device->mutex,
-			&dev_priv->device->mutex_owner);
 
 	/*
 	 * Still copy back on failure, but assume function took
