@@ -140,6 +140,7 @@
 				qcom,ss-power = <715>;
 				qcom,energy-overhead = <17700>;
 				qcom,time-overhead = <2>;
+				qcom,default-idle;
 			};
 
 			qcom,cpu-mode@1 {
@@ -164,6 +165,7 @@
 				qcom,ss-power = <400>;
 				qcom,energy-overhead = <280000>;
 				qcom,time-overhead = <500>;
+				qcom,default-suspend;
 			};
 
 		};
@@ -176,9 +178,8 @@
 				qcom,ss-power = <163>;
 				qcom,energy-overhead = <577736>;
 				qcom,time-overhead = <1000>;
-				qcom,min-cpu-mode= "standalone_pc";
+				qcom,min-cpu-mode = "standalone_pc";
 				qcom,sync-cpus;
-
 			};
 
 			qcom,system-mode@1 {
