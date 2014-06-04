@@ -3282,10 +3282,10 @@ static uint64_t a3xx_perfcounter_read_pwr(struct adreno_device *adreno_dev,
 	struct kgsl_device *device = &adreno_dev->dev;
 	struct adreno_perfcounters *counters = adreno_dev->gpudev->perfcounters;
 	struct adreno_perfcount_register *reg;
-	unsigned int in, out, lo = 0, hi = 0;
+	unsigned int in = 0, out, lo = 0, hi = 0;
 	unsigned int enable_bit;
 
-	if (counter > 1)
+	if (counters == NULL || counter > 1)
 		return 0;
 	if (0 == counter)
 		enable_bit = RBBM_RBBM_CTL_ENABLE_PWR_CTR0;
@@ -3314,7 +3314,7 @@ static uint64_t a3xx_perfcounter_read_vbif(struct adreno_device *adreno_dev,
 	struct adreno_perfcount_register *reg;
 	unsigned int in, out, lo = 0, hi = 0;
 
-	if (counter > 1)
+	if (counters == NULL || counter > 1)
 		return 0;
 
 	/* freeze counter */
@@ -3343,7 +3343,7 @@ static uint64_t a3xx_perfcounter_read_vbif_pwr(struct adreno_device *adreno_dev,
 	struct adreno_perfcount_register *reg;
 	unsigned int in, out, lo = 0, hi = 0;
 
-	if (counter > 2)
+	if (counters == NULL || counter > 2)
 		return 0;
 
 	/* freeze counter */
@@ -3370,7 +3370,7 @@ static uint64_t a3xx_perfcounter_read(struct adreno_device *adreno_dev,
 	struct adreno_perfcount_register *reg;
 	unsigned int lo = 0, hi = 0;
 	unsigned int offset;
-	unsigned int in, out;
+	unsigned int in = 0, out;
 
 	if (group == KGSL_PERFCOUNTER_GROUP_VBIF_PWR)
 		return a3xx_perfcounter_read_vbif_pwr(adreno_dev, counter);
