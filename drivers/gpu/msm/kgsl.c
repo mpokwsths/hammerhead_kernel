@@ -95,11 +95,6 @@ struct memfree_entry {
 	unsigned int flags;
 };
 
-static int __kgsl_check_collision(struct kgsl_process_private *private,
-			struct kgsl_mem_entry *entry,
-			unsigned long *gpuaddr, unsigned long len,
-			int flag_top_down);
-
 static struct {
 	struct memfree_entry *list;
 	int head;
@@ -321,8 +316,13 @@ kgsl_mem_entry_track_gpuaddr(struct kgsl_process_private *process,
 	int ret = 0;
 	struct rb_node **node;
 	struct rb_node *parent = NULL;
+	struct kgsl_pagetable *pagetable = process->pagetable;
+	size_t size = entry->memdesc.size;
 
 	assert_spin_locked(&process->mem_lock);
+
+	if (kgsl_memdesc_has_guard_page(&entry->memdesc))
+		size += PAGE_SIZE;
 	/*
 	 * If cpu=gpu map is used then caller needs to set the
 	 * gpu address
@@ -335,29 +335,10 @@ kgsl_mem_entry_track_gpuaddr(struct kgsl_process_private *process,
 		ret = -EINVAL;
 		goto done;
 	}
-	if (!kgsl_memdesc_use_cpu_map(&entry->memdesc)) {
-		ret = -ENOMEM;
-		/*
-		 * For external allocations use mmu gen pool to assign
-		 * virtual address
-		 */
-		if (KGSL_MEMFLAGS_USERMEM_MASK & entry->memdesc.flags)
-			ret = kgsl_mmu_get_gpuaddr(process->pagetable,
-						&entry->memdesc);
-		if (-ENOMEM == ret) {
-			unsigned long gpuaddr = 0;
-			size_t size = entry->memdesc.size;
-			if (kgsl_memdesc_has_guard_page(&entry->memdesc))
-				size += PAGE_SIZE;
 
-			ret = __kgsl_check_collision(process, NULL, &gpuaddr,
-						size, 0);
-			if (!ret)
-				entry->memdesc.gpuaddr = gpuaddr;
-		}
-		if (ret)
-			goto done;
-	}
+	ret = kgsl_mmu_get_gpuaddr(pagetable, &entry->memdesc);
+	if (ret)
+		goto done;
 
 	node = &process->mem_rb.rb_node;
 
@@ -394,8 +375,7 @@ kgsl_mem_entry_untrack_gpuaddr(struct kgsl_process_private *process,
 {
 	assert_spin_locked(&process->mem_lock);
 	if (entry->memdesc.gpuaddr) {
-		if (KGSL_MEMFLAGS_USERMEM_MASK & entry->memdesc.flags)
-			kgsl_mmu_put_gpuaddr(process->pagetable,
+		kgsl_mmu_put_gpuaddr(entry->memdesc.pagetable,
 					&entry->memdesc);
 		rb_erase(&entry->node, &entry->priv->mem_rb);
 	}
@@ -3816,95 +3796,6 @@ static inline bool
 mmap_range_valid(unsigned long addr, unsigned long len)
 {
 	return ((ULONG_MAX - addr) > len) && ((addr + len) < TASK_SIZE);
-}
-
-/**
- * __kgsl_check_collision() - Find a non colliding gpuaddr for the process
- * @private: Process private pointer contaning the list of allocations
- * @entry: The entry colliding with given address
- * @gpuaddr: In out parameter. The In parameter contains the desired gpuaddr
- * if the gpuaddr collides then the out parameter contains the non colliding
- * address
- * @len: Length of address range
- * @flag_top_down: Indicates whether free address range should be checked in
- * top down or bottom up fashion
- */
-static int __kgsl_check_collision(struct kgsl_process_private *private,
-			struct kgsl_mem_entry *entry,
-			unsigned long *gpuaddr, unsigned long len,
-			int flag_top_down)
-{
-	int ret = 0;
-	unsigned long addr = *gpuaddr;
-	struct kgsl_mem_entry *collision_entry = entry;
-
-	if (!addr) {
-		addr = flag_top_down ? (TASK_SIZE - len) : PAGE_SIZE;
-		collision_entry = NULL;
-	}
-
-	do {
-		/*
-		 * If address collided with an existing entry then find a new
-		 * one
-		 */
-		if (collision_entry) {
-			/*
-			 * If top down search then next address to consider
-			 * is lower. The highest lower address possible is the
-			 * colliding entry address - the length of
-			 * allocation
-			 */
-			if (flag_top_down) {
-				addr = collision_entry->memdesc.gpuaddr - len;
-				/* Check for loopback */
-				if (addr > collision_entry->memdesc.gpuaddr) {
-					KGSL_CORE_ERR(
-					"Underflow err ent:%x/%zx, addr:%lx/%lx\n",
-					collision_entry->memdesc.gpuaddr,
-					kgsl_memdesc_mmapsize(
-						&collision_entry->memdesc),
-					addr, len);
-					*gpuaddr = TASK_SIZE;
-					ret = -EAGAIN;
-					break;
-				}
-			} else {
-				/*
-				 * Bottom up mode the next address to consider
-				 * is higher. The lowest higher address possible
-				 * colliding entry address + the size of the
-				 * colliding entry
-				 */
-				addr = collision_entry->memdesc.gpuaddr +
-					kgsl_memdesc_mmapsize(
-						&collision_entry->memdesc);
-				/* overflow check */
-				if (addr < collision_entry->memdesc.gpuaddr ||
-					!mmap_range_valid(addr, len)) {
-					KGSL_CORE_ERR(
-					"Overflow err ent:%x/%zx, addr:%lx/%lx\n",
-					collision_entry->memdesc.gpuaddr,
-					kgsl_memdesc_mmapsize(
-						&collision_entry->memdesc),
-					addr, len);
-					*gpuaddr = TASK_SIZE;
-					ret = -EAGAIN;
-					break;
-				}
-			}
-		}
-		if (kgsl_sharedmem_region_empty(private, addr, len)) {
-			/* no collision with addr then return */
-			*gpuaddr = addr;
-			break;
-		} else if (!collision_entry) {
-			ret = -ENOENT;
-			break;
-		}
-	} while (1);
-
-	return ret;
 }
 
 static unsigned long
