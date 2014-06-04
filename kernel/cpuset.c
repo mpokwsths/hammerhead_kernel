@@ -68,12 +68,7 @@
  */
 static struct workqueue_struct *cpuset_wq;
 
-/*
- * Tracks how many cpusets are currently defined in system.
- * When there is only one cpuset (the root cpuset) we can
- * short circuit some hooks.
- */
-int number_of_cpusets __read_mostly;
+struct static_key cpusets_enabled_key __read_mostly = STATIC_KEY_INIT_FALSE;
 
 /* Forward declare cgroup structures */
 struct cgroup_subsys cpuset_subsys;
@@ -589,7 +584,7 @@ static int generate_sched_domains(cpumask_var_t **domains,
 		goto done;
 	}
 
-	csa = kmalloc(number_of_cpusets * sizeof(cp), GFP_KERNEL);
+	csa = kmalloc(nr_cpusets() * sizeof(cp), GFP_KERNEL);
 	if (!csa)
 		goto done;
 	csn = 0;
@@ -1865,7 +1860,7 @@ static struct cgroup_subsys_state *cpuset_create(struct cgroup *cont)
 	cs->relax_domain_level = -1;
 
 	cs->parent = parent;
-	number_of_cpusets++;
+	cpuset_inc();
 	return &cs->css ;
 }
 
@@ -1882,7 +1877,7 @@ static void cpuset_destroy(struct cgroup *cont)
 	if (is_sched_load_balance(cs))
 		update_flag(CS_SCHED_LOAD_BALANCE, cs, 0);
 
-	number_of_cpusets--;
+	cpuset_dec();
 	free_cpumask_var(cs->cpus_allowed);
 	kfree(cs);
 }
@@ -1926,7 +1921,6 @@ int __init cpuset_init(void)
 	if (!alloc_cpumask_var(&cpus_attach, GFP_KERNEL))
 		BUG();
 
-	number_of_cpusets = 1;
 	return 0;
 }
 
