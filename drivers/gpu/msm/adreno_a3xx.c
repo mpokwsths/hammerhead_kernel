@@ -3354,7 +3354,7 @@ static uint64_t a3xx_perfcounter_read_pwr(struct adreno_device *adreno_dev,
 	struct kgsl_device *device = &adreno_dev->dev;
 	struct adreno_perfcounters *counters = adreno_dev->gpudev->perfcounters;
 	struct adreno_perfcount_register *reg;
-	unsigned int in, out, lo = 0, hi = 0;
+	unsigned int in = 0, out, lo = 0, hi = 0;
 	unsigned int enable_bit;
 
 	if (counter > 1)
@@ -3448,7 +3448,7 @@ static uint64_t a3xx_perfcounter_read(struct adreno_device *adreno_dev,
 	struct adreno_perfcount_register *reg;
 	unsigned int lo = 0, hi = 0;
 	unsigned int offset;
-	unsigned int in, out;
+	unsigned int in = 0, out;
 
 	if (group == KGSL_PERFCOUNTER_GROUP_VBIF_PWR)
 		return a3xx_perfcounter_read_vbif_pwr(adreno_dev, counter);
@@ -4183,6 +4183,7 @@ static int a3xx_perfcounter_init(struct adreno_device *adreno_dev)
 {
 	int ret;
 	struct kgsl_device *device = &adreno_dev->dev;
+
 	/* SP[3] counter is broken on a330 so disable it if a330 device */
 	if (adreno_is_a330(adreno_dev))
 		a3xx_perfcounters_sp[3].countable = KGSL_PERFCOUNTER_BROKEN;
