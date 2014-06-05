@@ -132,7 +132,7 @@ int kgsl_add_fence_event(struct kgsl_device *device,
 	if (event == NULL)
 		return -ENOMEM;
 
-	kgsl_mutex_lock(&device->mutex, &device->mutex_owner);
+	mutex_lock(&device->mutex);
 
 	context = kgsl_context_get_owner(owner, context_id);
 
@@ -173,7 +173,7 @@ int kgsl_add_fence_event(struct kgsl_device *device,
 	sync_fence_install(fence, priv.fence_fd);
 
 	/* Unlock the mutex before copying to user */
-	kgsl_mutex_unlock(&device->mutex, &device->mutex_owner);
+	mutex_unlock(&device->mutex);
 
 	if (copy_to_user(data, &priv, sizeof(priv))) {
 		ret = -EFAULT;
@@ -193,7 +193,7 @@ int kgsl_add_fence_event(struct kgsl_device *device,
 	return 0;
 
 unlock:
-	kgsl_mutex_unlock(&device->mutex, &device->mutex_owner);
+	mutex_unlock(&device->mutex);
 
 out:
 	if (priv.fence_fd >= 0)
