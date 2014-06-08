@@ -220,7 +220,7 @@ static void cpu_down_work(struct work_struct *work)
 			continue;
 		slowest_cpu = get_slowest_cpu();
 		if (slowest_cpu > 0) {
-			if (check_down_lock(cpu))
+			if (check_down_lock(slowest_cpu))
 				break;
 			cpu_down(slowest_cpu);
 		}
