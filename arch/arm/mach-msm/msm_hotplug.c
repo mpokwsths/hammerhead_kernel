@@ -31,8 +31,8 @@
 #define NUM_LOAD_LEVELS		5
 #define MIN_INPUT_INTERVAL	150 * 1000L
 #define DEFAULT_HISTORY_SIZE	10
-#define DEFAULT_DOWN_LOCK_DUR	5000
-#define DEFAULT_NR_CPUS_BOOSTED	2
+#define DEFAULT_DOWN_LOCK_DUR	3000
+#define DEFAULT_NR_CPUS_BOOSTED	1
 #define DEFAULT_MIN_CPUS_ONLINE	1
 #define DEFAULT_MAX_CPUS_ONLINE	NR_CPUS
 
@@ -254,13 +254,6 @@ static void msm_hotplug_work(struct work_struct *work)
 	} else if (hp->max_cpus_online == st->min_cpus) {
 		if (online_cpus != hp->max_cpus_online)
 			offline_cpu(hp->max_cpus_online);
-		goto reschedule;
-	}
-
-	if (online_cpus < hp->cpus_boosted && hammerhead_boosted) {
-		dprintk("%s: cur_load: %3u online_cpus: %u boosted\n",
-			MSM_HOTPLUG, cur_load, online_cpus);
-		online_cpu(hp->cpus_boosted);
 		goto reschedule;
 	}
 
