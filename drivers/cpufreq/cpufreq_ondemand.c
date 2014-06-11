@@ -717,7 +717,7 @@ static void dbs_check_cpu(struct cpu_dbs_info_s *this_dbs_info)
 {
 	/* Extrapolated load of this CPU */
 	unsigned int load_at_max_freq = 0;
-	unsigned int max_load_freq;
+	unsigned int max_abs_load;
 	/* Current load across this CPU */
 	unsigned int cur_load = 0;
 	unsigned int max_load_other_cpu = 0;
@@ -731,25 +731,17 @@ static void dbs_check_cpu(struct cpu_dbs_info_s *this_dbs_info)
 
 	/*
 	 * Every sampling_rate, we check, if current idle time is less
-	 * than 20% (default), then we try to increase frequency
-	 * Every sampling_rate, we look for a the lowest
-	 * frequency which can sustain the load while keeping idle time over
-	 * 30%. If such a frequency exist, we try to decrease to this frequency.
-	 *
-	 * Any frequency increase takes it to the maximum frequency.
-	 * Frequency reduction happens at minimum steps of
-	 * 5% (default) of current frequency
+	 * than 20% (default), then we try to increase frequency. Else,
+	 * we adjust the frequency proportional to load.
 	 */
 
-	/* Get Absolute Load - in terms of freq */
-	max_load_freq = 0;
+	/* Get Absolute Load */
+	max_abs_load = 0;
 
 	for_each_cpu(j, policy->cpus) {
 		struct cpu_dbs_info_s *j_dbs_info;
 		cputime64_t cur_wall_time, cur_idle_time, cur_iowait_time;
 		unsigned int idle_time, wall_time, iowait_time;
-		unsigned int load_freq;
-		int freq_avg;
 
 		j_dbs_info = &per_cpu(od_cpu_dbs_info, j);
 
@@ -801,15 +793,9 @@ static void dbs_check_cpu(struct cpu_dbs_info_s *this_dbs_info)
 		cur_load = 100 * (wall_time - idle_time) / wall_time;
 		j_dbs_info->max_load  = max(cur_load, j_dbs_info->prev_load);
 		j_dbs_info->prev_load = cur_load;
-		freq_avg = __cpufreq_driver_getavg(policy, j);
-		if (policy == NULL)
-			return;
-		if (freq_avg <= 0)
-			freq_avg = policy->cur;
 
-		load_freq = cur_load * freq_avg;
-		if (load_freq > max_load_freq)
-			max_load_freq = load_freq;
+		if (cur_load > max_abs_load)
+			max_abs_load = cur_load;
 	}
 
 	for_each_online_cpu(j) {
@@ -843,51 +829,35 @@ static void dbs_check_cpu(struct cpu_dbs_info_s *this_dbs_info)
 
 	cpufreq_notify_utilization(policy, load_at_max_freq);
 	/* Check for frequency increase */
-	if (max_load_freq > dbs_tuners_ins.up_threshold * policy->cur) {
+	if (max_abs_load > dbs_tuners_ins.up_threshold) {
 		/* If switching to max speed, apply sampling_down_factor */
 		if (policy->cur < policy->max)
 			this_dbs_info->rate_mult =
 				dbs_tuners_ins.sampling_down_factor;
 		dbs_freq_increase(policy, policy->max);
-		return;
-	}
+	
+		if (num_online_cpus() > 1) {
 
-	if (num_online_cpus() > 1) {
-
-		if (max_load_other_cpu >
-				dbs_tuners_ins.up_threshold_any_cpu_load) {
-			if (policy->cur < dbs_tuners_ins.sync_freq)
-				dbs_freq_increase(policy,
-						dbs_tuners_ins.sync_freq);
-			return;
+			if (max_load_other_cpu >
+					dbs_tuners_ins.up_threshold_any_cpu_load) {
+				if (policy->cur < dbs_tuners_ins.sync_freq)
+					dbs_freq_increase(policy,
+							dbs_tuners_ins.sync_freq);
+				return;
+			}
+	
+			if (max_abs_load > dbs_tuners_ins.up_threshold_multi_core) {
+				if (policy->cur < dbs_tuners_ins.optimal_freq)
+					dbs_freq_increase(policy,
+							dbs_tuners_ins.optimal_freq);
+				return;
+			}
 		}
-
-		if (max_load_freq > dbs_tuners_ins.up_threshold_multi_core *
-								policy->cur) {
-			if (policy->cur < dbs_tuners_ins.optimal_freq)
-				dbs_freq_increase(policy,
-						dbs_tuners_ins.optimal_freq);
-			return;
-		}
-	}
-
-	/* Check for frequency decrease */
-	/* if we cannot reduce the frequency anymore, break out early */
-	if (policy->cur == policy->min)
 		return;
-
-	/*
-	 * The optimal frequency is the frequency that is the lowest that
-	 * can support the current CPU usage without triggering the up
-	 * policy. To be safe, we focus 10 points under the threshold.
-	 */
-	if (max_load_freq <
-	    (dbs_tuners_ins.up_threshold - dbs_tuners_ins.down_differential) *
-	     policy->cur) {
+	} else {
+		/* Calculate the next frequency proportional to load */
 		unsigned int freq_next;
-		freq_next = max_load_freq /
-				(dbs_tuners_ins.up_threshold -
-				 dbs_tuners_ins.down_differential);
+		freq_next = max_abs_load * policy->cpuinfo.max_freq / 100;
 
 		/* No longer fully busy, reset rate_mult */
 		this_dbs_info->rate_mult = 1;
@@ -899,10 +869,8 @@ static void dbs_check_cpu(struct cpu_dbs_info_s *this_dbs_info)
 			freq_next < dbs_tuners_ins.sync_freq)
 				freq_next = dbs_tuners_ins.sync_freq;
 
-			if (max_load_freq >
-				 ((dbs_tuners_ins.up_threshold_multi_core -
-				  dbs_tuners_ins.down_differential_multi_core) *
-				  policy->cur) &&
+			if (max_abs_load > (dbs_tuners_ins.up_threshold_multi_core -
+				  dbs_tuners_ins.down_differential_multi_core) &&
 				freq_next < dbs_tuners_ins.optimal_freq)
 				freq_next = dbs_tuners_ins.optimal_freq;
 
