@@ -853,7 +853,6 @@ static void dbs_check_cpu(struct cpu_dbs_info_s *this_dbs_info)
 				return;
 			}
 		}
-		return;
 	} else {
 		/* Calculate the next frequency proportional to load */
 		unsigned int freq_next;
