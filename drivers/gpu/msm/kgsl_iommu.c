@@ -1102,8 +1102,6 @@ static int kgsl_set_register_map(struct kgsl_mmu *mmu)
 		/* Add the register map to the global PT list */
 		kgsl_add_global_pt_entry(mmu->device, &iommu_unit->reg_map);
 
-		if (!msm_soc_version_supports_iommu_v0())
-			iommu_unit->iommu_halt_enable = 1;
 		iommu_unit->ahb_base = data.physstart - mmu->device->reg_phys;
 	}
 	iommu->unit_count = pdata->iommu_count;
@@ -1242,15 +1240,6 @@ static int kgsl_iommu_init(struct kgsl_mmu *mmu)
 		goto done;
 
 	/*
-	 * IOMMU-v1 requires hardware halt support to do in stream
-	 * pagetable switching. This check assumes that if there are
-	 * multiple units, they will be matching hardware.
-	 */
-	mmu->pt_per_process = KGSL_MMU_USE_PER_PROCESS_PT &&
-				(msm_soc_version_supports_iommu_v0() ||
-				 iommu->iommu_units[0].iommu_halt_enable);
-
-	/*
 	 * For IOMMU per-process pagetables, the allocatable range
 	 * and the kernel global range must both be outside
 	 * the userspace address range. There is a 1Mb gap
@@ -1260,15 +1249,13 @@ static int kgsl_iommu_init(struct kgsl_mmu *mmu)
 	 * mirroring the CPU address space is not possible and
 	 * we're better off with extra room.
 	 */
-	if (mmu->pt_per_process) {
+	if (KGSL_MMU_USE_PER_PROCESS_PT) {
 		mmu->pt_base = PAGE_OFFSET;
 		mmu->pt_size = KGSL_IOMMU_GLOBAL_MEM_BASE
 				- kgsl_mmu_get_base_addr(mmu) - SZ_1M;
-		mmu->use_cpu_map = true;
 	} else {
 		mmu->pt_base = KGSL_PAGETABLE_BASE;
 		mmu->pt_size = SZ_2G;
-		mmu->use_cpu_map = false;
 	}
 
 	iommu->iommu_reg_list = kgsl_iommuv0_reg;
@@ -1914,17 +1901,6 @@ static unsigned int kgsl_iommu_get_reg_gpuaddr(struct kgsl_mmu *mmu,
 		return iommu->iommu_units[iommu_unit].reg_map.gpuaddr +
 			iommu->iommu_reg_list[reg].reg_offset;
 }
-/*
- * kgsl_iommu_hw_halt_supported - Returns whether IOMMU halt command is
- * supported
- * @mmu - Pointer to mmu structure
- * @iommu_unit - The iommu unit for which the property is requested
- */
-static int kgsl_iommu_hw_halt_supported(struct kgsl_mmu *mmu, int iommu_unit)
-{
-	struct kgsl_iommu *iommu = mmu->priv;
-	return iommu->iommu_units[iommu_unit].iommu_halt_enable;
-}
 
 static int kgsl_iommu_get_num_iommu_units(struct kgsl_mmu *mmu)
 {
@@ -2049,7 +2025,6 @@ struct kgsl_mmu_ops iommu_ops = {
 	.mmu_get_num_iommu_units = kgsl_iommu_get_num_iommu_units,
 	.mmu_pt_equal = kgsl_iommu_pt_equal,
 	.mmu_get_pt_base_addr = kgsl_iommu_get_pt_base_addr,
-	.mmu_hw_halt_supported = kgsl_iommu_hw_halt_supported,
 	/* These callbacks will be set on some chipsets */
 	.mmu_sync_lock = kgsl_iommu_sync_lock,
 	.mmu_sync_unlock = kgsl_iommu_sync_unlock,

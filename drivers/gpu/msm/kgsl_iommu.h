@@ -175,7 +175,6 @@ struct kgsl_iommu_device {
  * units register range
  * @ahb_base - The base address from where IOMMU registers can be accesed from
  * ahb bus
- * @iommu_halt_enable: Valid only on IOMMU-v1, when set indicates that the iommu
  * unit supports halting of the IOMMU, which can be enabled while programming
  * the IOMMU registers for synchronization
  * @clk_enable_count: The ref count of clock enable calls
@@ -186,7 +185,6 @@ struct kgsl_iommu_unit {
 	unsigned int dev_count;
 	struct kgsl_memdesc reg_map;
 	unsigned int ahb_base;
-	int iommu_halt_enable;
 	atomic_t clk_enable_count;
 	struct clk *clks[KGSL_IOMMU_MAX_CLKS];
 };

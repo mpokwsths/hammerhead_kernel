@@ -537,8 +537,6 @@ static int kgsl_gpummu_init(struct kgsl_mmu *mmu)
 
 	mmu->pt_base = KGSL_PAGETABLE_BASE;
 	mmu->pt_size = CONFIG_MSM_KGSL_PAGE_TABLE_SIZE;
-	mmu->pt_per_process = KGSL_MMU_USE_PER_PROCESS_PT;
-	mmu->use_cpu_map = false;
 
 	/* sub-client MMU lookups require address translation */
 	if ((mmu->config & ~0x1) > 0) {
