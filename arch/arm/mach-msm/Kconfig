@@ -835,6 +835,13 @@ config MSM_CPU_VOLTAGE_CONTROL
 	help
 	  This enables userspace CPU Voltage Control.
 
+config DYN_HOTPLUG
+	bool "Enable Semaphor's dynamic hotplug driver"
+	default n
+	help
+	  A dynamic hotplug driver to automatically online/offline
+	  CPUs proportional to load
+
 config MSM_DEVFREQ_CPUBW
 	bool "Devfreq device for CPU<->DDR IB/AB BW voting"
 	depends on PM_DEVFREQ
