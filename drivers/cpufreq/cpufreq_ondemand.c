@@ -731,8 +731,6 @@ static void dbs_freq_increase(struct cpufreq_policy *p, unsigned int freq)
 
 static void dbs_check_cpu(struct cpu_dbs_info_s *this_dbs_info)
 {
-	/* Extrapolated load of this CPU */
-	unsigned int load_at_max_freq = 0;
 	unsigned int max_abs_load;
 	/* Current load across this CPU */
 	unsigned int cur_load = 0;
@@ -873,10 +871,7 @@ static void dbs_check_cpu(struct cpu_dbs_info_s *this_dbs_info)
 		}
 	}
 
-	/* calculate the scaled load across CPU */
-	load_at_max_freq = (cur_load * policy->cur)/policy->max;
-
-	cpufreq_notify_utilization(policy, load_at_max_freq);
+	cpufreq_notify_utilization(policy, max_abs_load);
 	/* Check for frequency increase */
 	if (max_abs_load > dbs_tuners_ins.up_threshold) {
 		/* If switching to max speed, apply sampling_down_factor */
@@ -884,24 +879,6 @@ static void dbs_check_cpu(struct cpu_dbs_info_s *this_dbs_info)
 			this_dbs_info->rate_mult =
 				dbs_tuners_ins.sampling_down_factor;
 		dbs_freq_increase(policy, policy->max);
-	
-		if (num_online_cpus() > 1) {
-
-			if (max_load_other_cpu >
-					dbs_tuners_ins.up_threshold_any_cpu_load) {
-				if (policy->cur < dbs_tuners_ins.sync_freq)
-					dbs_freq_increase(policy,
-							dbs_tuners_ins.sync_freq);
-				return;
-			}
-	
-			if (max_abs_load > dbs_tuners_ins.up_threshold_multi_core) {
-				if (policy->cur < dbs_tuners_ins.optimal_freq)
-					dbs_freq_increase(policy,
-							dbs_tuners_ins.optimal_freq);
-				return;
-			}
-		}
 	} else {
 		/* Calculate the next frequency proportional to load */
 		unsigned int freq_next;
@@ -909,6 +886,9 @@ static void dbs_check_cpu(struct cpu_dbs_info_s *this_dbs_info)
 
 		/* No longer fully busy, reset rate_mult */
 		this_dbs_info->rate_mult = 1;
+
+		if (freq_next < policy->min)
+			freq_next = policy->min;
 
 		if (num_online_cpus() > 1) {
 			if (max_load_other_cpu >
@@ -923,6 +903,7 @@ static void dbs_check_cpu(struct cpu_dbs_info_s *this_dbs_info)
 				freq_next = dbs_tuners_ins.optimal_freq;
 
 		}
+
 		if (!dbs_tuners_ins.powersave_bias) {
 			__cpufreq_driver_target(policy, freq_next,
 					CPUFREQ_RELATION_L);
@@ -931,6 +912,23 @@ static void dbs_check_cpu(struct cpu_dbs_info_s *this_dbs_info)
 					CPUFREQ_RELATION_L);
 			__cpufreq_driver_target(policy, freq,
 				CPUFREQ_RELATION_L);
+		}
+	}
+
+	if (num_online_cpus() > 1) {
+		if (max_load_other_cpu >
+			dbs_tuners_ins.up_threshold_any_cpu_load) {
+			if (policy->cur < dbs_tuners_ins.sync_freq)
+				dbs_freq_increase(policy,
+					dbs_tuners_ins.sync_freq);
+			return;
+		}
+	
+		if (max_abs_load > dbs_tuners_ins.up_threshold_multi_core) {
+			if (policy->cur < dbs_tuners_ins.optimal_freq)
+				dbs_freq_increase(policy,
+						dbs_tuners_ins.optimal_freq);
+			return;
 		}
 	}
 }
