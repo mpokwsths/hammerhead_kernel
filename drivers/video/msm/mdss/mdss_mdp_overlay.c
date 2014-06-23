@@ -758,7 +758,7 @@ int mdss_mdp_overlay_kickoff(struct msm_fb_data_type *mfd)
 	mutex_lock(&mfd->lock);
 
 	mdss_mdp_ctl_notify(ctl, MDP_NOTIFY_FRAME_BEGIN);
-	mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_ON, false);
+	mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_ON);
 
 	list_for_each_entry(pipe, &mdp5_data->pipes_used, used_list) {
 		struct mdss_mdp_data *buf;
@@ -835,7 +835,7 @@ int mdss_mdp_overlay_kickoff(struct msm_fb_data_type *mfd)
 	mdss_fb_update_notify_update(mfd);
 commit_fail:
 	mdss_mdp_overlay_cleanup(mfd);
-	mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_OFF, false);
+	mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_OFF);
 	if (ctl)
 		mdss_mdp_ctl_notify(ctl, MDP_NOTIFY_FRAME_FLUSHED);
 
@@ -1353,12 +1353,12 @@ int mdss_mdp_overlay_vsync_ctrl(struct msm_fb_data_type *mfd, int en)
 
 	pr_debug("fb%d vsync en=%d\n", mfd->index, en);
 
-	mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_ON, false);
+	mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_ON);
 	if (en)
 		rc = ctl->add_vsync_handler(ctl, &ctl->vsync_handler);
 	else
 		rc = ctl->remove_vsync_handler(ctl, &ctl->vsync_handler);
-	mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_OFF, false);
+	mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_OFF);
 
 	return rc;
 }
@@ -1439,9 +1439,8 @@ static int mdss_mdp_hw_cursor_update(struct msm_fb_data_type *mfd,
 	pr_debug("mixer=%d enable=%x set=%x\n", mixer->num, cursor->enable,
 			cursor->set);
 
-	mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_ON, false);
+	mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_ON);
 	blendcfg = MDSS_MDP_REG_READ(off + MDSS_MDP_REG_LM_CURSOR_BLEND_CONFIG);
-
 	if (cursor->set & FB_CUR_SETPOS)
 		MDSS_MDP_REG_WRITE(off + MDSS_MDP_REG_LM_CURSOR_START_XY,
 				   (img->dy << 16) | img->dx);
@@ -1453,7 +1452,7 @@ static int mdss_mdp_hw_cursor_update(struct msm_fb_data_type *mfd,
 				     img->width * img->height * 4);
 		if (ret) {
 			pr_err("copy_from_user error. rc=%d\n", ret);
-			mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_OFF, false);
+			mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_OFF);
 			return ret;
 		}
 
@@ -1462,7 +1461,7 @@ static int mdss_mdp_hw_cursor_update(struct msm_fb_data_type *mfd,
 		} else {
 			if (MDSS_LPAE_CHECK(mfd->cursor_buf_phys)) {
 				pr_err("can't access phy mem >4GB w/o iommu\n");
-				mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_OFF, false);
+				mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_OFF);
 				return -ERANGE;
 			}
 			cursor_addr = mfd->cursor_buf_phys;
@@ -1534,7 +1533,7 @@ static int mdss_mdp_hw_cursor_update(struct msm_fb_data_type *mfd,
 	}
 
 	mixer->ctl->flush_bits |= BIT(6) << mixer->num;
-	mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_OFF, false);
+	mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_OFF);
 
 	return 0;
 }
@@ -2206,7 +2205,7 @@ int mdss_panel_register_done(struct mdss_panel_data *pdata)
 	 */
 	if (pdata->panel_info.cont_splash_enabled) {
 		mdss_mdp_footswitch_ctrl_splash(1);
-		mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_ON, false);
+		mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_ON);
 		mdss_mdp_ctl_splash_start(pdata);
 	}
 	return 0;
@@ -2250,10 +2249,10 @@ static void __vsync_retire_signal(struct msm_fb_data_type *mfd, int val)
 
 		mdp5_data->retire_cnt -= min(val, mdp5_data->retire_cnt);
 		if (mdp5_data->retire_cnt == 0) {
-			mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_ON, false);
+			mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_ON);
 			mdp5_data->ctl->remove_vsync_handler(mdp5_data->ctl,
 					&mdp5_data->vsync_retire_handler);
-			mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_OFF, false);
+			mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_OFF);
 		}
 	}
 	mutex_unlock(&mfd->mdp_sync_pt_data.sync_mutex);
@@ -2283,10 +2282,10 @@ __vsync_retire_get_fence(struct msm_sync_pt_data *sync_pt_data)
 	}
 
 	if (!mdp5_data->vsync_retire_handler.enabled) {
-		mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_ON, false);
+		mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_ON);
 		rc = ctl->add_vsync_handler(ctl,
 				&mdp5_data->vsync_retire_handler);
-		mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_OFF, false);
+		mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_OFF);
 		if (IS_ERR_VALUE(rc))
 			return ERR_PTR(rc);
 	}

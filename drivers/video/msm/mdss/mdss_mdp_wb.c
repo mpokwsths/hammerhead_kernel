@@ -842,9 +842,9 @@ EXPORT_SYMBOL(msm_fb_writeback_set_secure);
 int msm_fb_writeback_iommu_ref(struct fb_info *info, int enable)
 {
 	if (enable)
-		mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_ON, false);
+		mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_ON);
 	else
-		mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_OFF, false);
+		mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_OFF);
 
 	return 0;
 }

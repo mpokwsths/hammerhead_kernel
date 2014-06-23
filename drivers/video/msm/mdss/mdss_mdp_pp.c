@@ -999,7 +999,7 @@ static int pp_dspp_setup(u32 disp_num, struct mdss_mdp_mixer *mixer)
 	base = MDSS_MDP_REG_DSPP_OFFSET(dspp_num);
 	basel = mdss_mdp_get_dspp_addr_off(dspp_num);
 
-	mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_ON, false);
+	mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_ON);
 
 	ret = pp_histogram_setup(&opmode, MDSS_PP_DSPP_CFG | dspp_num, mixer);
 	if (ret)
@@ -1116,7 +1116,7 @@ flush_exit:
 	mdss_mdp_ctl_write(ctl, MDSS_MDP_REG_CTL_FLUSH, BIT(13 + dspp_num));
 	wmb();
 dspp_exit:
-	mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_OFF, false);
+	mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_OFF);
 	return ret;
 }
 
@@ -1350,7 +1350,7 @@ int mdss_mdp_pa_config(struct mdss_mdp_ctl *ctl, struct mdp_pa_cfg_data *config,
 				__func__, disp_num);
 			goto pa_config_exit;
 		}
-		mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_ON, false);
+		mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_ON);
 		pa_offset = MDSS_MDP_REG_DSPP_OFFSET(dspp_num) +
 			  MDSS_MDP_REG_DSPP_PA_BASE;
 		config->pa_data.hue_adj = MDSS_MDP_REG_READ(pa_offset);
@@ -1361,7 +1361,7 @@ int mdss_mdp_pa_config(struct mdss_mdp_ctl *ctl, struct mdp_pa_cfg_data *config,
 		pa_offset += 4;
 		config->pa_data.cont_adj = MDSS_MDP_REG_READ(pa_offset);
 		*copyback = 1;
-		mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_OFF, false);
+		mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_OFF);
 	} else {
 		mdss_pp_res->pa_disp_cfg[disp_num] = config->pa_data;
 		mdss_pp_res->pp_disp_flags[disp_num] |= PP_FLAGS_DIRTY_PA;
@@ -1525,13 +1525,13 @@ int mdss_mdp_pcc_config(struct mdss_mdp_ctl *ctl,
 			goto pcc_config_exit;
 		}
 
-		mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_ON, false);
+		mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_ON);
 
 		base = MDSS_MDP_REG_DSPP_OFFSET(dspp_num) +
 			  MDSS_MDP_REG_DSPP_PCC_BASE;
 		pp_read_pcc_regs(base, config);
 		*copyback = 1;
-		mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_OFF, false);
+		mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_OFF);
 	} else {
 		mdss_pp_res->pcc_disp_cfg[disp_num] = *config;
 		mdss_pp_res->pp_disp_flags[disp_num] |= PP_FLAGS_DIRTY_PCC;
@@ -1647,7 +1647,7 @@ int mdss_mdp_igc_lut_config(struct mdss_mdp_ctl *ctl,
 				__func__, disp_num);
 			goto igc_config_exit;
 		}
-		mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_ON, false);
+		mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_ON);
 		if (config->ops & MDP_PP_IGC_FLAG_ROM0)
 			tbl_idx = 1;
 		else if (config->ops & MDP_PP_IGC_FLAG_ROM1)
@@ -1664,17 +1664,17 @@ int mdss_mdp_igc_lut_config(struct mdss_mdp_ctl *ctl,
 		if (copy_to_user(config->c0_c1_data, local_cfg.c2_data,
 			config->len * sizeof(u32))) {
 			ret = -EFAULT;
-			mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_OFF, false);
+			mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_OFF);
 			goto igc_config_exit;
 		}
 		if (copy_to_user(config->c2_data, local_cfg.c0_c1_data,
 			config->len * sizeof(u32))) {
 			ret = -EFAULT;
-			mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_OFF, false);
+			mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_OFF);
 			goto igc_config_exit;
 		}
 		*copyback = 1;
-		mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_OFF, false);
+		mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_OFF);
 	} else {
 		if (copy_from_kernel) {
 			memcpy(&mdss_pp_res->igc_lut_c0c1[disp_num][0],
@@ -1871,7 +1871,7 @@ int mdss_mdp_argc_config(struct mdss_mdp_ctl *ctl,
 				__func__, disp_num);
 			goto argc_config_exit;
 		}
-		mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_ON, false);
+		mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_ON);
 		local_cfg = *config;
 		local_cfg.r_data =
 			&mdss_pp_res->gc_lut_r[disp_num][0];
@@ -1882,24 +1882,24 @@ int mdss_mdp_argc_config(struct mdss_mdp_ctl *ctl,
 		pp_read_argc_lut(&local_cfg, argc_offset);
 		if (copy_to_user(config->r_data,
 			&mdss_pp_res->gc_lut_r[disp_num][0], tbl_size)) {
-			mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_OFF, false);
+			mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_OFF);
 			ret = -EFAULT;
 			goto argc_config_exit;
 		}
 		if (copy_to_user(config->g_data,
 			&mdss_pp_res->gc_lut_g[disp_num][0], tbl_size)) {
-			mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_OFF, false);
+			mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_OFF);
 			ret = -EFAULT;
 			goto argc_config_exit;
 		}
 		if (copy_to_user(config->b_data,
 			&mdss_pp_res->gc_lut_b[disp_num][0], tbl_size)) {
-			mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_OFF, false);
+			mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_OFF);
 			ret = -EFAULT;
 			goto argc_config_exit;
 		}
 		*copyback = 1;
-		mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_OFF, false);
+		mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_OFF);
 	} else {
 		r_size = config->num_r_stages *
 			sizeof(struct mdp_ar_gc_lut_data);
@@ -1972,7 +1972,7 @@ int mdss_mdp_hist_lut_config(struct mdss_mdp_ctl *ctl,
 				__func__, disp_num);
 			goto enhist_config_exit;
 		}
-		mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_ON, false);
+		mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_ON);
 
 		hist_offset = MDSS_MDP_REG_DSPP_OFFSET(dspp_num) +
 			  MDSS_MDP_REG_DSPP_HIST_LUT_BASE;
@@ -1982,12 +1982,12 @@ int mdss_mdp_hist_lut_config(struct mdss_mdp_ctl *ctl,
 		if (copy_to_user(config->data,
 			&mdss_pp_res->enhist_lut[disp_num][0],
 			ENHIST_LUT_ENTRIES * sizeof(u32))) {
-			mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_OFF, false);
+			mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_OFF);
 			ret = -EFAULT;
 			goto enhist_config_exit;
 		}
 		*copyback = 1;
-		mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_OFF, false);
+		mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_OFF);
 	} else {
 		if (copy_from_user(&mdss_pp_res->enhist_lut[disp_num][0],
 			config->data, ENHIST_LUT_ENTRIES * sizeof(u32))) {
@@ -2063,7 +2063,7 @@ int mdss_mdp_gamut_config(struct mdss_mdp_ctl *ctl,
 				__func__, disp_num);
 			goto gamut_config_exit;
 		}
-		mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_ON, false);
+		mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_ON);
 
 		offset = MDSS_MDP_REG_DSPP_OFFSET(dspp_num) +
 			  MDSS_MDP_REG_DSPP_GAMUT_BASE;
@@ -2131,7 +2131,7 @@ int mdss_mdp_gamut_config(struct mdss_mdp_ctl *ctl,
 			}
 		}
 		*copyback = 1;
-		mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_OFF, false);
+		mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_OFF);
 	} else {
 		local_cfg = *config;
 		tbl_off = mdss_pp_res->gamut_tbl[disp_num];
@@ -2254,7 +2254,7 @@ int mdss_mdp_histogram_start(struct mdss_mdp_ctl *ctl,
 		ret = -EPERM;
 		goto hist_exit;
 	}
-	mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_ON, false);
+	mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_ON);
 
 	if (PP_LOCAT(req->block) == MDSS_PP_SSPP_CFG) {
 		i = MDSS_PP_ARG_MASK & req->block;
@@ -2271,7 +2271,7 @@ int mdss_mdp_histogram_start(struct mdss_mdp_ctl *ctl,
 			if (IS_ERR_OR_NULL(pipe))
 				continue;
 			if (!pipe || pipe->num > MDSS_MDP_SSPP_VIG2) {
-				mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_OFF, false);
+				mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_OFF);
 				ret = -EINVAL;
 				pr_warn("Invalid Hist pipe (%d)", i);
 				goto hist_exit;
@@ -2297,7 +2297,7 @@ int mdss_mdp_histogram_start(struct mdss_mdp_ctl *ctl,
 							PP_FLAGS_DIRTY_HIST_COL;
 		}
 	}
-	mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_OFF, false);
+	mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_OFF);
 
 hist_exit:
 	if (!ret && (PP_LOCAT(req->block) == MDSS_PP_DSPP_CFG)) {
@@ -2385,7 +2385,7 @@ int mdss_mdp_histogram_stop(struct mdss_mdp_ctl *ctl, u32 block)
 		ret = -EPERM;
 		goto hist_stop_exit;
 	}
-	mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_ON, false);
+	mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_ON);
 	if (PP_LOCAT(block) == MDSS_PP_SSPP_CFG) {
 		i = MDSS_PP_ARG_MASK & block;
 		if (!i) {
@@ -2428,7 +2428,7 @@ int mdss_mdp_histogram_stop(struct mdss_mdp_ctl *ctl, u32 block)
 		}
 	}
 hist_stop_clk:
-	mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_OFF, false);
+	mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_OFF);
 hist_stop_exit:
 	if (!ret && (PP_LOCAT(block) == MDSS_PP_DSPP_CFG))
 		mdss_mdp_pp_setup(ctl);
@@ -2510,9 +2510,9 @@ static int pp_hist_collect(struct mdss_mdp_ctl *ctl,
 	if (hist_info->col_state == HIST_READY) {
 		spin_unlock_irqrestore(&hist_info->hist_lock, flag);
 		v_base = ctl_base + 0x1C;
-		mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_ON, false);
+		mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_ON);
 		pp_hist_read(v_base, hist_info);
-		mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_OFF, false);
+		mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_OFF);
 		spin_lock_irqsave(&hist_info->hist_lock, flag);
 		hist_info->read_request = false;
 		hist_info->col_state = HIST_IDLE;
@@ -3434,7 +3434,7 @@ int mdss_mdp_calib_config(struct mdp_calib_config_data *cfg, u32 *copyback)
 	else
 		return ret;
 	ptr = (void *)(((unsigned int) ptr) + (mdss_res->mdp_base));
-	mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_ON, false);
+	mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_ON);
 
 	if (cfg->ops & MDP_PP_OPS_READ) {
 		cfg->data = readl_relaxed(ptr);
@@ -3444,7 +3444,7 @@ int mdss_mdp_calib_config(struct mdp_calib_config_data *cfg, u32 *copyback)
 		writel_relaxed(cfg->data, ptr);
 		ret = 0;
 	}
-	mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_OFF, false);
+	mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_OFF);
 	return ret;
 }
 
@@ -3490,7 +3490,7 @@ int mdss_mdp_calib_config_buffer(struct mdp_calib_config_buffer *cfg,
 		return ret;
 	}
 
-	mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_ON, false);
+	mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_ON);
 
 	if (cfg->ops & MDP_PP_OPS_READ) {
 		for (i = 0 ; i < counter ; i++) {
@@ -3529,7 +3529,7 @@ int mdss_mdp_calib_config_buffer(struct mdp_calib_config_buffer *cfg,
 		}
 	}
 
-	mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_OFF, false);
+	mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_OFF);
 
 	kfree(buff_org);
 	return ret;
