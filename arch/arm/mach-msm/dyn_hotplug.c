@@ -18,18 +18,20 @@
 #include <linux/workqueue.h>
 #include <linux/sched.h>
 #include <linux/timer.h>
+#ifdef CONFIG_EARLYSUSPEND
 #include <linux/earlysuspend.h>
+#endif
 #include <linux/cpufreq.h>
 #include <linux/delay.h>
 #include <linux/slab.h>
 
 #define INIT_DELAY		(60 * HZ) /* Initial delay to 60 sec */
 #define DELAY			(HZ / 2)
-#define UP_THRESHOLD		(25)
-#define MIN_ONLINE		(2)
+#define UP_THRESHOLD		(75)
+#define MIN_ONLINE		(1)
 #define MAX_ONLINE		(4)
-#define DEF_DOWN_TIMER_CNT	(10)	/* 5 secs */
-#define DEF_UP_TIMER_CNT	(2)	/* 1 sec */
+#define DEF_DOWN_TIMER_CNT	(4)	/* 2 secs */
+#define DEF_UP_TIMER_CNT	(1)	/* 0.5 sec */
 
 static int enabled;
 static unsigned int up_threshold;
@@ -50,7 +52,9 @@ struct dyn_hp_data {
 	unsigned int enabled;
 	unsigned int saved_min_online;
 	struct delayed_work work;
+#ifdef CONFIG_EARLYSUSPEND
 	struct early_suspend suspend;
+#endif
 } *hp_data;
 
 /*
@@ -79,6 +83,7 @@ static inline void down_all(void)
 			cpu_down(cpu);
 }
 
+#ifdef CONFIG_EARLYSUSPEND
 static void hp_early_suspend(struct early_suspend *h)
 {
 	pr_debug("%s: num_online_cpus: %u\n", __func__, num_online_cpus());
@@ -95,6 +100,7 @@ static __cpuinit void hp_late_resume(struct early_suspend *h)
 	hp_data->min_online = hp_data->saved_min_online;
 	up_all(true);
 }
+#endif
 
 /* Iterate through possible CPUs and bring online the first found offline one */
 static inline void up_one(void)
@@ -181,7 +187,9 @@ static void dyn_hp_enable(void)
 	if (hp_data->enabled)
 		return;
 	schedule_delayed_work_on(0, &hp_data->work, hp_data->delay);
+#ifdef CONFIG_EARLYSUSPEND
 	register_early_suspend(&hp_data->suspend);
+#endif
 	hp_data->enabled = 1;
 }
 
@@ -191,7 +199,9 @@ static void dyn_hp_disable(void)
 		return;
 	cancel_delayed_work(&hp_data->work);
 	flush_scheduled_work();
+#ifdef CONFIG_EARLYSUSPEND
 	unregister_early_suspend(&hp_data->suspend);
+#endif
 
 	/* Driver is disabled bring online all CPUs unconditionally */
 	up_all(false);
@@ -374,9 +384,11 @@ static int __init dyn_hp_init(void)
 	hp_data->down_timer_cnt = DEF_DOWN_TIMER_CNT;
 	hp_data->up_timer_cnt = DEF_UP_TIMER_CNT;
 
+#ifdef CONFIG_EARLYSUSPEND
 	hp_data->suspend.suspend = hp_early_suspend;
 	hp_data->suspend.resume =  hp_late_resume;
 	hp_data->suspend.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN;
+#endif
 	hp_data->enabled = 1;
 
 	up_threshold = hp_data->up_threshold;
@@ -386,7 +398,9 @@ static int __init dyn_hp_init(void)
 	down_timer_cnt = hp_data->down_timer_cnt;
 	up_timer_cnt = hp_data->up_timer_cnt;
 
+#ifdef CONFIG_EARLYSUSPEND
 	register_early_suspend(&hp_data->suspend);
+#endif
 
 	INIT_DELAYED_WORK(&hp_data->work, load_timer);
 	schedule_delayed_work_on(0, &hp_data->work, INIT_DELAY);
@@ -400,7 +414,9 @@ static void __exit dyn_hp_exit(void)
 {
 	cancel_delayed_work(&hp_data->work);
 	flush_scheduled_work();
+#ifdef CONFIG_EARLYSUSPEND
 	unregister_early_suspend(&hp_data->suspend);
+#endif
 
 	kfree(hp_data);
 	pr_info("%s: deactivated\n", __func__);
