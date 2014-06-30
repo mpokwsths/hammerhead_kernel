@@ -753,7 +753,7 @@ static void dbs_freq_increase(struct cpufreq_policy *p, unsigned int freq)
 
 static void dbs_check_cpu(struct cpu_dbs_info_s *this_dbs_info)
 {
-	unsigned int max_abs_load;
+	unsigned int load;
 	/* Current load across this CPU */
 	unsigned int cur_load = 0;
 	unsigned int max_load_other_cpu = 0;
@@ -774,7 +774,7 @@ static void dbs_check_cpu(struct cpu_dbs_info_s *this_dbs_info)
 	 */
 
 	/* Get Absolute Load */
-	max_abs_load = 0;
+	load = 0;
 
 	for_each_cpu(j, policy->cpus) {
 		struct cpu_dbs_info_s *j_dbs_info;
@@ -863,8 +863,8 @@ static void dbs_check_cpu(struct cpu_dbs_info_s *this_dbs_info)
 		}
 		j_dbs_info->max_load  = max(cur_load, j_dbs_info->prev_load);
 
-		if (cur_load > max_abs_load)
-			max_abs_load = cur_load;
+		if (cur_load > load)
+			load = cur_load;
 	}
 
 	for_each_online_cpu(j) {
@@ -893,9 +893,9 @@ static void dbs_check_cpu(struct cpu_dbs_info_s *this_dbs_info)
 		}
 	}
 
-	cpufreq_notify_utilization(policy, max_abs_load);
+	cpufreq_notify_utilization(policy, load);
 	/* Check for frequency increase */
-	if (max_abs_load > dbs_tuners_ins.up_threshold) {
+	if (load > dbs_tuners_ins.up_threshold) {
 		/* If switching to max speed, apply sampling_down_factor */
 		if (policy->cur < policy->max)
 			this_dbs_info->rate_mult =
@@ -903,8 +903,11 @@ static void dbs_check_cpu(struct cpu_dbs_info_s *this_dbs_info)
 		dbs_freq_increase(policy, policy->max);
 	} else {
 		/* Calculate the next frequency proportional to load */
-		unsigned int freq_next;
-		freq_next = max_abs_load * policy->max / 100;
+		unsigned int freq_next, min_f, max_f;
+
+		min_f = policy->cpuinfo.min_freq;
+		max_f = policy->cpuinfo.max_freq;
+		freq_next = min_f + load * (max_f - min_f) / 100;
 
 		/* No longer fully busy, reset rate_mult */
 		this_dbs_info->rate_mult = 1;
@@ -916,7 +919,7 @@ static void dbs_check_cpu(struct cpu_dbs_info_s *this_dbs_info)
 			freq_next < dbs_tuners_ins.sync_freq)
 				freq_next = dbs_tuners_ins.sync_freq;
 
-			if (max_abs_load > (dbs_tuners_ins.up_threshold_multi_core -
+			if (load > (dbs_tuners_ins.up_threshold_multi_core -
 				  dbs_tuners_ins.down_differential_multi_core) &&
 				freq_next < dbs_tuners_ins.optimal_freq)
 				freq_next = dbs_tuners_ins.optimal_freq;
@@ -925,12 +928,12 @@ static void dbs_check_cpu(struct cpu_dbs_info_s *this_dbs_info)
 
 		if (!dbs_tuners_ins.powersave_bias) {
 			__cpufreq_driver_target(policy, freq_next,
-					CPUFREQ_RELATION_L);
+					CPUFREQ_RELATION_C);
 		} else {
-			int freq = powersave_bias_target(policy, freq_next,
+			freq_next = powersave_bias_target(policy, freq_next,
 					CPUFREQ_RELATION_L);
-			__cpufreq_driver_target(policy, freq,
-				CPUFREQ_RELATION_L);
+			__cpufreq_driver_target(policy, freq_next,
+				CPUFREQ_RELATION_C);
 		}
 	}
 
@@ -943,7 +946,7 @@ static void dbs_check_cpu(struct cpu_dbs_info_s *this_dbs_info)
 			return;
 		}
 	
-		if (max_abs_load > dbs_tuners_ins.up_threshold_multi_core) {
+		if (load > dbs_tuners_ins.up_threshold_multi_core) {
 			if (policy->cur < dbs_tuners_ins.optimal_freq)
 				dbs_freq_increase(policy,
 						dbs_tuners_ins.optimal_freq);
