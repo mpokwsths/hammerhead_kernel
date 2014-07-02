@@ -135,6 +135,7 @@ struct pil_priv {
 	phys_addr_t region_start;
 	phys_addr_t region_end;
 	void *region;
+	struct dma_attrs attrs;
 	struct pil_image_info __iomem *info;
 	int id;
 	int unvoted_flag;
@@ -364,7 +365,6 @@ static int pil_alloc_region(struct pil_priv *priv, phys_addr_t min_addr,
 	void *region;
 	size_t size = max_addr - min_addr;
 	size_t aligned_size;
-	DEFINE_DMA_ATTRS(attrs);
 
 	/* Don't reallocate due to fragmentation concerns, just sanity check */
 	if (priv->region) {
@@ -379,9 +379,11 @@ static int pil_alloc_region(struct pil_priv *priv, phys_addr_t min_addr,
 	else
 		aligned_size = ALIGN(size, SZ_1M);
 
-	dma_set_attr(DMA_ATTR_SKIP_ZEROING, &attrs);
+	dma_set_attr(DMA_ATTR_SKIP_ZEROING, &priv->attrs);
+	dma_set_attr(DMA_ATTR_NO_KERNEL_MAPPING, &priv->attrs);
 	region = dma_alloc_attrs(priv->desc->dev, aligned_size,
-				&priv->region_start, GFP_KERNEL, &attrs);
+				&priv->region_start, GFP_KERNEL,
+				&priv->attrs);
 
 	if (region == NULL) {
 		pil_err(priv->desc, "Failed to allocate relocatable region of size %zx\n",
@@ -661,6 +663,8 @@ int pil_boot(struct pil_desc *desc)
 		goto release_fw;
 	}
 
+	init_dma_attrs(&priv->attrs);
+
 	ret = pil_init_mmap(desc, mdt);
 	if (ret)
 		goto release_fw;
@@ -707,8 +711,9 @@ out:
 	up_read(&pil_pm_rwsem);
 	if (ret) {
 		if (priv->region) {
-			dma_free_coherent(desc->dev, priv->region_size,
-					priv->region, priv->region_start);
+			dma_free_attrs(desc->dev, priv->region_size,
+					priv->region, priv->region_start,
+					&priv->attrs);
 			priv->region = NULL;
 		}
 		pil_release_mmap(desc);
@@ -738,8 +743,8 @@ void pil_shutdown(struct pil_desc *desc)
 		flush_delayed_work(&priv->proxy);
 
 	if (priv->region) {
-		dma_free_coherent(desc->dev, priv->region_size,
-				priv->region, priv->region_start);
+		dma_free_attrs(desc->dev, priv->region_size,
+				priv->region, priv->region_start, &priv->attrs);
 		priv->region = NULL;
 	}
 }
