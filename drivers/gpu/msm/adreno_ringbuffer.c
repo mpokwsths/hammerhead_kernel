@@ -580,7 +580,8 @@ adreno_ringbuffer_addcmds(struct adreno_ringbuffer *rb,
 	unsigned int gpuaddr = rb->device->memstore.gpuaddr;
 	bool profile_ready;
 
-	if (drawctxt != NULL && kgsl_context_detached(&drawctxt->base))
+	if (drawctxt != NULL && kgsl_context_detached(&drawctxt->base) &&
+		!(flags & KGSL_CMD_FLAGS_INTERNAL_ISSUE))
 		return -EINVAL;
 
 	rb->global_ts++;
