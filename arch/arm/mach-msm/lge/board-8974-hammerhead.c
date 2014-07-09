@@ -44,7 +44,6 @@
 #include "../clock.h"
 #include "../devices.h"
 #include "../spm.h"
-#include "../modem_notifier.h"
 #include "../pm.h"
 #include "../platsmp.h"
 #include <mach/msm_serial_hs_lite.h>
@@ -73,7 +72,6 @@ extern void init_bcm_wifi(void);
 
 void __init msm8974_add_drivers(void)
 {
-	msm_init_modem_notifier_list();
 	msm_smd_init();
 	msm_rpm_driver_init();
 	msm_pm_sleep_status_init();
