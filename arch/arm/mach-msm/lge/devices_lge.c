@@ -75,6 +75,9 @@ static struct persistent_ram_descriptor pram_descs[] = {
 	},
 #endif
 #ifdef CONFIG_PERSISTENT_TRACER
+#ifndef LGE_RAM_CONSOLE_SIZE
+#define LGE_RAM_CONSOLE_SIZE (128 * SZ_1K * 2)
+#endif
 	{
 		.name = "persistent_trace",
 		.size = LGE_RAM_CONSOLE_SIZE,
@@ -82,11 +85,13 @@ static struct persistent_ram_descriptor pram_descs[] = {
 #endif
 };
 
+#if defined(CONFIG_ANDROID_PERSISTENT_RAM)
 static struct persistent_ram persist_ram = {
 	.size = LGE_PERSISTENT_RAM_SIZE,
 	.num_descs = ARRAY_SIZE(pram_descs),
 	.descs = pram_descs,
 };
+#endif
 
 static void __init lge_add_persist_ram_devices(void)
 {
