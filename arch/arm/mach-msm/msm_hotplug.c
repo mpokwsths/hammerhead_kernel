@@ -23,8 +23,6 @@
 #include <linux/lcd_notify.h>
 #include <linux/input.h>
 
-#include "acpuclock.h"
-
 #define MSM_HOTPLUG		"msm_hotplug"
 #define DEFAULT_UPDATE_RATE	HZ / 10
 #define START_DELAY		HZ * 20
@@ -158,7 +156,7 @@ static int get_slowest_cpu(void)
 	for_each_online_cpu(cpu) {
 		if (cpu == 0)
 			continue;
-		rate[cpu] = acpuclk_get_rate(cpu);
+		rate[cpu] = cpufreq_get(cpu);
 		if (rate[cpu] < lowest_rate) {
 			lowest_rate = rate[cpu];
 			slowest_cpu = cpu;
