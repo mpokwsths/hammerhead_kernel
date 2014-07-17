@@ -2000,7 +2000,7 @@ static int kgsl_iommu_set_pf_policy(struct kgsl_mmu *mmu,
 	return ret;
 }
 
-struct kgsl_mmu_ops iommu_ops = {
+struct kgsl_mmu_ops kgsl_iommu_ops = {
 	.mmu_init = kgsl_iommu_init,
 	.mmu_close = kgsl_iommu_close,
 	.mmu_start = kgsl_iommu_start,
