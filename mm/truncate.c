@@ -262,8 +262,10 @@ void truncate_inode_pages_range(struct address_space *mapping,
 		cond_resched();
 		if (!pagevec_lookup(&pvec, mapping, index,
 			min(end - index, (pgoff_t)PAGEVEC_SIZE - 1) + 1)) {
+			/* If all gone from start onwards, we're done */
 			if (index == start)
 				break;
+			/* Otherwise restart to make sure all gone */
 			index = start;
 			continue;
 		}
@@ -277,8 +279,11 @@ void truncate_inode_pages_range(struct address_space *mapping,
 
 			/* We rely upon deletion not changing page->index */
 			index = page->index;
-			if (index > end)
+			if (index > end) {
+				/* Restart punch to make sure all gone */
+				index = start - 1;
 				break;
+			}
 
 			lock_page(page);
 			WARN_ON(page->index != index);
