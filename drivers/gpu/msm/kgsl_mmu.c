@@ -712,10 +712,10 @@ kgsl_mmu_get_gpuaddr(struct kgsl_pagetable *pagetable,
 	}
 
 	bit = bitmap_find_next_zero_area(pagetable->mem_bitmap,
-		KGSL_SVM_UPPER_BOUND >> PAGE_SHIFT, 1,
+		TASK_SIZE >> PAGE_SHIFT, 1,
 		(unsigned int) (size >> PAGE_SHIFT), 0);
 
-	if (bit && (bit < (KGSL_SVM_UPPER_BOUND >> PAGE_SHIFT))) {
+	if (bit && (bit < (TASK_SIZE >> PAGE_SHIFT))) {
 		bitmap_set(pagetable->mem_bitmap,
 				(int) bit, (int) (size >> PAGE_SHIFT));
 		memdesc->gpuaddr = (bit << PAGE_SHIFT);
