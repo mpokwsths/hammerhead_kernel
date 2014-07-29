@@ -342,6 +342,8 @@ struct mdss_dsi_ctrl_pdata {
 	int pwm_pmic_gpio;
 	int pwm_lpg_chan;
 	int bklt_max;
+	bool dsi_irq_line;
+
 	struct pwm_device *pwm_bl;
 	struct dsi_drv_cm_data shared_pdata;
 	u32 pclk_rate;

@@ -63,6 +63,9 @@ void mdss_dsi_ctrl_init(struct mdss_dsi_ctrl_pdata *ctrl)
 		ctrl->ndx = DSI_CTRL_1;
 	}
 
+	if (!(ctrl->dsi_irq_line))
+		ctrl->dsi_hw->irq_info = mdss_intr_line();
+
 	ctrl_list[ctrl->ndx] = ctrl;	/* keep it */
 
 	if (mdss_register_irq(ctrl->dsi_hw))
