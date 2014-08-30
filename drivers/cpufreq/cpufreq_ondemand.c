@@ -22,7 +22,9 @@
 #include <linux/hrtimer.h>
 #include <linux/tick.h>
 #include <linux/ktime.h>
+#ifndef CONFIG_CPU_BOOST
 #include <linux/smpboot.h>
+#endif
 #include <linux/sched.h>
 #include <linux/workqueue.h>
 
@@ -109,12 +111,15 @@ struct cpu_dbs_info_s {
 	 */
 	struct mutex timer_mutex;
 
+#ifndef CONFIG_CPU_BOOST
 	atomic_t src_sync_cpu;
 	atomic_t sync_enabled;
+#endif
 };
 static DEFINE_PER_CPU(struct cpu_dbs_info_s, od_cpu_dbs_info);
+#ifndef CONFIG_CPU_BOOST
 static DEFINE_PER_CPU(struct task_struct *, sync_thread);
-
+#endif
 static inline void dbs_timer_init(struct cpu_dbs_info_s *dbs_info);
 static inline void dbs_timer_exit(struct cpu_dbs_info_s *dbs_info);
 
@@ -635,10 +640,13 @@ static ssize_t store_powersave_bias(struct kobject *a, struct attribute *b,
 					/* restart dbs timer */
 					mutex_lock(&dbs_info->timer_mutex);
 					dbs_timer_init(dbs_info);
+
+					mutex_unlock(&dbs_info->timer_mutex);
+#ifndef CONFIG_CPU_BOOST
 					/* Enable frequency synchronization
 					 * of CPUs */
-					mutex_unlock(&dbs_info->timer_mutex);
 					atomic_set(&dbs_info->sync_enabled, 1);
+#endif
 				}
 skip_this_cpu:
 				unlock_policy_rwsem_write(cpu);
@@ -669,10 +677,12 @@ skip_this_cpu:
 			if (dbs_info->cur_policy) {
 				/* cpu using ondemand, cancel dbs timer */
 				dbs_timer_exit(dbs_info);
+#ifndef CONFIG_CPU_BOOST
 				/* Disable frequency synchronization of
 				 * CPUs to avoid re-queueing of work from
 				 * sync_thread */
 				atomic_set(&dbs_info->sync_enabled, 0);
+#endif
 
 				mutex_lock(&dbs_info->timer_mutex);
 				ondemand_powersave_bias_setspeed(
@@ -1019,6 +1029,7 @@ static int should_io_be_busy(void)
 	return 0;
 }
 
+#ifndef CONFIG_CPU_BOOST
 static int dbs_migration_notify(struct notifier_block *nb,
 				unsigned long target_cpu, void *arg)
 {
@@ -1125,6 +1136,7 @@ static struct smp_hotplug_thread dbs_sync_threads = {
 	.thread_fn	= run_dbs_sync,
 	.thread_comm	= "dbs_sync/%u",
 };
+#endif
 
 static int cpufreq_governor_dbs(struct cpufreq_policy *policy,
 				   unsigned int event)
@@ -1164,8 +1176,10 @@ static int cpufreq_governor_dbs(struct cpufreq_policy *policy,
 			if (dbs_tuners_ins.ignore_nice)
 				j_dbs_info->prev_cpu_nice =
 						kcpustat_cpu(j).cpustat[CPUTIME_NICE];
+#ifndef CONFIG_CPU_BOOST
 			if (!dbs_tuners_ins.powersave_bias)
 				atomic_set(&j_dbs_info->sync_enabled, 1);
+#endif
 		}
 		this_dbs_info->cpu = cpu;
 		this_dbs_info->rate_mult = 1;
@@ -1202,8 +1216,10 @@ static int cpufreq_governor_dbs(struct cpufreq_policy *policy,
 			if (dbs_tuners_ins.sync_freq == 0)
 				dbs_tuners_ins.sync_freq = policy->min;
 
+#ifndef CONFIG_CPU_BOOST
 			atomic_notifier_chain_register(&migration_notifier_head,
 					&dbs_migration_nb);
+#endif
 		}
 		mutex_unlock(&dbs_mutex);
 
@@ -1221,22 +1237,30 @@ static int cpufreq_governor_dbs(struct cpufreq_policy *policy,
 		mutex_lock(&dbs_mutex);
 		dbs_enable--;
 
+#ifndef CONFIG_CPU_BOOST
 		for_each_cpu(j, policy->cpus) {
 			struct cpu_dbs_info_s *j_dbs_info;
 			j_dbs_info = &per_cpu(od_cpu_dbs_info, j);
 			atomic_set(&j_dbs_info->sync_enabled, 0);
 		}
+#endif
 
 		/* If device is being removed, policy is no longer
 		 * valid. */
 		this_dbs_info->cur_policy = NULL;
+#ifndef CONFIG_CPU_BOOST
 		if (!dbs_enable) {
+#else
+		if (!dbs_enable)
+#endif
 			sysfs_remove_group(cpufreq_global_kobject,
 					   &dbs_attr_group);
+#ifndef CONFIG_CPU_BOOST
 			atomic_notifier_chain_unregister(
 				&migration_notifier_head,
 				&dbs_migration_nb);
 		}
+#endif
 
 		mutex_unlock(&dbs_mutex);
 
@@ -1270,7 +1294,10 @@ static int __init cpufreq_gov_dbs_init(void)
 {
 	u64 idle_time;
 	unsigned int i;
-	int rc, cpu = get_cpu();
+#ifndef CONFIG_CPU_BOOST
+	int rc;
+#endif
+	int cpu = get_cpu();
 
 	idle_time = get_cpu_idle_time_us(cpu, NULL);
 	put_cpu();
@@ -1301,13 +1328,16 @@ static int __init cpufreq_gov_dbs_init(void)
 			&per_cpu(od_cpu_dbs_info, i);
 
 		mutex_init(&this_dbs_info->timer_mutex);
-
+#ifndef CONFIG_CPU_BOOST
 		atomic_set(&this_dbs_info->src_sync_cpu, -1);
+#endif
 	}
 
+#ifndef CONFIG_CPU_BOOST
 	rc = smpboot_register_percpu_thread(&dbs_sync_threads);
 	if (rc)
 		printk(KERN_ERR "Failed to register dbs_sync threads\n");
+#endif
 
 	return cpufreq_register_governor(&cpufreq_gov_ondemand);
 }
