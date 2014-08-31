@@ -80,30 +80,44 @@ static unsigned int order_to_size(int order)
 	return PAGE_SIZE << order;
 }
 
+static struct page *alloc_buffer_page(struct ion_iommu_heap *heap,
+struct ion_buffer *buffer,
+unsigned long order,
+bool *from_pool)
+{
+bool cached = ion_buffer_cached(buffer);
+bool split_pages = ion_buffer_fault_user_mappings(buffer);
+struct page *page;
+struct ion_page_pool *pool;
+if (!cached)
+pool = heap->uncached_pools[order_to_index(order)];
+else
+pool = heap->cached_pools[order_to_index(order)];
+page = ion_page_pool_alloc(pool, from_pool);
+if (!page)
+return 0;
+if (split_pages)
+split_page(page, order);
+return page;
+}
+
+
 static struct page_info *alloc_largest_available(struct ion_iommu_heap *heap,
+						struct ion_buffer *buffer,
 						unsigned long size,
-						unsigned int max_order,
-						unsigned long flags)
+						unsigned int max_order)
 {
 	struct page *page;
 	struct page_info *info;
 	int i;
+	bool from_pool;
 
 	for (i = 0; i < num_orders; i++) {
 		gfp_t gfp;
 		int idx = order_to_index(orders[i]);
-		struct ion_page_pool *pool;
 
 		if (idx == BAD_ORDER)
 			continue;
-
-		if (ION_IS_CACHED(flags)) {
-			pool = heap->cached_pools[idx];
-			BUG_ON(!pool);
-		} else {
-			pool = heap->uncached_pools[idx];
-			BUG_ON(!pool);
-		}
 
 		if (size < order_to_size(orders[i]))
 			continue;
@@ -116,11 +130,8 @@ static struct page_info *alloc_largest_available(struct ion_iommu_heap *heap,
 			gfp = low_gfp_flags;
 		}
 		trace_alloc_pages_iommu_start(gfp, orders[i]);
-		if (flags & ION_FLAG_POOL_FORCE_ALLOC)
-			page = alloc_pages(gfp, orders[i]);
-		else
-			page = ion_page_pool_alloc(pool);
 		trace_alloc_pages_iommu_end(gfp, orders[i]);
+		page = alloc_buffer_page(heap, buffer, orders[i], &from_pool);
 		if (!page) {
 			trace_alloc_pages_iommu_fail(gfp, orders[i]);
 			continue;
@@ -225,9 +236,9 @@ static int ion_iommu_heap_allocate(struct ion_heap *heap,
 		INIT_LIST_HEAD(&pages_list);
 		while (size_remaining > 0) {
 			info = alloc_largest_available(iommu_heap,
+						buffer,
 						size_remaining,
-						max_order,
-						flags);
+						max_order);
 			if (!info) {
 				ret = -ENOMEM;
 				goto err_free_data;
@@ -537,7 +548,7 @@ struct ion_heap *ion_iommu_heap_create(struct ion_platform_heap *heap_data)
 			gfp_flags = high_gfp_flags | __GFP_ZERO;
 		else
 			gfp_flags = low_gfp_flags | __GFP_ZERO;
-		pool = ion_page_pool_create(gfp_flags, orders[i], true);
+		pool = ion_page_pool_create(gfp_flags, orders[i]);
 		if (!pool)
 			goto err_create_cached_pool;
 		iommu_heap->cached_pools[i] = pool;
@@ -551,7 +562,7 @@ struct ion_heap *ion_iommu_heap_create(struct ion_platform_heap *heap_data)
 			gfp_flags = high_gfp_flags | __GFP_ZERO;
 		else
 			gfp_flags = low_gfp_flags | __GFP_ZERO;
-		pool = ion_page_pool_create(gfp_flags, orders[i], false);
+		pool = ion_page_pool_create(gfp_flags, orders[i]);
 		if (!pool)
 			goto err_create_uncached_pool;
 		iommu_heap->uncached_pools[i] = pool;
