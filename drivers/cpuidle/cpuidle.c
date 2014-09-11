@@ -19,7 +19,6 @@
 #include <linux/ktime.h>
 #include <linux/hrtimer.h>
 #include <linux/module.h>
-#include <trace/events/power.h>
 
 #include "cpuidle.h"
 
@@ -197,23 +196,11 @@ int cpuidle_idle_call(void)
 	    clockevents_notify(CLOCK_EVT_NOTIFY_BROADCAST_ENTER, &dev->cpu))
 		return -EBUSY;
 
-	trace_cpu_idle_rcuidle(next_state, dev->cpu);
-
-	if (need_resched()) {
-		dev->last_residency = 0;
-		local_irq_enable();
-		entered_state = next_state;
-		goto exit;
-	}
-
 	if (cpuidle_state_is_coupled(dev, drv, next_state))
 		entered_state = cpuidle_enter_state_coupled(dev, drv,
 							    next_state);
 	else
 		entered_state = cpuidle_enter_state(dev, drv, next_state);
-
-exit:
-	trace_cpu_idle_rcuidle(PWR_EVENT_EXIT, dev->cpu);
 
 	if (broadcast)
 		clockevents_notify(CLOCK_EVT_NOTIFY_BROADCAST_EXIT, &dev->cpu);
