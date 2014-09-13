@@ -12,6 +12,7 @@
 #include <linux/smp.h>
 #include <linux/cpu.h>
 #include <linux/ratelimit.h>
+#include <linux/notifier.h>
 
 #include <asm/smp_plat.h>
 #include <asm/vfp.h>
