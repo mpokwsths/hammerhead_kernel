@@ -1647,6 +1647,13 @@ done:
 	return status;
 }
 
+/*
+ * kgsl_iommu_flush_tlb_pt_current - Flush IOMMU TLB if pagetable is
+ * currently used by GPU.
+ * @pt - Pointer to kgsl pagetable structure
+ *
+ * Return - void
+ */
 static void kgsl_iommu_flush_tlb_pt_current(struct kgsl_pagetable *pt)
 {
 	int lock_taken = 0;
@@ -1719,6 +1726,8 @@ kgsl_iommu_map(struct kgsl_pagetable *pt,
 	struct kgsl_iommu_pt *iommu_pt = pt->priv;
 	size_t size = memdesc->size;
 	unsigned int protflags;
+	struct kgsl_device *device = pt->mmu->device;
+	struct adreno_device *adreno_dev = ADRENO_DEVICE(device);
 
 	BUG_ON(NULL == iommu_pt);
 
@@ -1765,7 +1774,7 @@ kgsl_iommu_map(struct kgsl_pagetable *pt,
 	 *  being read) -> causing TLB sync stuck issues. As a result SW must
 	 *  implement the invalidate+map.
 	 */
-	if (!msm_soc_version_supports_iommu_v0())
+	if (adreno_dev->features & IOMMU_FLUSH_TLB_ON_MAP)
 		kgsl_iommu_flush_tlb_pt_current(pt);
 
 	return ret;
