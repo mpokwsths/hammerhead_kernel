@@ -631,14 +631,17 @@ static int __devinit dwc3_probe(struct platform_device *pdev)
 	}
 	dwc->mode = mode;
 
+#ifdef CONFIG_DEBUG_FS
 	ret = dwc3_debugfs_init(dwc);
 	if (ret) {
 		dev_err(dev, "failed to initialize debugfs\n");
 		goto err2;
 	}
+#endif
 
 	return 0;
 
+#ifdef CONFIG_DEBUG_FS
 err2:
 	switch (mode) {
 	case DWC3_MODE_DEVICE:
@@ -656,6 +659,7 @@ err2:
 		/* do nothing */
 		break;
 	}
+#endif
 
 err1:
 	dwc3_core_exit(dwc);
@@ -672,7 +676,9 @@ static int __devexit dwc3_remove(struct platform_device *pdev)
 
 	pm_runtime_disable(&pdev->dev);
 
+#ifdef CONFIG_DEBUG_FS
 	dwc3_debugfs_exit(dwc);
+#endif
 
 	switch (dwc->mode) {
 	case DWC3_MODE_DEVICE:

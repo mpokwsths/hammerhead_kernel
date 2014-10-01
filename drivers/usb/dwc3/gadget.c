@@ -285,7 +285,9 @@ void dwc3_gadget_giveback(struct dwc3_ep *dep, struct dwc3_request *req,
 			req, dep->name, req->request.actual,
 			req->request.length, status);
 
+#ifdef CONFIG_DEBUG_FS
 	dbg_done(dep->number, req->request.actual, req->request.status);
+#endif
 	spin_unlock(&dwc->lock);
 	req->request.complete(&dep->endpoint, &req->request);
 	spin_lock(&dwc->lock);
@@ -700,7 +702,9 @@ static int dwc3_gadget_ep_enable(struct usb_ep *ep,
 
 	spin_lock_irqsave(&dwc->lock, flags);
 	ret = __dwc3_gadget_ep_enable(dep, desc, ep->comp_desc, false);
+#ifdef CONFIG_DEBUG_FS
 	dbg_event(dep->number, "ENABLE", ret);
+#endif
 	spin_unlock_irqrestore(&dwc->lock, flags);
 
 	return ret;
@@ -733,7 +737,9 @@ static int dwc3_gadget_ep_disable(struct usb_ep *ep)
 
 	spin_lock_irqsave(&dwc->lock, flags);
 	ret = __dwc3_gadget_ep_disable(dep);
+#ifdef CONFIG_DEBUG_FS
 	dbg_event(dep->number, "DISABLE", ret);
+#endif
 	spin_unlock_irqrestore(&dwc->lock, flags);
 
 	return ret;
@@ -941,7 +947,9 @@ static void dwc3_prepare_trbs(struct dwc3_ep *dep, bool starting)
 				if (last_one)
 					break;
 			}
+#ifdef CONFIG_DEBUG_FS
 			dbg_queue(dep->number, &req->request, 0);
+#endif
 		} else {
 			dma = req->request.dma;
 			length = req->request.length;
@@ -957,7 +965,9 @@ static void dwc3_prepare_trbs(struct dwc3_ep *dep, bool starting)
 			dwc3_prepare_one_trb(dep, req, dma, length,
 					last_one, false);
 
+#ifdef CONFIG_DEBUG_FS
 			dbg_queue(dep->number, &req->request, 0);
+#endif
 			if (last_one)
 				break;
 		}
@@ -999,7 +1009,9 @@ static int __dwc3_gadget_kick_transfer(struct dwc3_ep *dep, u16 cmd_param,
 	}
 	if (!req) {
 		dep->flags |= DWC3_EP_PENDING_REQUEST;
+#ifdef CONFIG_DEBUG_FS
 		dbg_event(dep->number, "NO REQ", 0);
+#endif
 		return 0;
 	}
 
@@ -1087,8 +1099,10 @@ static void __dwc3_gadget_start_isoc(struct dwc3 *dwc,
 	uf = cur_uf + dep->interval * 4;
 
 	ret = __dwc3_gadget_kick_transfer(dep, uf, 1);
+#ifdef CONFIG_DEBUG_FS
 	if (ret < 0)
 		dbg_event(dep->number, "QUEUE", ret);
+#endif
 }
 
 static void dwc3_gadget_start_isoc(struct dwc3 *dwc,
@@ -1175,7 +1189,9 @@ static int __dwc3_gadget_ep_queue(struct dwc3_ep *dep, struct dwc3_request *req)
 
 		ret = __dwc3_gadget_kick_transfer(dep, 0, true);
 		if (ret && ret != -EBUSY) {
+#ifdef CONFIG_DEBUG_FS
 			dbg_event(dep->number, "QUEUE", ret);
+#endif
 			dev_dbg(dwc->dev, "%s: failed to kick transfers\n",
 					dep->name);
 		}
@@ -1193,7 +1209,9 @@ static int __dwc3_gadget_ep_queue(struct dwc3_ep *dep, struct dwc3_request *req)
 		ret = __dwc3_gadget_kick_transfer(dep, dep->resource_index,
 				false);
 		if (ret && ret != -EBUSY) {
+#ifdef CONFIG_DEBUG_FS
 			dbg_event(dep->number, "QUEUE", ret);
+#endif
 			dev_dbg(dwc->dev, "%s: failed to kick transfers\n",
 					dep->name);
 		}
@@ -1270,7 +1288,9 @@ static int dwc3_gadget_ep_dequeue(struct usb_ep *ep,
 	}
 
 out1:
+#ifdef CONFIG_DEBUG_FS
 	dbg_event(dep->number, "DEQUEUE", 0);
+#endif
 	/* giveback the request */
 	dwc3_gadget_giveback(dep, req, -ECONNRESET);
 
@@ -1328,7 +1348,9 @@ static int dwc3_gadget_ep_set_halt(struct usb_ep *ep, int value)
 		goto out;
 	}
 
+#ifdef CONFIG_DEBUG_FS
 	dbg_event(dep->number, "HALT", value);
+#endif
 	ret = __dwc3_gadget_ep_set_halt(dep, value);
 out:
 	spin_unlock_irqrestore(&dwc->lock, flags);
@@ -1343,7 +1365,9 @@ static int dwc3_gadget_ep_set_wedge(struct usb_ep *ep)
 	unsigned long			flags;
 
 	spin_lock_irqsave(&dwc->lock, flags);
+#ifdef CONFIG_DEBUG_FS
 	dbg_event(dep->number, "WEDGE", 0);
+#endif
 	dep->flags |= DWC3_EP_WEDGE;
 	spin_unlock_irqrestore(&dwc->lock, flags);
 
@@ -1981,8 +2005,10 @@ static int dwc3_cleanup_done_reqs(struct dwc3 *dwc, struct dwc3_ep *dep,
 					 * request in the request_list.
 					 */
 					dep->flags |= DWC3_EP_MISSED_ISOC;
+#ifdef CONFIG_DEBUG_FS
 					dbg_event(dep->number, "MISSED ISOC",
 									status);
+#endif
 				} else {
 					dev_err(dwc->dev, "incomplete IN transfer %s\n",
 							dep->name);
@@ -2133,8 +2159,10 @@ static void dwc3_endpoint_interrupt(struct dwc3 *dwc,
 			ret = __dwc3_gadget_kick_transfer(dep, 0, 1);
 			if (!ret || ret == -EBUSY)
 				return;
+#ifdef CONFIG_DEBUG_FS
 			else
 				dbg_event(dep->number, "QUEUE", ret);
+#endif
 
 			dev_dbg(dwc->dev, "%s: failed to kick transfers\n",
 					dep->name);
@@ -2271,7 +2299,9 @@ static void dwc3_gadget_disconnect_interrupt(struct dwc3 *dwc)
 	reg &= ~DWC3_DCTL_INITU2ENA;
 	dwc3_writel(dwc->regs, DWC3_DCTL, reg);
 
+#ifdef CONFIG_DEBUG_FS
 	dbg_event(0xFF, "DISCONNECT", 0);
+#endif
 	dwc3_disconnect_gadget(dwc);
 	dwc->start_config_issued = false;
 
@@ -2345,7 +2375,9 @@ static void dwc3_gadget_reset_interrupt(struct dwc3 *dwc)
 			dwc3_gadget_disconnect_interrupt(dwc);
 	}
 
+#ifdef CONFIG_DEBUG_FS
 	dbg_event(0xFF, "BUS RST", 0);
+#endif
 	/* after reset -> Default State */
 	dwc->dev_state = DWC3_DEFAULT_STATE;
 
@@ -2512,7 +2544,9 @@ static void dwc3_gadget_wakeup_interrupt(struct dwc3 *dwc)
 	 * implemented.
 	 */
 
+#ifdef CONFIG_DEBUG_FS
 	dbg_event(0xFF, "WAKEUP", 0);
+#endif
 	dwc->gadget_driver->resume(&dwc->gadget);
 }
 
@@ -2569,11 +2603,15 @@ static void dwc3_gadget_linksts_change_interrupt(struct dwc3 *dwc,
 
 	if (next == DWC3_LINK_STATE_U0) {
 		if (dwc->link_state == DWC3_LINK_STATE_U3) {
+#ifdef CONFIG_DEBUG_FS
 			dbg_event(0xFF, "RESUME", 0);
+#endif
 			dwc->gadget_driver->resume(&dwc->gadget);
 		}
 	} else if (next == DWC3_LINK_STATE_U3) {
+#ifdef CONFIG_DEBUG_FS
 		dbg_event(0xFF, "SUSPEND", 0);
+#endif
 		dwc->gadget_driver->suspend(&dwc->gadget);
 	}
 
@@ -2608,14 +2646,18 @@ static void dwc3_gadget_interrupt(struct dwc3 *dwc,
 		dev_vdbg(dwc->dev, "Start of Periodic Frame\n");
 		break;
 	case DWC3_DEVICE_EVENT_ERRATIC_ERROR:
+#ifdef CONFIG_DEBUG_FS
 		dbg_event(0xFF, "ERROR", 0);
+#endif
 		dev_vdbg(dwc->dev, "Erratic Error\n");
 		break;
 	case DWC3_DEVICE_EVENT_CMD_CMPL:
 		dev_vdbg(dwc->dev, "Command Complete\n");
 		break;
 	case DWC3_DEVICE_EVENT_OVERFLOW:
+#ifdef CONFIG_DEBUG_FS
 		dbg_event(0xFF, "OVERFL", 0);
+#endif
 		dev_vdbg(dwc->dev, "Overflow\n");
 		/*
 		 * Controllers prior to 2.30a revision has a bug where
@@ -2642,7 +2684,9 @@ static void dwc3_gadget_interrupt(struct dwc3 *dwc,
 		 * Add a warning message to indicate that this event is received
 		 * which means that event buffer might have corrupted.
 		 */
+#ifdef CONFIG_DEBUG_FS
 		dbg_event(0xFF, "TSTLMP", 0);
+#endif
 		if (dwc->revision < DWC3_REVISION_230A)
 			dev_warn(dwc->dev, "Vendor Device Test LMP Received\n");
 		break;

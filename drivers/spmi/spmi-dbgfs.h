@@ -14,11 +14,7 @@
 
 #include <linux/debugfs.h>
 
-#ifdef CONFIG_DEBUG_FS
 int spmi_dfs_add_controller(struct spmi_controller *ctrl);
-#else
-static int spmi_dfs_add_controller(struct spmi_controller *ctrl) { return 0; }
-#endif
 
 struct dentry *spmi_dfs_create_file(struct spmi_controller *ctrl,
 					const char *name, void *data,

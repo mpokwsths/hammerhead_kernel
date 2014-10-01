@@ -105,7 +105,7 @@ static int in_cont_index;
 static int out_cold_index;
 static char *out_buffer;
 static char *in_buffer;
-
+#endif
 
 int q6asm_mmap_apr_dereg(void)
 {
@@ -125,6 +125,7 @@ int q6asm_mmap_apr_dereg(void)
 	return 0;
 }
 
+#ifdef CONFIG_DEBUG_FS
 static int audio_output_latency_dbgfs_open(struct inode *inode,
 							struct file *file)
 {

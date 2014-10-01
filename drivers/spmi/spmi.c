@@ -22,7 +22,9 @@
 #include <linux/module.h>
 #include <linux/pm_runtime.h>
 
+#ifdef CONFIG_DEBUG_FS
 #include "spmi-dbgfs.h"
+#endif
 
 struct spmii_boardinfo {
 	struct list_head	list;
@@ -749,7 +751,9 @@ static int spmi_register_controller(struct spmi_controller *ctrl)
 	dev_dbg(&ctrl->dev, "Bus spmi-%d registered: dev:%x\n",
 					ctrl->nr, (u32)&ctrl->dev);
 
+#ifdef CONFIG_DEBUG_FS
 	spmi_dfs_add_controller(ctrl);
+#endif
 	return 0;
 
 exit:

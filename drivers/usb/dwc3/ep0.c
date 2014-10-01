@@ -718,7 +718,9 @@ static void dwc3_ep0_inspect_setup(struct dwc3 *dwc,
 		dwc->ep0_next_event = DWC3_EP0_NRDY_DATA;
 	}
 
+#ifdef CONFIG_DEBUG_FS
 	dbg_setup(0x00, ctrl);
+#endif
 	if ((ctrl->bRequestType & USB_TYPE_MASK) == USB_TYPE_STANDARD)
 		ret = dwc3_ep0_std_request(dwc, ctrl);
 	else
@@ -840,7 +842,9 @@ static void dwc3_ep0_complete_status(struct dwc3 *dwc,
 	if (status == DWC3_TRBSTS_SETUP_PENDING)
 		dev_dbg(dwc->dev, "Setup Pending received\n");
 
+#ifdef CONFIG_DEBUG_FS
 	dbg_print(dep->number, "DONE", status, "STATUS");
+#endif
 	dwc->ep0state = EP0_SETUP_PHASE;
 	dwc3_ep0_out_start(dwc);
 }
@@ -927,7 +931,9 @@ static void __dwc3_ep0_do_control_data(struct dwc3 *dwc,
 				req->request.length, DWC3_TRBCTL_CONTROL_DATA);
 	}
 
+#ifdef CONFIG_DEBUG_FS
 	dbg_queue(dep->number, &req->request, ret);
+#endif
 	WARN_ON(ret < 0);
 }
 
@@ -953,7 +959,9 @@ static void __dwc3_ep0_do_control_status(struct dwc3 *dwc, struct dwc3_ep *dep)
 	}
 
 	ret = dwc3_ep0_start_control_status(dep);
+#ifdef CONFIG_DEBUG_FS
 	dbg_print(dep->number, "QUEUE", ret, "STATUS");
+#endif
 	WARN_ON(ret);
 }
 
@@ -1019,7 +1027,9 @@ static void dwc3_ep0_xfernotready(struct dwc3 *dwc,
 			ret = dwc3_ep0_start_trans(dwc, epnum,
 					dwc->ctrl_req_addr, 0,
 					DWC3_TRBCTL_CONTROL_DATA);
+#ifdef CONFIG_DEBUG_FS
 			dbg_event(epnum, "ZLP", ret);
+#endif
 			WARN_ON(ret < 0);
 		}
 

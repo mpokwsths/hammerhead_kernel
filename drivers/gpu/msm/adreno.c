@@ -1420,7 +1420,9 @@ int adreno_probe(struct platform_device *pdev)
 	if (status)
 		goto out;
 
+#ifdef CONFIG_DEBUG_FS
 	adreno_debugfs_init(device);
+#endif
 	adreno_profile_init(device);
 
 	adreno_ft_init_sysfs(device);

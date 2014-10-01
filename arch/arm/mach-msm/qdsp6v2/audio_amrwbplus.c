@@ -35,10 +35,6 @@ static void config_debug_fs(struct q6audio_aio *audio)
 			pr_debug("debugfs_create_file failed\n");
 	}
 }
-#else
-static void config_debug_fs(struct q6audio_aio *)
-{
-}
 #endif
 
 static long audio_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
@@ -205,7 +201,9 @@ static int audio_open(struct inode *inode, struct file *file)
 		goto fail;
 	}
 
+#ifdef CONFIG_DEBUG_FS
 	config_debug_fs(audio);
+#endif
 	pr_debug("%s: AMRWBPLUS dec success mode[%d]session[%d]\n", __func__,
 		audio->feedback,
 		audio->ac->session);
