@@ -99,7 +99,7 @@ enum sdc_mpm_pin_state {
 #define CORE_3_3V_SUPPORT		(1 << 24)
 #define CORE_3_0V_SUPPORT		(1 << 25)
 #define CORE_1_8V_SUPPORT		(1 << 26)
-#define CORE_SYS_BUS_SUPPORT_64_BIT	28
+#define CORE_SYS_BUS_SUPPORT_64_BIT	BIT(28)
 
 #define CORE_MCI_DATA_CTRL	0x2C
 #define CORE_MCI_DPSM_ENABLE	(1 << 0)
@@ -2420,6 +2420,16 @@ static void sdhci_set_default_hw_caps(struct sdhci_msm_host *msm_host,
 			(readl_relaxed(host->ioaddr + SDHCI_CAPABILITIES) |
 			caps), host->ioaddr + CORE_VENDOR_SPEC_CAPABILITIES0);
 	}
+
+	/*
+	 * Mask 64-bit support for controller with 32-bit address bus so that
+	 * smaller descriptor size will be used and improve memory consumption.
+	 * In case bus addressing ever changes, controller version should be
+	 * used in order to decide whether or not to mask 64-bit support.
+	 */
+	caps = readl_relaxed(host->ioaddr + SDHCI_CAPABILITIES);
+	caps &= ~CORE_SYS_BUS_SUPPORT_64_BIT;
+	writel_relaxed(caps, host->ioaddr + CORE_VENDOR_SPEC_CAPABILITIES0);
 }
 
 static int __devinit sdhci_msm_probe(struct platform_device *pdev)
