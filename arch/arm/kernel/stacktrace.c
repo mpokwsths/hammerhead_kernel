@@ -43,6 +43,13 @@ int notrace unwind_frame(struct stackframe *frame)
 }
 #endif
 
+#if !defined(CONFIG_FRAME_POINTER) && !defined(CONFIG_ARM_UNWIND)
+int notrace unwind_frame(struct stackframe *frame)
+{
+	return 0;
+}
+#endif
+
 void notrace walk_stackframe(struct stackframe *frame,
 		     int (*fn)(struct stackframe *, void *), void *data)
 {
