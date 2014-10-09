@@ -200,7 +200,7 @@ static DEFINE_MUTEX(scan_mutex);
 int can_use_cma_pages(gfp_t gfp_mask)
 {
 	int can_use = 0;
-	int mtype = allocflags_to_migratetype(gfp_mask);
+	int mtype = gfpflags_to_migratetype(gfp_mask);
 	int i = 0;
 	int *mtype_fallbacks = get_migratetype_fallbacks(mtype);
 
