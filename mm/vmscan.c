@@ -990,7 +990,7 @@ keep:
 	 * will encounter the same problem
 	 */
 	if (nr_dirty && nr_dirty == nr_congested && global_reclaim(sc))
-		zone_set_flag(zone, ZONE_CONGESTED);
+		set_bit(ZONE_CONGESTED, &zone->flags);
 
 	free_hot_cold_page_list(&free_pages, true);
 
@@ -2610,7 +2610,7 @@ loop_again:
 				break;
 			} else {
 				/* If balanced, clear the congested flag */
-				zone_clear_flag(zone, ZONE_CONGESTED);
+				clear_bit(ZONE_CONGESTED, &zone->flags);
 			}
 		}
 		if (i < 0)
@@ -2722,7 +2722,7 @@ loop_again:
 				 * congested BDIs but as pressure is relieved,
 				 * speculatively avoid congestion waits
 				 */
-				zone_clear_flag(zone, ZONE_CONGESTED);
+				clear_bit(ZONE_CONGESTED, &zone->flags);
 				if (i <= *classzone_idx)
 					balanced += zone->present_pages;
 			}
@@ -3325,11 +3325,11 @@ int zone_reclaim(struct zone *zone, gfp_t gfp_mask, unsigned int order)
 	if (node_state(node_id, N_CPU) && node_id != numa_node_id())
 		return ZONE_RECLAIM_NOSCAN;
 
-	if (zone_test_and_set_flag(zone, ZONE_RECLAIM_LOCKED))
+	if (test_and_set_bit(ZONE_RECLAIM_LOCKED, &zone->flags))
 		return ZONE_RECLAIM_NOSCAN;
 
 	ret = __zone_reclaim(zone, gfp_mask, order);
-	zone_clear_flag(zone, ZONE_RECLAIM_LOCKED);
+	clear_bit(ZONE_RECLAIM_LOCKED, &zone->flags);
 
 	if (!ret)
 		count_vm_event(PGSCAN_ZONE_RECLAIM_FAILED);
