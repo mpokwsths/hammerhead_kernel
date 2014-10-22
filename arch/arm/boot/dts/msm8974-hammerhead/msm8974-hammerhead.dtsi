@@ -46,7 +46,6 @@
 
 	qcom,mdss_mdp@fd900000 {
 		qcom,mdss_fb_primary = <&fb_mem>;
-		batfet-supply = <&pm8941_chg_batif>;
 	};
 
 	qcom,mdss_dsi@fd922800 {
