@@ -539,7 +539,9 @@ int adreno_drawctxt_detach(struct kgsl_context *context)
 			KGSL_MEMSTORE_OFFSET(context->id, eoptimestamp),
 			drawctxt->timestamp);
 
+#ifdef CONFIG_MSM_KGSL_DEBUG
 	adreno_profile_process_results(device);
+#endif
 
 	if (drawctxt->ops && drawctxt->ops->detach)
 		drawctxt->ops->detach(drawctxt);

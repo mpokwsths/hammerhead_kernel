@@ -934,8 +934,10 @@ kgsl_get_process_private(struct kgsl_device *device)
 
 	if (kgsl_process_init_sysfs(device, private))
 		goto error;
+#ifdef CONFIG_MSM_KGSL_DEBUG
 	if (kgsl_process_init_debugfs(private))
 		goto error;
+#endif
 
 	set_bit(KGSL_PROCESS_INIT, &private->priv);
 
@@ -4140,7 +4142,9 @@ int kgsl_device_platform_probe(struct kgsl_device *device)
 		return status;
 
 	/* Initialize logging first, so that failures below actually print. */
+#ifdef CONFIG_MSM_KGSL_DEBUG
 	kgsl_device_debugfs_init(device);
+#endif
 
 	status = kgsl_pwrctrl_init(device);
 	if (status)
@@ -4332,7 +4336,9 @@ static void kgsl_core_exit(void)
 	kgsl_events_exit();
 	kgsl_drm_exit();
 	kgsl_cffdump_destroy();
+#ifdef CONFIG_MSM_KGSL_DEBUG
 	kgsl_core_debugfs_close();
+#endif
 
 	/*
 	 * We call kgsl_sharedmem_uninit_sysfs() and device_unregister()
@@ -4411,7 +4417,9 @@ static int __init kgsl_core_init(void)
 		kobject_create_and_add("proc",
 				       &kgsl_driver.virtdev.kobj);
 
+#ifdef CONFIG_MSM_KGSL_DEBUG
 	kgsl_core_debugfs_init();
+#endif
 
 	kgsl_sharedmem_init_sysfs();
 	kgsl_cffdump_init();

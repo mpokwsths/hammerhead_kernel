@@ -689,10 +689,12 @@ adreno_ringbuffer_addcmds(struct adreno_ringbuffer *rb,
 		GSL_RB_WRITE(rb->device, ringcmds, rcmd_gpu, 1);
 	}
 
+#ifdef CONFIG_MSM_KGSL_DEBUG
 	/* Add any IB required for profiling if it is enabled */
 	if (profile_ready)
 		adreno_profile_preib_processing(rb->device, drawctxt,
 				&flags, &ringcmds, &rcmd_gpu);
+#endif
 
 	/* start-of-pipeline timestamp */
 	GSL_RB_WRITE(rb->device, ringcmds, rcmd_gpu,
@@ -733,11 +735,13 @@ adreno_ringbuffer_addcmds(struct adreno_ringbuffer *rb,
 		cp_type3_packet(CP_WAIT_FOR_IDLE, 1));
 	GSL_RB_WRITE(rb->device, ringcmds, rcmd_gpu, 0x00);
 
+#ifdef CONFIG_MSM_KGSL_DEBUG
 	/* Add any postIB required for profiling if it is enabled and has
 	   assigned counters */
 	if (profile_ready)
 		adreno_profile_postib_processing(rb->device, &flags,
 						 &ringcmds, &rcmd_gpu);
+#endif
 
 	/*
 	 * end-of-pipeline timestamp.  If per context timestamps is not
@@ -1106,8 +1110,10 @@ int adreno_ringbuffer_submitcmd(struct adreno_device *adreno_dev,
 	list_for_each_entry(ib, &cmdbatch->cmdlist, node)
 		numibs++;
 
+#ifdef CONFIG_MSM_KGSL_DEBUG
 	/* process any profiling results that are available into the log_buf */
 	adreno_profile_process_results(device);
+#endif
 
 	/*
 	 * If SKIP CMD flag is set for current context

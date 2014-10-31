@@ -1511,10 +1511,10 @@ int adreno_probe(struct platform_device *pdev)
 	if (status)
 		goto out;
 
-#ifdef CONFIG_DEBUG_FS
+#ifdef CONFIG_MSM_KGSL_DEBUG
 	adreno_debugfs_init(device);
-#endif
 	adreno_profile_init(device);
+#endif
 
 	adreno_ft_init_sysfs(device);
 
@@ -1560,7 +1560,9 @@ static int __devexit adreno_remove(struct platform_device *pdev)
 	adreno_ft_uninit_sysfs(device);
 
 	adreno_coresight_remove(pdev);
+#ifdef CONFIG_MSM_KGSL_DEBUG
 	adreno_profile_close(device);
+#endif
 
 	kgsl_pwrscale_close(device);
 
@@ -2722,8 +2724,10 @@ static int adreno_suspend_context(struct kgsl_device *device)
 	int status = 0;
 	struct adreno_device *adreno_dev = ADRENO_DEVICE(device);
 
+#ifdef CONFIG_MSM_KGSL_DEBUG
 	/* process any profiling results that are available */
 	adreno_profile_process_results(device);
+#endif
 
 	/* switch to NULL ctxt */
 	if (adreno_dev->drawctxt_active != NULL) {
