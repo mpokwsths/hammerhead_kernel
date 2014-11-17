@@ -223,6 +223,8 @@ calc_delta_mine(unsigned long delta_exec, unsigned long weight,
 
 const struct sched_class fair_sched_class;
 
+static unsigned long __read_mostly max_load_balance_interval = HZ/10;
+
 /**************************************************************
  * CFS operations on generic schedulable entities:
  */
