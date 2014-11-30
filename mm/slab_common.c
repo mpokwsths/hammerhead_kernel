@@ -103,10 +103,6 @@ struct kmem_cache *kmem_cache_create(const char *name, size_t size, size_t align
 	mutex_lock(&slab_mutex);
 	if (kmem_cache_sanity_check(name, size) == 0)
 		s = __kmem_cache_create(name, size, align, flags, ctor);
-
-#ifdef CONFIG_DEBUG_VM
-oops:
-#endif
 	mutex_unlock(&slab_mutex);
 	put_online_cpus();
 
