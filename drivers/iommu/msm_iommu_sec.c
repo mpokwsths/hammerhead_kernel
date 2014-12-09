@@ -448,7 +448,7 @@ static int msm_iommu_sec_ptbl_map_range(struct msm_iommu_drvdata *iommu_drvdata,
 	struct msm_scm_map2_req map;
 	unsigned int *pa_list = 0;
 	unsigned int pa, cnt;
-	void *flush_va;
+	void *flush_va, *flush_va_end;
 	unsigned int offset = 0, chunk_offset = 0;
 	int ret, scm_ret;
 
@@ -500,7 +500,9 @@ static int msm_iommu_sec_ptbl_map_range(struct msm_iommu_drvdata *iommu_drvdata,
 	/*
 	 * Ensure that the buffer is in RAM by the time it gets to TZ
 	 */
-	dmac_clean_range(flush_va, flush_va + map.plist.list_size);
+	flush_va_end = (void *) (((unsigned long) flush_va) +
+			(map.plist.list_size * sizeof(*pa_list)));
+	dmac_clean_range(flush_va, flush_va_end);
 
 	ret = scm_call(SCM_SVC_MP, IOMMU_SECURE_MAP2, &map, sizeof(map),
 			&scm_ret, sizeof(scm_ret));
