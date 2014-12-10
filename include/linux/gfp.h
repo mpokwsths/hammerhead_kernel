@@ -376,8 +376,8 @@ extern void free_hot_cold_page_list(struct list_head *list, int cold);
 
 void page_alloc_init(void);
 void drain_zone_pages(struct zone *zone, struct per_cpu_pages *pcp);
-void drain_all_pages(void);
-void drain_local_pages(void *dummy);
+void drain_all_pages(struct zone *zone);
+void drain_local_pages(struct zone *zone);
 
 /*
  * gfp_allowed_mask is set to GFP_BOOT_MASK during early boot to restrict what

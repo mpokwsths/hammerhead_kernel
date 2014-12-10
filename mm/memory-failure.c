@@ -237,7 +237,7 @@ void shake_page(struct page *p, int access)
 		lru_add_drain_all();
 		if (PageLRU(p))
 			return;
-		drain_all_pages();
+		drain_all_pages(NULL);
 		if (PageLRU(p) || is_free_buddy_page(p))
 			return;
 	}
@@ -1573,6 +1573,24 @@ int soft_offline_page(struct page *page, int flags)
 				pfn, ret, page->flags);
 			if (ret > 0)
 				ret = -EIO;
+		} else {
+			/*
+			 * After page migration succeeds, the source page can
+			 * be trapped in pagevec and actual freeing is delayed.
+			 * Freeing code works differently based on PG_hwpoison,
+			 * so there's a race. We need to make sure that the
+			 * source page should be freed back to buddy before
+			 * setting PG_hwpoison.
+			 */
+			if (!is_free_buddy_page(page))
+				lru_add_drain_all();
+			if (!is_free_buddy_page(page))
+				drain_all_pages(NULL);
+			SetPageHWPoison(page);
+			if (!is_free_buddy_page(page))
+				pr_info("soft offline: %#lx: page leaked\n",
+					pfn);
+			atomic_long_inc(&num_poisoned_pages);
 		}
 	} else {
 		pr_info("soft offline: %#lx: isolation failed: %d, page count %d, type %lx\n",
