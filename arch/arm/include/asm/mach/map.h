@@ -60,5 +60,3 @@ extern int ioremap_pages(unsigned long virt, unsigned long phys,
 #endif
 
 #endif
-
-#endif

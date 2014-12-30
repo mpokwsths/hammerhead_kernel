@@ -1272,7 +1272,6 @@ static void __init devicemaps_init(struct machine_desc *mdesc)
 		mdesc->map_io();
 	fill_pmd_gaps();
 
-<<<<<<< HEAD
 	if (use_user_accessible_timers()) {
 		/*
 		 * Generate a mapping for the timer page.
@@ -1286,10 +1285,9 @@ static void __init devicemaps_init(struct machine_desc *mdesc)
 			create_mapping(&map);
 		}
 	}
-=======
+
 	/* Reserve fixed i/o space in VMALLOC region */
 	pci_reserve_io();
->>>>>>> c279443... ARM: Add fixed PCI i/o mapping
 
 	/*
 	 * Finally flush the caches and tlb to ensure that we're in a
