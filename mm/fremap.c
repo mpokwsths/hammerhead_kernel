@@ -203,7 +203,7 @@ get_write_lock:
 		 */
 		if (mapping_cap_account_dirty(mapping)) {
 			unsigned long addr;
-			struct file *file = get_file(vma->vm_file);
+			struct file *file = vma->vm_file;
 			/* mmap_region may free vma; grab the info now */
 			vm_flags = vma->vm_flags;
 
