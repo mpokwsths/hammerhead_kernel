@@ -16,7 +16,6 @@
  */
 #include <asm/thread_info.h>
 #include <asm/vfpmacros.h>
-#include <linux/kern_levels.h>
 #include "../kernel/entry-header.S"
 
 	.macro	DBGSTR, str
@@ -25,7 +24,7 @@
 	add	r0, pc, #4
 	bl	printk
 	b	1f
-	.asciz  KERN_DEBUG "VFP: \str\n"
+	.asciz  "<7>VFP: \str\n"
 	.balign 4
 1:	ldmfd	sp!, {r0-r3, ip, lr}
 #endif
@@ -38,7 +37,7 @@
 	add	r0, pc, #4
 	bl	printk
 	b	1f
-	.asciz  KERN_DEBUG "VFP: \str\n"
+	.asciz  "<7>VFP: \str\n"
 	.balign 4
 1:	ldmfd	sp!, {r0-r3, ip, lr}
 #endif
@@ -53,7 +52,7 @@
 	add	r0, pc, #4
 	bl	printk
 	b	1f
-	.asciz  KERN_DEBUG "VFP: \str\n"
+	.asciz  "<7>VFP: \str\n"
 	.balign 4
 1:	ldmfd	sp!, {r0-r3, ip, lr}
 #endif
