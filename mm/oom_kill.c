@@ -334,8 +334,6 @@ static struct task_struct *select_bad_process(unsigned int *ppoints,
 		 * for memory. Is there a better alternative?
 		 */
 		if (test_tsk_thread_flag(p, TIF_MEMDIE)) {
-			if (unlikely(frozen(p)))
-				__thaw_task(p);
 			if (!force_kill)
 				return ERR_PTR(-1UL);
 		}
@@ -459,6 +457,14 @@ void note_oom_kill(void)
 void mark_tsk_oom_victim(struct task_struct *tsk)
 {
 	set_tsk_thread_flag(tsk, TIF_MEMDIE);
+
+	/*
+	 * Make sure that the task is woken up from uninterruptible sleep
+	 * if it is frozen because OOM killer wouldn't be able to free
+	 * any memory and livelock. freezing_slow_path will tell the freezer
+	 * that TIF_MEMDIE tasks should be ignored.
+	 */
+	__thaw_task(tsk);
 }
 
 /**
