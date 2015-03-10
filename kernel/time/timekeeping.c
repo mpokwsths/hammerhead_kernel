@@ -241,28 +241,6 @@ void getnstimeofday(struct timespec *ts)
 
 EXPORT_SYMBOL(getnstimeofday);
 
-ktime_t ktime_get(void)
-{
-	struct timekeeper *tk = &timekeeper;
-	unsigned int seq;
-	s64 secs, nsecs;
-
-	WARN_ON(timekeeping_suspended);
-
-	do {
-		seq = read_seqbegin(&tk->lock);
-		secs = tk->xtime_sec + tk->wall_to_monotonic.tv_sec;
-		nsecs = timekeeping_get_ns(tk) + tk->wall_to_monotonic.tv_nsec;
-
-	} while (read_seqretry(&tk->lock, seq));
-	/*
-	 * Use ktime_set/ktime_add_ns to create a proper ktime on
-	 * 32-bit architectures without CONFIG_KTIME_SCALAR.
-	 */
-	return ktime_add_ns(ktime_set(secs, 0), nsecs);
-}
-EXPORT_SYMBOL_GPL(ktime_get);
-
 /**
  * ktime_get_ts - get the monotonic clock in timespec format
  * @ts:		pointer to timespec variable
@@ -820,6 +798,38 @@ static struct syscore_ops timekeeping_syscore_ops = {
 	.resume		= timekeeping_resume,
 	.suspend	= timekeeping_suspend,
 };
+
+ktime_t ktime_get(void)
+{
+	struct timekeeper *tk = &timekeeper;
+	unsigned int seq;
+	int timekeeping_state_now = 0;
+	s64 secs, nsecs;
+
+	if (timekeeping_suspended) {
+		timekeeping_resume();
+		timekeeping_state_now = 1;
+	}
+
+	WARN_ON(timekeeping_suspended);
+
+	do {
+		seq = read_seqbegin(&tk->lock);
+		secs = tk->xtime_sec + tk->wall_to_monotonic.tv_sec;
+		nsecs = timekeeping_get_ns(tk) + tk->wall_to_monotonic.tv_nsec;
+
+	} while (read_seqretry(&tk->lock, seq));
+
+	if (timekeeping_state_now)
+		timekeeping_suspend();
+
+	/*
+	 * Use ktime_set/ktime_add_ns to create a proper ktime on
+	 * 32-bit architectures without CONFIG_KTIME_SCALAR.
+	 */
+	return ktime_add_ns(ktime_set(secs, 0), nsecs);
+}
+EXPORT_SYMBOL_GPL(ktime_get);
 
 static int __init timekeeping_init_ops(void)
 {
