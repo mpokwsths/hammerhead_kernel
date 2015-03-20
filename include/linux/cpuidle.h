@@ -161,7 +161,6 @@ extern int cpuidle_wrap_enter(struct cpuidle_device *dev,
 				int (*enter)(struct cpuidle_device *dev,
 					struct cpuidle_driver *drv, int index));
 extern int cpuidle_play_dead(void);
-extern void cpuidle_use_deepest_state(bool enable);
 
 #else
 static inline void disable_cpuidle(void) { }
@@ -190,7 +189,7 @@ static inline int cpuidle_wrap_enter(struct cpuidle_device *dev,
 					struct cpuidle_driver *drv, int index))
 { return -ENODEV; }
 static inline int cpuidle_play_dead(void) {return -ENODEV; }
-static inline void cpuidle_use_deepest_state(bool enable) {}
+
 #endif
 
 #ifdef CONFIG_ARCH_NEEDS_CPU_IDLE_COUPLED
