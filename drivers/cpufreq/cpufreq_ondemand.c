@@ -20,13 +20,15 @@
 
 /* On-demand governor macros */
 #define DEF_FREQUENCY_UP_THRESHOLD		(80)
+#define DEF_FREQUENCY_DOWN_THRESHOLD		(10)
 #define DEF_SAMPLING_DOWN_FACTOR		(1)
-#define DEF_DOWN_THRESHOLD			(10)
 #define MAX_SAMPLING_DOWN_FACTOR		(100000)
 #define MICRO_FREQUENCY_UP_THRESHOLD		(95)
 #define MICRO_FREQUENCY_MIN_SAMPLE_RATE		(10000)
 #define MIN_FREQUENCY_UP_THRESHOLD		(11)
 #define MAX_FREQUENCY_UP_THRESHOLD		(100)
+#define MIN_FREQUENCY_DOWN_THRESHOLD		(1)
+#define MAX_FREQUENCY_DOWN_THRESHOLD		(90)
 
 static DEFINE_PER_CPU(struct od_cpu_dbs_info_s, od_cpu_dbs_info);
 
@@ -169,7 +171,7 @@ static void od_check_cpu(int cpu, unsigned int load)
 			dbs_info->rate_mult =
 				od_tuners->sampling_down_factor;
 		dbs_freq_increase(policy, policy->max);
-	} else if (load < DEF_DOWN_THRESHOLD) {
+	} else if (load < od_tuners->down_threshold) {
 		/* No longer fully busy, reset rate_mult */
 		dbs_info->rate_mult = 1;
 
@@ -368,6 +370,23 @@ static ssize_t store_up_threshold(struct dbs_data *dbs_data, const char *buf,
 	return count;
 }
 
+static ssize_t store_down_threshold(struct dbs_data *dbs_data, const char *buf,
+		size_t count)
+{
+	struct od_dbs_tuners *od_tuners = dbs_data->tuners;
+	unsigned int input;
+	int ret;
+	ret = sscanf(buf, "%u", &input);
+
+	if (ret != 1 || input > MAX_FREQUENCY_DOWN_THRESHOLD ||
+			input < MIN_FREQUENCY_DOWN_THRESHOLD) {
+		return -EINVAL;
+	}
+
+	od_tuners->down_threshold = input;
+	return count;
+}
+
 static ssize_t store_sampling_down_factor(struct dbs_data *dbs_data,
 		const char *buf, size_t count)
 {
@@ -446,6 +465,7 @@ static ssize_t store_powersave_bias(struct dbs_data *dbs_data, const char *buf,
 show_store_one(od, sampling_rate);
 show_store_one(od, io_is_busy);
 show_store_one(od, up_threshold);
+show_store_one(od, down_threshold);
 show_store_one(od, sampling_down_factor);
 show_store_one(od, ignore_nice_load);
 show_store_one(od, powersave_bias);
@@ -454,6 +474,7 @@ declare_show_sampling_rate_min(od);
 gov_sys_pol_attr_rw(sampling_rate);
 gov_sys_pol_attr_rw(io_is_busy);
 gov_sys_pol_attr_rw(up_threshold);
+gov_sys_pol_attr_rw(down_threshold);
 gov_sys_pol_attr_rw(sampling_down_factor);
 gov_sys_pol_attr_rw(ignore_nice_load);
 gov_sys_pol_attr_rw(powersave_bias);
@@ -463,6 +484,7 @@ static struct attribute *dbs_attributes_gov_sys[] = {
 	&sampling_rate_min_gov_sys.attr,
 	&sampling_rate_gov_sys.attr,
 	&up_threshold_gov_sys.attr,
+	&down_threshold_gov_sys.attr,
 	&sampling_down_factor_gov_sys.attr,
 	&ignore_nice_load_gov_sys.attr,
 	&powersave_bias_gov_sys.attr,
@@ -479,6 +501,7 @@ static struct attribute *dbs_attributes_gov_pol[] = {
 	&sampling_rate_min_gov_pol.attr,
 	&sampling_rate_gov_pol.attr,
 	&up_threshold_gov_pol.attr,
+	&down_threshold_gov_pol.attr,
 	&sampling_down_factor_gov_pol.attr,
 	&ignore_nice_load_gov_pol.attr,
 	&powersave_bias_gov_pol.attr,
@@ -511,6 +534,7 @@ static int od_init(struct dbs_data *dbs_data, bool notify)
 	if (idle_time != -1ULL) {
 		/* Idle micro accounting is supported. Use finer thresholds */
 		tuners->up_threshold = MICRO_FREQUENCY_UP_THRESHOLD;
+
 		/*
 		 * In nohz/micro accounting case we set the minimum frequency
 		 * not depending on HZ, but fixed (very low). The deferred
@@ -525,6 +549,7 @@ static int od_init(struct dbs_data *dbs_data, bool notify)
 			jiffies_to_usecs(10);
 	}
 
+	tuners->down_threshold = DEF_FREQUENCY_DOWN_THRESHOLD;
 	tuners->sampling_down_factor = DEF_SAMPLING_DOWN_FACTOR;
 	tuners->ignore_nice_load = 0;
 	tuners->powersave_bias = default_powersave_bias;
