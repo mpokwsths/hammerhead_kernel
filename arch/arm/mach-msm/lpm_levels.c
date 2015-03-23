@@ -17,7 +17,6 @@
 #include <linux/slab.h>
 #include <linux/platform_device.h>
 #include <linux/of.h>
-#include <linux/tick.h>
 #include <mach/mpm.h>
 #include "lpm_resources.h"
 #include "pm.h"
@@ -105,24 +104,18 @@ int msm_lpm_enter_sleep(uint32_t sclk_count, void *limits,
 	int debug_mask;
 	struct msm_rpmrs_limits *l = (struct msm_rpmrs_limits *)limits;
 	struct msm_lpm_sleep_data sleep_data;
-	struct clock_event_device *bc = tick_get_broadcast_device()->evtdev;
-	const struct cpumask *nextcpu;
 
 	sleep_data.limits = limits;
 	sleep_data.kernel_sleep = __get_cpu_var(msm_lpm_sleep_time);
 	atomic_notifier_call_chain(&__get_cpu_var(lpm_notify_head),
 		MSM_LPM_STATE_ENTER, &sleep_data);
 
-	if (from_idle) {
+	if (from_idle)
 		debug_mask = msm_lpm_lvl_dbg_msk &
 			MSM_LPM_LVL_DBG_IDLE_LIMITS;
-		nextcpu = bc->cpumask;
-	}
-	else {
+	else
 		debug_mask = msm_lpm_lvl_dbg_msk &
 			MSM_LPM_LVL_DBG_SUSPEND_LIMITS;
-		nextcpu = cpumask_of(smp_processor_id());
-	}
 
 	if (debug_mask)
 		pr_info("%s(): pxo:%d l2:%d mem:0x%x(0x%x) dig:0x%x(0x%x)\n",
@@ -139,7 +132,7 @@ int msm_lpm_enter_sleep(uint32_t sclk_count, void *limits,
 		goto bail;
 	}
 	if (notify_rpm) {
-		ret = msm_rpm_enter_sleep(debug_mask, nextcpu);
+		ret = msm_rpm_enter_sleep(debug_mask);
 		if (ret) {
 			pr_warn("%s(): RPM failed to enter sleep err:%d\n",
 					__func__, ret);

@@ -2249,15 +2249,13 @@ EXPORT_SYMBOL(smd_disable_read_intr);
  * particular channel.
  * @ch:      open channel handle to use for the edge
  * @mask:    1 = mask interrupts; 0 = unmask interrupts
- * @cpumask  cpumask for the next cpu scheduled to be woken up
  * @returns: 0 for success; < 0 for failure
  *
  * Note that this enables/disables all interrupts from the remote subsystem for
  * all channels.  As such, it should be used with care and only for specific
  * use cases such as power-collapse sequencing.
  */
-int smd_mask_receive_interrupt(smd_channel_t *ch, bool mask,
-		const struct cpumask *cpumask)
+int smd_mask_receive_interrupt(smd_channel_t *ch, bool mask)
 {
 	struct irq_chip *irq_chip;
 	struct irq_data *irq_data;
@@ -2286,8 +2284,6 @@ int smd_mask_receive_interrupt(smd_channel_t *ch, bool mask,
 		SMx_POWER_INFO("SMD Masking interrupts from %s\n",
 				edge_to_pids[ch->type].subsys_name);
 		irq_chip->irq_mask(irq_data);
-		if (cpumask)
-			irq_chip->irq_set_affinity(irq_data, cpumask, true);
 	} else {
 		SMx_POWER_INFO("SMD Unmasking interrupts from %s\n",
 				edge_to_pids[ch->type].subsys_name);
