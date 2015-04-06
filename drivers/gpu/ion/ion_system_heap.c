@@ -25,8 +25,8 @@
 #include <linux/seq_file.h>
 #include <linux/slab.h>
 #include <linux/vmalloc.h>
-#include "ion_priv.h"
 #include <linux/dma-mapping.h>
+#include "ion_priv.h"
 
 static unsigned int high_order_gfp_flags = (GFP_HIGHUSER | __GFP_ZERO |
 					    __GFP_NOWARN | __GFP_NORETRY |
