@@ -211,7 +211,6 @@ void ion_device_add_heap(struct ion_device *dev, struct ion_heap *heap);
 
 struct pages_mem {
 	struct page **pages;
-	void (*free_fn) (const void *);
 };
 
 /**
