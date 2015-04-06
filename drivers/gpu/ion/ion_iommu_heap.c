@@ -43,7 +43,6 @@ struct ion_iommu_heap {
  */
 struct ion_iommu_priv_data {
 	struct page **pages;
-	unsigned int pages_uses_vmalloc;
 	int nrpages;
 	unsigned long size;
 };
@@ -242,7 +241,6 @@ static int ion_iommu_heap_allocate(struct ion_heap *heap,
 
 		data->size = PFN_ALIGN(size);
 		data->nrpages = data->size >> PAGE_SHIFT;
-		data->pages_uses_vmalloc = 0;
 		page_tbl_size = sizeof(struct page *) * data->nrpages;
 
 		if (page_tbl_size > SZ_8K) {
@@ -253,10 +251,8 @@ static int ion_iommu_heap_allocate(struct ion_heap *heap,
 			data->pages = kmalloc(page_tbl_size,
 					      __GFP_COMP | __GFP_NORETRY |
 					      __GFP_NO_KSWAPD | __GFP_NOWARN);
-			if (!data->pages) {
+			if (!data->pages)
 				data->pages = vmalloc(page_tbl_size);
-				data->pages_uses_vmalloc = 1;
-			}
 		} else {
 			data->pages = kmalloc(page_tbl_size, GFP_KERNEL);
 		}
@@ -318,10 +314,7 @@ err2:
 	kfree(buffer->sg_table);
 	buffer->sg_table = 0;
 err1:
-	if (data->pages_uses_vmalloc)
-		vfree(data->pages);
-	else
-		kfree(data->pages);
+	kvfree(data->pages);
 err_free_data:
 	kfree(data);
 
@@ -376,10 +369,7 @@ static void ion_iommu_heap_free(struct ion_buffer *buffer)
 	sg_free_table(table);
 	kfree(table);
 	table = 0;
-	if (data->pages_uses_vmalloc)
-		vfree(data->pages);
-	else
-		kfree(data->pages);
+	kvfree(data->pages);
 	kfree(data);
 }
 

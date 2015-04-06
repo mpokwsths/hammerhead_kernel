@@ -160,7 +160,6 @@ static int ion_heap_alloc_pages_mem(int page_tbl_size,
 				struct pages_mem *pages_mem)
 {
 	struct page **pages;
-	pages_mem->free_fn = kfree;
 	if (page_tbl_size > SZ_8K) {
 		/*
 		 * Do fallback to ensure we have a balance between
@@ -169,10 +168,8 @@ static int ion_heap_alloc_pages_mem(int page_tbl_size,
 		pages = kmalloc(page_tbl_size,
 				__GFP_COMP | __GFP_NORETRY |
 				__GFP_NO_KSWAPD | __GFP_NOWARN);
-		if (!pages) {
+		if (!pages)
 			pages = vmalloc(page_tbl_size);
-			pages_mem->free_fn = vfree;
-		}
 	} else {
 		pages = kmalloc(page_tbl_size, GFP_KERNEL);
 	}
@@ -182,11 +179,6 @@ static int ion_heap_alloc_pages_mem(int page_tbl_size,
 
 	pages_mem->pages = pages;
 	return 0;
-}
-
-static void ion_heap_free_pages_mem(struct pages_mem *pages_mem)
-{
-	pages_mem->free_fn(pages_mem->pages);
 }
 
 int ion_heap_high_order_page_zero(struct page *page,
@@ -205,7 +197,7 @@ int ion_heap_high_order_page_zero(struct page *page,
 
 	ret = ion_heap_pages_zero(pages_mem.pages, npages,
 				should_invalidate);
-	ion_heap_free_pages_mem(&pages_mem);
+	kvfree(pages_mem.pages);
 	return ret;
 }
 
@@ -235,7 +227,7 @@ int ion_heap_buffer_zero(struct ion_buffer *buffer)
 
 	ret = ion_heap_pages_zero(pages_mem.pages, npages,
 				ion_buffer_cached(buffer));
-	ion_heap_free_pages_mem(&pages_mem);
+	kvfree(pages_mem.pages);
 	return ret;
 }
 
