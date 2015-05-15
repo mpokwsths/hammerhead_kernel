@@ -1135,8 +1135,8 @@ static int cpufreq_governor_dbs(struct cpufreq_policy *policy,
 				j_dbs_info->prev_cpu_nice =
 						kcpustat_cpu(j).cpustat[CPUTIME_NICE];
 #ifndef CONFIG_CPU_BOOST
-			set_cpus_allowed(j_dbs_info->sync_thread,
-					 *cpumask_of(j));
+			set_cpus_allowed_ptr(j_dbs_info->sync_thread,
+					 cpumask_of(j));
 			if (!dbs_tuners_ins.powersave_bias)
 				atomic_set(&j_dbs_info->sync_enabled, 1);
 #endif
