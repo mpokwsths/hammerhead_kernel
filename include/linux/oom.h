@@ -43,7 +43,9 @@ enum oom_constraint {
 extern void compare_swap_oom_score_adj(int old_val, int new_val);
 extern int test_set_oom_score_adj(int new_val);
 
-extern void mark_tsk_oom_victim(struct task_struct *tsk);
+extern struct mutex oom_lock;
+
+extern void mark_oom_victim(struct task_struct *tsk);
 
 extern void unmark_oom_victim(void);
 
@@ -52,8 +54,6 @@ extern void note_oom_kill(void);
 
 extern unsigned int oom_badness(struct task_struct *p, struct mem_cgroup *memcg,
 			const nodemask_t *nodemask, unsigned long totalpages);
-extern bool oom_zonelist_trylock(struct zonelist *zonelist, gfp_t gfp_flags);
-extern void oom_zonelist_unlock(struct zonelist *zonelist, gfp_t gfp_flags);
 
 extern bool out_of_memory(struct zonelist *zonelist, gfp_t gfp_mask,
 		int order, nodemask_t *mask, bool force_kill);
