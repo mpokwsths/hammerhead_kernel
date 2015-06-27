@@ -27,6 +27,7 @@
 #include <linux/slab.h>
 #include <linux/printk.h>
 #include <linux/ratelimit.h>
+#include <linux/wakeup_reason.h>
 
 #include <asm/irq.h>
 #include <asm/mach/irq.h>
@@ -627,6 +628,9 @@ static int __qpnpint_handle_irq(struct spmi_controller *spmi_ctrl,
 
 		pr_warn("%d triggered [0x%01x, 0x%02x,0x%01x] %s\n",
 				irq, spec->slave, spec->per, spec->irq, name);
+#ifndef CONFIG_DEDUCE_WAKEUP_REASONS
+		log_base_wakeup_reason(irq);
+#endif
 	} else {
 		generic_handle_irq(irq);
 	}
