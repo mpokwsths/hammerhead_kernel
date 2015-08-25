@@ -692,8 +692,6 @@ static void print_bad_pte(struct vm_area_struct *vma, unsigned long addr,
 		print_symbol(KERN_ALERT "vma->vm_file->f_op->mmap: %s\n",
 				(unsigned long)vma->vm_file->f_op->mmap);
 
-	BUG_ON(PANIC_CORRUPTION);
-
 	dump_stack();
 	add_taint(TAINT_BAD_PAGE);
 }
