@@ -30,7 +30,6 @@ msm_adreno-y += \
 	adreno_a2xx_trace.o \
 	adreno_a2xx_snapshot.o \
 	adreno_a3xx.o \
-	adreno_a4xx.o \
 	adreno_a3xx_trace.o \
 	adreno_a3xx_snapshot.o \
 	adreno.o \

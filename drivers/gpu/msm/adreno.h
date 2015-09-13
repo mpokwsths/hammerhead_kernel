@@ -426,7 +426,6 @@ struct log_field {
 
 extern struct adreno_gpudev adreno_a2xx_gpudev;
 extern struct adreno_gpudev adreno_a3xx_gpudev;
-extern struct adreno_gpudev adreno_a4xx_gpudev;
 
 /* A2XX register sets defined in adreno_a2xx.c */
 extern const unsigned int a200_registers[];
@@ -445,10 +444,6 @@ extern const unsigned int a3xx_hlsq_registers_count;
 
 extern const unsigned int a330_registers[];
 extern const unsigned int a330_registers_count;
-
-/* A4XX register set defined in adreno_a4xx.c */
-extern const unsigned int a4xx_registers[];
-extern const unsigned int a4xx_registers_count;
 
 extern unsigned int ft_detect_regs[];
 
@@ -576,17 +571,6 @@ static inline int adreno_is_a330v2(struct adreno_device *adreno_dev)
 {
 	return ((adreno_dev->gpurev == ADRENO_REV_A330) &&
 		(ADRENO_CHIPID_PATCH(adreno_dev->chip_id) > 0));
-}
-
-
-static inline int adreno_is_a4xx(struct adreno_device *adreno_dev)
-{
-	return (adreno_dev->gpurev >= 400);
-}
-
-static inline int adreno_is_a420(struct adreno_device *adreno_dev)
-{
-	return (adreno_dev->gpurev == ADRENO_REV_A420);
 }
 
 static inline int adreno_rb_ctxtswitch(unsigned int *cmd)

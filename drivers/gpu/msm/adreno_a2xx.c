@@ -1482,16 +1482,6 @@ static int a2xx_drawctxt_draw_workaround(struct adreno_device *adreno_dev,
 	unsigned int *cmds = &cmd[0];
 
 	if (adreno_is_a225(adreno_dev)) {
-		adreno_dev->gpudev->ctx_switches_since_last_draw++;
-		/* If there have been > than
-		 * ADRENO_NUM_CTX_SWITCH_ALLOWED_BEFORE_DRAW calls to context
-		 * switches w/o gmem being saved then we need to execute
-		 * this workaround */
-		if (adreno_dev->gpudev->ctx_switches_since_last_draw >
-				ADRENO_NUM_CTX_SWITCH_ALLOWED_BEFORE_DRAW)
-			adreno_dev->gpudev->ctx_switches_since_last_draw = 0;
-		else
-			return 0;
 		/*
 		 * Issue an empty draw call to avoid possible hangs due to
 		 * repeated idles without intervening draw calls.
@@ -1600,7 +1590,6 @@ static int a2xx_drawctxt_save(struct adreno_device *adreno_dev,
 			if (ret)
 				return ret;
 		}
-		adreno_dev->gpudev->ctx_switches_since_last_draw = 0;
 
 		set_bit(ADRENO_CONTEXT_GMEM_RESTORE, &context->priv);
 	} else if (adreno_is_a2xx(adreno_dev))

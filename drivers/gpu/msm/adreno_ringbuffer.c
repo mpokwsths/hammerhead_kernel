@@ -627,13 +627,9 @@ adreno_ringbuffer_addcmds(struct adreno_ringbuffer *rb,
 	total_sizedwords +=
 		(drawctxt || (flags & KGSL_CMD_FLAGS_INTERNAL_ISSUE)) ?  2 : 0;
 
-	/* context rollover */
+	/* context rollover & HLSQ updates below */
 	if (adreno_is_a3xx(adreno_dev))
-		total_sizedwords += 3;
-
-	/* For HLSQ updates below */
-	if (adreno_is_a4xx(adreno_dev) || adreno_is_a3xx(adreno_dev))
-		total_sizedwords += 4;
+		total_sizedwords += 7;
 
 	if (adreno_is_a2xx(adreno_dev))
 		total_sizedwords += 2; /* CP_WAIT_FOR_IDLE */
@@ -736,7 +732,7 @@ adreno_ringbuffer_addcmds(struct adreno_ringbuffer *rb,
 		GSL_RB_WRITE(rb->device, ringcmds, rcmd_gpu, 0x00);
 	}
 
-	if (adreno_is_a3xx(adreno_dev) || adreno_is_a4xx(adreno_dev)) {
+	if (adreno_is_a3xx(adreno_dev)) {
 		/*
 		 * Flush HLSQ lazy updates to make sure there are no
 		 * resources pending for indirect loads after the timestamp
