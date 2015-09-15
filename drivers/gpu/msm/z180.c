@@ -230,56 +230,6 @@ static irqreturn_t z180_irq_handler(struct kgsl_device *device)
 	return result;
 }
 
-static void z180_cleanup_pt(struct kgsl_device *device,
-			       struct kgsl_pagetable *pagetable)
-{
-	struct z180_device *z180_dev = Z180_DEVICE(device);
-
-	kgsl_mmu_unmap(pagetable, &device->mmu.setstate_memory);
-
-	kgsl_mmu_unmap(pagetable, &device->memstore);
-
-	kgsl_mmu_unmap(pagetable, &z180_dev->ringbuffer.cmdbufdesc);
-}
-
-static int z180_setup_pt(struct kgsl_device *device,
-			     struct kgsl_pagetable *pagetable)
-{
-	int result = 0;
-	struct z180_device *z180_dev = Z180_DEVICE(device);
-
-	result = kgsl_mmu_map_global(pagetable, &device->mmu.setstate_memory);
-
-	if (result)
-		goto error;
-
-	result = kgsl_mmu_map_global(pagetable, &device->memstore);
-	if (result)
-		goto error_unmap_dummy;
-
-	result = kgsl_mmu_map_global(pagetable,
-				     &z180_dev->ringbuffer.cmdbufdesc);
-	if (result)
-		goto error_unmap_memstore;
-	/*
-	 * Set the mpu end to the last "normal" global memory we use.
-	 * For the IOMMU, this will be used to restrict access to the
-	 * mapped registers.
-	 */
-	device->mh.mpu_range = z180_dev->ringbuffer.cmdbufdesc.gpuaddr +
-				z180_dev->ringbuffer.cmdbufdesc.size;
-	return result;
-
-error_unmap_dummy:
-	kgsl_mmu_unmap(pagetable, &device->mmu.setstate_memory);
-
-error_unmap_memstore:
-	kgsl_mmu_unmap(pagetable, &device->memstore);
-
-error:
-	return result;
-}
-
 static inline unsigned int rb_offset(unsigned int timestamp)
 {
 	return (timestamp % Z180_PACKET_COUNT)
@@ -1012,8 +962,6 @@ static const struct kgsl_functable z180_functable = {
 	.waittimestamp = z180_waittimestamp,
 	.readtimestamp = z180_readtimestamp,
 	.issueibcmds = z180_cmdstream_issueibcmds,
-	.setup_pt = z180_setup_pt,
-	.cleanup_pt = z180_cleanup_pt,
 	.power_stats = z180_power_stats,
 	.irqctrl = z180_irqctrl,
 	.gpuid = z180_gpuid,

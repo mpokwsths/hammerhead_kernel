@@ -936,83 +936,6 @@ static int kgsl_iommu_start_sync_lock(struct kgsl_mmu *mmu)
 }
 
 /*
- * kgsl_get_sync_lock - Init Sync Lock between GPU and CPU
- * @mmu - Pointer to mmu device
- *
- * Return - 0 on success else error code
- */
-static int kgsl_iommu_init_sync_lock(struct kgsl_mmu *mmu)
-{
-	struct kgsl_iommu *iommu = mmu->priv;
-	int status = 0;
-	uint32_t lock_phy_addr = 0;
-	uint32_t page_offset = 0;
-
-	if (!msm_soc_version_supports_iommu_v0() ||
-		!kgsl_mmu_is_perprocess(mmu))
-		return status;
-
-	/*
-	 * For 2D devices cpu side sync lock is required. For 3D device,
-	 * since we only have a single 3D core and we always ensure that
-	 * 3D core is idle while writing to IOMMU register using CPU this
-	 * lock is not required
-	 */
-	if (KGSL_DEVICE_2D0 == mmu->device->id ||
-		KGSL_DEVICE_2D1 == mmu->device->id) {
-		return status;
-	}
-
-	/* Return if already initialized */
-	if (iommu->sync_lock_initialized)
-		return status;
-
-	iommu_access_ops = msm_get_iommu_access_ops();
-
-	if (iommu_access_ops && iommu_access_ops->iommu_lock_initialize) {
-		lock_phy_addr = (uint32_t)
-				iommu_access_ops->iommu_lock_initialize();
-		if (!lock_phy_addr) {
-			iommu_access_ops = NULL;
-			return status;
-		}
-		lock_phy_addr = lock_phy_addr - (uint32_t)MSM_SHARED_RAM_BASE +
-				(uint32_t)msm_shared_ram_phys;
-	}
-
-	/* Align the physical address to PAGE boundary and store the offset */
-	page_offset = (lock_phy_addr & (PAGE_SIZE - 1));
-	lock_phy_addr = (lock_phy_addr & ~(PAGE_SIZE - 1));
-	iommu->sync_lock_desc.physaddr = (unsigned int)lock_phy_addr;
-	iommu->sync_lock_offset = page_offset;
-
-	iommu->sync_lock_desc.size =
-				PAGE_ALIGN(sizeof(kgsl_iommu_sync_lock_vars));
-	status =  memdesc_sg_phys(&iommu->sync_lock_desc,
-				 iommu->sync_lock_desc.physaddr,
-				 iommu->sync_lock_desc.size);
-
-	if (status) {
-		iommu_access_ops = NULL;
-		return status;
-	}
-
-	/* Add the entry to the global PT list */
-	status = kgsl_add_global_pt_entry(mmu->device, &iommu->sync_lock_desc);
-	if (status) {
-		kgsl_sg_free(iommu->sync_lock_desc.sg,
-			iommu->sync_lock_desc.sglen);
-		iommu_access_ops = NULL;
-		return status;
-	}
-
-	/* Flag Sync Lock is Initialized  */
-	iommu->sync_lock_initialized = 1;
-
-	return status;
-}
-
-/*
  * kgsl_iommu_sync_lock - Acquire Sync Lock between GPU and CPU
  * @mmu - Pointer to mmu device
  * @cmds - Pointer to array of commands
@@ -1367,10 +1290,6 @@ static int kgsl_iommu_init(struct kgsl_mmu *mmu)
 		mmu->use_cpu_map = false;
 	}
 
-	status = kgsl_iommu_init_sync_lock(mmu);
-	if (status)
-		goto done;
-
 	iommu->iommu_reg_list = kgsl_iommuv0_reg;
 	iommu->ctx_offset = KGSL_IOMMU_CTX_OFFSET_V0;
 
@@ -1387,15 +1306,6 @@ static int kgsl_iommu_init(struct kgsl_mmu *mmu)
 	kgsl_sharedmem_writel(mmu->device, &mmu->setstate_memory,
 				KGSL_IOMMU_SETSTATE_NOP_OFFSET,
 				cp_nop_packet(1));
-
-	if (cpu_is_msm8960()) {
-		/*
-		 * 8960 doesn't have a second context bank, so the IOMMU
-		 * registers must be mapped into every pagetable.
-		 */
-		iommu_ops.mmu_setup_pt = kgsl_iommu_setup_regs;
-		iommu_ops.mmu_cleanup_pt = kgsl_iommu_cleanup_regs;
-	}
 
 	if (kgsl_guard_page == NULL) {
 		kgsl_guard_page = alloc_page(GFP_KERNEL | __GFP_ZERO |
