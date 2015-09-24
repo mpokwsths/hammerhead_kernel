@@ -309,7 +309,7 @@ static inline int kgsl_allocate_global(struct kgsl_device *device,
 
 	memdesc->flags = flags;
 
-	ret = kgsl_allocate_contiguous(device, memdesc, size);
+	ret = kgsl_allocate_contiguous(memdesc, size);
 
 	if (!ret) {
 		ret = kgsl_add_global_pt_entry(device, memdesc);

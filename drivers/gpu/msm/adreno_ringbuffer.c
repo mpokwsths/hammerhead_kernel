@@ -578,7 +578,7 @@ int adreno_ringbuffer_init(struct kgsl_device *device)
 	rb->device = device;
 
 	kgsl_add_event_group(&rb->event, NULL, str);
-	status = kgsl_allocate_global(&rb->buffer_desc,	KGSL_RB_SIZE,
+	status = kgsl_allocate_global(device, &rb->buffer_desc,	KGSL_RB_SIZE,
 			KGSL_MEMFLAGS_GPUREADONLY);
 
 	if (status)

@@ -539,7 +539,6 @@ int kgsl_mmu_init(struct kgsl_device *device)
 		mmu->mmu_ops = &iommu_ops;
 
 	status =  mmu->mmu_ops->mmu_init(mmu);
-done:
 	if (status)
 		goto done;
 

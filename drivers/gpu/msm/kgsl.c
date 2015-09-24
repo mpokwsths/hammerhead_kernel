@@ -4383,7 +4383,8 @@ int kgsl_device_platform_probe(struct kgsl_device *device)
 		goto error_dest_work_q;
 	}
 
-	status = kgsl_allocate_global(&device->memstore, KGSL_MEMSTORE_SIZE, 0);
+	status = kgsl_allocate_global(device, &device->memstore,
+				KGSL_MEMSTORE_SIZE, 0);
 
 	if (status != 0) {
 		KGSL_DRV_ERR(device, "kgsl_allocate_global failed %d\n",
