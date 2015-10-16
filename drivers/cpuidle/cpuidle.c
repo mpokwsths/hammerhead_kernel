@@ -159,6 +159,11 @@ int cpuidle_idle_call(void)
 	int next_state, entered_state;
 	bool broadcast;
 
+	if (need_resched()) {
+		local_irq_enable();
+		return 0;
+	}
+
 	if (off || !initialized)
 		return -ENODEV;
 
