@@ -217,8 +217,8 @@ static int arch_timer_set_next_event(int cp15, unsigned long evt,
 
 	ctrl = arch_timer_reg_read(cp15, ARCH_TIMER_REG_CTRL);
 	ctrl &= ~ARCH_TIMER_CTRL_IT_MASK;
-	arch_timer_reg_write(cp15, ARCH_TIMER_REG_CTRL, ctrl);
 	arch_timer_reg_write(cp15, ARCH_TIMER_REG_TVAL, evt);
+	arch_timer_reg_write(cp15, ARCH_TIMER_REG_CTRL, ctrl);
 
 	return 0;
 }
