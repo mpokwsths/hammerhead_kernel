@@ -22,7 +22,9 @@
 #include <linux/hrtimer.h>
 #include <linux/tick.h>
 #include <linux/ktime.h>
+#ifndef CONFIG_CPU_BOOST
 #include <linux/kthread.h>
+#endif
 #include <linux/sched.h>
 #include <linux/workqueue.h>
 
@@ -103,11 +105,13 @@ struct cpu_dbs_info_s {
 	 */
 	struct mutex timer_mutex;
 
+#ifndef CONFIG_CPU_BOOST
 	struct task_struct *sync_thread;
 	wait_queue_head_t sync_wq;
 	atomic_t src_sync_cpu;
 	atomic_t being_woken;
 	atomic_t sync_enabled;
+#endif
 };
 static DEFINE_PER_CPU(struct cpu_dbs_info_s, od_cpu_dbs_info);
 
@@ -588,10 +592,12 @@ static ssize_t store_powersave_bias(struct kobject *a, struct attribute *b,
 					/* restart dbs timer */
 					mutex_lock(&dbs_info->timer_mutex);
 					dbs_timer_init(dbs_info);
+					mutex_unlock(&dbs_info->timer_mutex);
+#ifndef CONFIG_CPU_BOOST
 					/* Enable frequency synchronization
 					 * of CPUs */
-					mutex_unlock(&dbs_info->timer_mutex);
 					atomic_set(&dbs_info->sync_enabled, 1);
+#endif
 				}
 skip_this_cpu:
 				unlock_policy_rwsem_write(cpu);
@@ -622,10 +628,12 @@ skip_this_cpu:
 			if (dbs_info->cur_policy) {
 				/* cpu using ondemand, cancel dbs timer */
 				dbs_timer_exit(dbs_info);
+#ifndef CONFIG_CPU_BOOST
 				/* Disable frequency synchronization of
 				 * CPUs to avoid re-queueing of work from
 				 * sync_thread */
 				atomic_set(&dbs_info->sync_enabled, 0);
+#endif
 
 				mutex_lock(&dbs_info->timer_mutex);
 				ondemand_powersave_bias_setspeed(
@@ -975,6 +983,7 @@ static int should_io_be_busy(void)
 	return 0;
 }
 
+#ifndef CONFIG_CPU_BOOST
 static int dbs_migration_notify(struct notifier_block *nb,
 				unsigned long target_cpu, void *arg)
 {
@@ -1087,6 +1096,7 @@ bail_acq_sema_failed:
 
 	return 0;
 }
+#endif
 
 static int cpufreq_governor_dbs(struct cpufreq_policy *policy,
 				   unsigned int event)
@@ -1117,10 +1127,12 @@ static int cpufreq_governor_dbs(struct cpufreq_policy *policy,
 			if (dbs_tuners_ins.ignore_nice)
 				j_dbs_info->prev_cpu_nice =
 						kcpustat_cpu(j).cpustat[CPUTIME_NICE];
+#ifndef CONFIG_CPU_BOOST
 			set_cpus_allowed(j_dbs_info->sync_thread,
 					 *cpumask_of(j));
 			if (!dbs_tuners_ins.powersave_bias)
 				atomic_set(&j_dbs_info->sync_enabled, 1);
+#endif
 		}
 		this_dbs_info->cpu = cpu;
 		this_dbs_info->rate_mult = 1;
@@ -1157,8 +1169,10 @@ static int cpufreq_governor_dbs(struct cpufreq_policy *policy,
 			if (dbs_tuners_ins.sync_freq == 0)
 				dbs_tuners_ins.sync_freq = policy->min;
 
+#ifndef CONFIG_CPU_BOOST
 			atomic_notifier_chain_register(&migration_notifier_head,
 					&dbs_migration_nb);
+#endif
 		}
 		mutex_unlock(&dbs_mutex);
 
@@ -1176,11 +1190,13 @@ static int cpufreq_governor_dbs(struct cpufreq_policy *policy,
 		mutex_lock(&dbs_mutex);
 		dbs_enable--;
 
+#ifndef CONFIG_CPU_BOOST
 		for_each_cpu(j, policy->cpus) {
 			struct cpu_dbs_info_s *j_dbs_info;
 			j_dbs_info = &per_cpu(od_cpu_dbs_info, j);
 			atomic_set(&j_dbs_info->sync_enabled, 0);
 		}
+#endif
 
 		/* If device is being removed, policy is no longer
 		 * valid. */
@@ -1188,9 +1204,11 @@ static int cpufreq_governor_dbs(struct cpufreq_policy *policy,
 		if (!dbs_enable) {
 			sysfs_remove_group(cpufreq_global_kobject,
 					   &dbs_attr_group);
+#ifndef CONFIG_CPU_BOOST
 			atomic_notifier_chain_unregister(
 				&migration_notifier_head,
 				&dbs_migration_nb);
+#endif
 		}
 
 		mutex_unlock(&dbs_mutex);
@@ -1257,6 +1275,7 @@ static int __init cpufreq_gov_dbs_init(void)
 
 		mutex_init(&this_dbs_info->timer_mutex);
 
+#ifndef CONFIG_CPU_BOOST
 		atomic_set(&this_dbs_info->src_sync_cpu, -1);
 		atomic_set(&this_dbs_info->being_woken, 0);
 		init_waitqueue_head(&this_dbs_info->sync_wq);
@@ -1264,6 +1283,7 @@ static int __init cpufreq_gov_dbs_init(void)
 		this_dbs_info->sync_thread = kthread_run(dbs_sync_thread,
 							 (void *)i,
 							 "dbs_sync/%d", i);
+#endif
 	}
 
 	return cpufreq_register_governor(&cpufreq_gov_ondemand);
@@ -1278,7 +1298,9 @@ static void __exit cpufreq_gov_dbs_exit(void)
 		struct cpu_dbs_info_s *this_dbs_info =
 			&per_cpu(od_cpu_dbs_info, i);
 		mutex_destroy(&this_dbs_info->timer_mutex);
+#ifndef CONFIG_CPU_BOOST
 		kthread_stop(this_dbs_info->sync_thread);
+#endif
 	}
 	destroy_workqueue(dbs_wq);
 }
