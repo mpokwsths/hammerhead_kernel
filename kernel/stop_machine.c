@@ -216,6 +216,7 @@ static int multi_cpu_stop(void *data)
 	return err;
 }
 
+#ifdef CONFIG_NUMA
 static int cpu_stop_queue_two_works(int cpu1, struct cpu_stop_work *work1,
 				    int cpu2, struct cpu_stop_work *work2)
 {
@@ -288,6 +289,7 @@ int stop_two_cpus(unsigned int cpu1, unsigned int cpu2, cpu_stop_fn_t fn, void *
 
 	return done.executed ? done.ret : -ENOENT;
 }
+#endif
 
 /**
  * stop_one_cpu_nowait - stop a cpu but don't wait for completion
