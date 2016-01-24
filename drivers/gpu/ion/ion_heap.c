@@ -122,8 +122,7 @@ int ion_heap_pages_zero(struct page **pages, int num_pages,
 	 * starting with a conservative estimate of 1/8 of the total
 	 * number of vmalloc pages available.
 	 */
-	npages_to_vmap = ((VMALLOC_END - VMALLOC_START)/8)
-			>> PAGE_SHIFT;
+	npages_to_vmap = SZ_2M >> PAGE_SHIFT;
 	for (i = 0; i < num_pages; i += npages_to_vmap) {
 		npages_to_vmap = min(npages_to_vmap, num_pages - i);
 		for (j = 0; j < MAX_VMAP_RETRIES && npages_to_vmap;
