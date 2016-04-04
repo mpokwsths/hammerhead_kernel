@@ -514,7 +514,7 @@ void page_unlock_anon_vma_read(struct anon_vma *anon_vma)
 /*
  * At what user virtual address is page expected in @vma?
  */
-static inline unsigned long
+unsigned long
 __vma_address(struct page *page, struct vm_area_struct *vma)
 {
 	pgoff_t pgoff = page->index << (PAGE_CACHE_SHIFT - PAGE_SHIFT);
