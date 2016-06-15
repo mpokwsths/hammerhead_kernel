@@ -74,7 +74,7 @@ int migrate_prep_local(void)
  * Add isolated pages on the list back to the LRU under page lock
  * to avoid leaking evictable pages back onto unevictable list.
  */
-void putback_lru_pages(struct list_head *l)
+void putback_movable_pages(struct list_head *l)
 {
 	struct page *page;
 	struct page *page2;
@@ -971,7 +971,7 @@ out:
  * The function returns after 10 attempts or if no pages
  * are movable anymore because to has become empty
  * or no retryable pages exist anymore.
- * Caller should call putback_lru_pages to return pages to the LRU
+ * Caller should call putback_movable_pages to return pages to the LRU
  * or free list only if ret != 0.
  *
  * Return: Number of pages not migrated or error code.
@@ -1150,7 +1150,7 @@ set_status:
 		err = migrate_pages(&pagelist, new_page_node, NULL,
 				(unsigned long)pm, MIGRATE_SYNC, MR_SYSCALL);
 		if (err)
-			putback_lru_pages(&pagelist);
+			putback_movable_pages(&pagelist);
 	}
 
 	up_read(&mm->mmap_sem);

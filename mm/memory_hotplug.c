@@ -1289,7 +1289,7 @@ do_migrate_range(unsigned long start_pfn, unsigned long end_pfn)
 	}
 	if (!list_empty(&source)) {
 		if (not_managed) {
-			putback_lru_pages(&source);
+			putback_movable_pages(&source);
 			goto out;
 		}
 
@@ -1300,7 +1300,7 @@ do_migrate_range(unsigned long start_pfn, unsigned long end_pfn)
 		ret = migrate_pages(&source, alloc_migrate_target, NULL, 0,
 					MIGRATE_SYNC, MR_MEMORY_HOTPLUG);
 		if (ret)
-			putback_lru_pages(&source);
+			putback_movable_pages(&source);
 	}
 out:
 	return ret;

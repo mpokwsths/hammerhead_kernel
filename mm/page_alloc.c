@@ -6209,7 +6209,7 @@ static int __alloc_contig_migrate_range(struct compact_control *cc,
 				    NULL, 0, cc->mode, MR_CMA);
 	}
 	if (ret < 0) {
-		putback_lru_pages(&cc->migratepages);
+		putback_movable_pages(&cc->migratepages);
 		return ret;
 	}
 	return 0;
