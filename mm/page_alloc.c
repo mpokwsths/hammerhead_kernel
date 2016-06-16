@@ -527,7 +527,7 @@ static inline void __free_one_page(struct page *page,
 	struct page *buddy = NULL;
 	int max_order = MAX_ORDER;
 
-	VM_BUG_ON(page->flags & PAGE_FLAGS_CHECK_AT_PREP);
+	VM_BUG_ON(page->flags & PAGE_FLAGS_CHECK_AT_PREP, page);
 
 	VM_BUG_ON(migratetype == -1);
 	if (is_migrate_isolate(migratetype)) {
@@ -693,40 +693,18 @@ static void free_one_page(struct zone *zone,
 	spin_unlock(&zone->lock);
 }
 
-static int free_tail_pages_check(struct page *head_page, struct page *page)
-{
-	if (!IS_ENABLED(CONFIG_DEBUG_VM))
-		return 0;
-	if (unlikely(!PageTail(page))) {
-		bad_page(page, "PageTail not set", 0);
-		return 1;
-	}
-	if (unlikely(page->first_page != head_page)) {
-		bad_page(page, "first_page not consistent", 0);
-		return 1;
-	}
-	return 0;
-}
-
 static bool free_pages_prepare(struct page *page, unsigned int order)
 {
-	bool compound = PageCompound(page);
-	int i, bad = 0;
-
-	VM_BUG_ON(PageTail(page));
-	VM_BUG_ON(compound && compound_order(page) != order);
+	int i;
+	int bad = 0;
 
 	trace_mm_page_free(page, order);
 	kmemcheck_free_shadow(page, order);
 
 	if (PageAnon(page))
 		page->mapping = NULL;
-	bad += free_pages_check(page);
-	for (i = 1; i < (1 << order); i++) {
-		if (compound)
-			bad += free_tail_pages_check(page, page + i);
+	for (i = 0; i < (1 << order); i++)
 		bad += free_pages_check(page + i);
-	}
 	if (bad)
 		return false;
 
