@@ -859,9 +859,6 @@ void pagefault_out_of_memory(void)
 	struct zonelist *zonelist;
 
 	down_read(&oom_sem);
-	if (mem_cgroup_oom_synchronize(true))
-		goto unlock;
-
 	zonelist = node_zonelist(first_online_node, GFP_KERNEL);
 	if (oom_zonelist_trylock(zonelist, GFP_KERNEL)) {
 		if (!oom_killer_disabled)
@@ -877,6 +874,5 @@ void pagefault_out_of_memory(void)
 
 		oom_zonelist_unlock(zonelist, GFP_KERNEL);
 	}
-unlock:
 	up_read(&oom_sem);
 }

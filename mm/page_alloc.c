@@ -527,7 +527,7 @@ static inline void __free_one_page(struct page *page,
 	struct page *buddy = NULL;
 	int max_order = MAX_ORDER;
 
-	VM_BUG_ON(page->flags & PAGE_FLAGS_CHECK_AT_PREP, page);
+	VM_BUG_ON(page->flags & PAGE_FLAGS_CHECK_AT_PREP);
 
 	VM_BUG_ON(migratetype == -1);
 	if (is_migrate_isolate(migratetype)) {
@@ -666,7 +666,7 @@ static void free_pcppages_bulk(struct zone *zone, int count,
 
 			mt = get_freepage_migratetype(page);
 			/* MIGRATE_ISOLATE page should not go to pcplists */
-			VM_BUG_ON_PAGE(is_migrate_isolate(mt), page);
+			VM_BUG_ON(is_migrate_isolate(mt));
 			/* Pageblock could have been isolated meanwhile */
 			if (unlikely(has_isolate_pageblock(zone)))
 				mt = get_pageblock_migratetype(page);

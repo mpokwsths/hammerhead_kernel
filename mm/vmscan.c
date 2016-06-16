@@ -2687,7 +2687,7 @@ loop_again:
 			 */
 			testorder = order;
 			if (IS_ENABLED(CONFIG_COMPACTION) && order &&
-					compaction_suitable(zone, order, 0, classzone_idx) !=
+					compaction_suitable(zone, order, 0, *classzone_idx) !=
 						COMPACT_SKIPPED)
 				testorder = 0;
 
