@@ -474,7 +474,7 @@ static int __cpufreq_set_policy(struct cpufreq_policy *data,
 static ssize_t store_##file_name					\
 (struct cpufreq_policy *policy, const char *buf, size_t count)		\
 {									\
-	int ret;							\
+	unsigned int ret;						\
 	struct cpufreq_policy new_policy;				\
 									\
 	ret = cpufreq_get_policy(&new_policy, policy->cpu);		\
@@ -488,18 +488,16 @@ static ssize_t store_##file_name					\
 	if (ret != 1)							\
 		return -EINVAL;						\
 									\
-	cpufreq_verify_within_cpu_limits(&new_policy);			\
-	if (new_policy.min > new_policy.user_policy.max			\
-	    || new_policy.max < new_policy.user_policy.min)		\
-		return -EINVAL;						\
+	ret = cpufreq_driver->verify(&new_policy);			\
+	if (ret)							\
+		pr_err("cpufreq: Frequency verification failed\n");	\
 									\
-	policy->user_policy.object = new_policy.object;			\
+	policy->user_policy.min = new_policy.min;			\
+	policy->user_policy.max = new_policy.max;			\
 									\
 	ret = __cpufreq_set_policy(policy, &new_policy);		\
-	if (ret)							\
-		pr_warn("User policy not enforced yet!\n");		\
 									\
-	return count;							\
+	return ret ? ret : count;					\
 }
 
 store_one(scaling_min_freq, min);
@@ -1194,10 +1192,10 @@ static int __cpufreq_remove_dev(struct device *dev, struct subsys_interface *sif
 	if (!driver->setpolicy)
 		strncpy(per_cpu(cpufreq_policy_save, cpu).gov,
 			data->governor->name, CPUFREQ_NAME_LEN);
-	per_cpu(cpufreq_policy_save, cpu).min = data->user_policy.min;
-	per_cpu(cpufreq_policy_save, cpu).max = data->user_policy.max;
-	pr_debug("Saving CPU%d user policy min %d and max %d\n",
-			cpu, data->user_policy.min, data->user_policy.max);
+	per_cpu(cpufreq_policy_save, cpu).min = data->min;
+	per_cpu(cpufreq_policy_save, cpu).max = data->max;
+	pr_debug("Saving CPU%d policy min %d and max %d\n",
+			cpu, data->min, data->max);
 #endif
 	rcu_read_unlock();
 
@@ -1848,6 +1846,12 @@ static int __cpufreq_set_policy(struct cpufreq_policy *data,
 
 	memcpy(&policy->cpuinfo, &data->cpuinfo,
 				sizeof(struct cpufreq_cpuinfo));
+
+	if (policy->min > data->user_policy.max
+		|| policy->max < data->user_policy.min) {
+		ret = -EINVAL;
+		goto error_out;
+	}
 
 	/* verify the cpu speed can be set within this limit */
 	rcu_read_lock();
