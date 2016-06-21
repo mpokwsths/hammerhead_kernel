@@ -1190,12 +1190,12 @@ static int __cpufreq_remove_dev(struct device *dev, struct subsys_interface *sif
 
 #ifdef CONFIG_HOTPLUG_CPU
 	if (!driver->setpolicy)
-		strncpy(per_cpu(cpufreq_policy_save, cpu).gov,
+		strlcpy(per_cpu(cpufreq_policy_save, cpu).gov,
 			data->governor->name, CPUFREQ_NAME_LEN);
-	per_cpu(cpufreq_policy_save, cpu).min = data->min;
-	per_cpu(cpufreq_policy_save, cpu).max = data->max;
-	pr_debug("Saving CPU%d policy min %d and max %d\n",
-			cpu, data->min, data->max);
+	per_cpu(cpufreq_policy_save, cpu).min = data->user_policy.min;
+	per_cpu(cpufreq_policy_save, cpu).max = data->user_policy.max;
+	pr_debug("Saving CPU%d user policy min %d and max %d\n",
+		 cpu, data->user_policy.min, data->user_policy.max);
 #endif
 	rcu_read_unlock();
 
