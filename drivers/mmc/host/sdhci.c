@@ -51,6 +51,7 @@ static void sdhci_send_command(struct sdhci_host *, struct mmc_command *);
 static void sdhci_finish_command(struct sdhci_host *);
 static int sdhci_execute_tuning(struct mmc_host *mmc, u32 opcode);
 static void sdhci_tuning_timer(unsigned long data);
+static void sdhci_enable_preset_value(struct sdhci_host *host, bool enable);
 static bool sdhci_check_state(struct sdhci_host *);
 
 #ifdef CONFIG_PM_RUNTIME
@@ -1150,6 +1151,37 @@ static void sdhci_finish_command(struct sdhci_host *host)
 	}
 }
 
+static u16 sdhci_get_preset_value(struct sdhci_host *host)
+{
+	u16 ctrl, preset = 0;
+
+	ctrl = sdhci_readw(host, SDHCI_HOST_CONTROL2);
+
+	switch (ctrl & SDHCI_CTRL_UHS_MASK) {
+	case SDHCI_CTRL_UHS_SDR12:
+		preset = sdhci_readw(host, SDHCI_PRESET_FOR_SDR12);
+		break;
+	case SDHCI_CTRL_UHS_SDR25:
+		preset = sdhci_readw(host, SDHCI_PRESET_FOR_SDR25);
+		break;
+	case SDHCI_CTRL_UHS_SDR50:
+		preset = sdhci_readw(host, SDHCI_PRESET_FOR_SDR50);
+		break;
+	case SDHCI_CTRL_UHS_SDR104:
+		preset = sdhci_readw(host, SDHCI_PRESET_FOR_SDR104);
+		break;
+	case SDHCI_CTRL_UHS_DDR50:
+		preset = sdhci_readw(host, SDHCI_PRESET_FOR_DDR50);
+		break;
+	default:
+		pr_warn("%s: Invalid UHS-I mode selected\n",
+			mmc_hostname(host->mmc));
+		preset = sdhci_readw(host, SDHCI_PRESET_FOR_SDR12);
+		break;
+	}
+	return preset;
+}
+
 static void sdhci_set_clock(struct sdhci_host *host, unsigned int clock)
 {
 	int div = 0; /* Initialized for compiler warning */
@@ -1179,35 +1211,43 @@ static void sdhci_set_clock(struct sdhci_host *host, unsigned int clock)
 		goto out;
 
 	if (host->version >= SDHCI_SPEC_300) {
+		if (sdhci_readw(host, SDHCI_HOST_CONTROL2) &
+			SDHCI_CTRL_PRESET_VAL_ENABLE) {
+			u16 pre_val;
+
+			clk = sdhci_readw(host, SDHCI_CLOCK_CONTROL);
+			pre_val = sdhci_get_preset_value(host);
+			div = (pre_val & SDHCI_PRESET_SDCLK_FREQ_MASK)
+				>> SDHCI_PRESET_SDCLK_FREQ_SHIFT;
+			if (host->clk_mul &&
+				(pre_val & SDHCI_PRESET_CLKGEN_SEL_MASK)) {
+				clk = SDHCI_PROG_CLOCK_MODE;
+				real_div = div + 1;
+				clk_mul = host->clk_mul;
+			} else {
+				real_div = max_t(int, 1, div << 1);
+			}
+			goto clock_set;
+		}
+
 		/*
 		 * Check if the Host Controller supports Programmable Clock
 		 * Mode.
 		 */
 		if (host->clk_mul) {
-			u16 ctrl;
-
-			/*
-			 * We need to figure out whether the Host Driver needs
-			 * to select Programmable Clock Mode, or the value can
-			 * be set automatically by the Host Controller based on
-			 * the Preset Value registers.
-			 */
-			ctrl = sdhci_readw(host, SDHCI_HOST_CONTROL2);
-			if (!(ctrl & SDHCI_CTRL_PRESET_VAL_ENABLE)) {
-				for (div = 1; div <= 1024; div++) {
-					if (((host->max_clk * host->clk_mul) /
-					      div) <= clock)
-						break;
-				}
-				/*
-				 * Set Programmable Clock Mode in the Clock
-				 * Control register.
-				 */
-				clk = SDHCI_PROG_CLOCK_MODE;
-				real_div = div;
-				clk_mul = host->clk_mul;
-				div--;
+			for (div = 1; div <= 1024; div++) {
+				if ((host->max_clk * host->clk_mul / div)
+					<= clock)
+					break;
 			}
+			/*
+			 * Set Programmable Clock Mode in the Clock
+			 * Control register.
+			 */
+			clk = SDHCI_PROG_CLOCK_MODE;
+			real_div = div;
+			clk_mul = host->clk_mul;
+			div--;
 		} else {
 			/* Version 3.00 divisors must be a multiple of 2. */
 			if (host->max_clk <= clock)
@@ -1232,6 +1272,7 @@ static void sdhci_set_clock(struct sdhci_host *host, unsigned int clock)
 		div >>= 1;
 	}
 
+clock_set:
 	if (real_div)
 		host->mmc->actual_clock = (host->max_clk * clk_mul) / real_div;
 
@@ -1543,6 +1584,10 @@ static void sdhci_do_set_ios(struct sdhci_host *host, struct mmc_ios *ios)
 		return;
 	}
 
+	if (host->version >= SDHCI_SPEC_300 &&
+		(ios->power_mode == MMC_POWER_UP))
+		sdhci_enable_preset_value(host, false);
+
 	if (ios->clock)
 		sdhci_set_clock(host, ios->clock);
 
@@ -1671,6 +1716,20 @@ static void sdhci_do_set_ios(struct sdhci_host *host, struct mmc_ios *ios)
 			else if (ios->timing == MMC_TIMING_UHS_DDR50)
 				ctrl_2 |= SDHCI_CTRL_UHS_DDR50;
 			sdhci_writew(host, ctrl_2, SDHCI_HOST_CONTROL2);
+		}
+
+		if (!(host->quirks2 & SDHCI_QUIRK2_PRESET_VALUE_BROKEN) &&
+				((ios->timing == MMC_TIMING_UHS_SDR12) ||
+				 (ios->timing == MMC_TIMING_UHS_SDR25) ||
+				 (ios->timing == MMC_TIMING_UHS_SDR50) ||
+				 (ios->timing == MMC_TIMING_UHS_SDR104) ||
+				 (ios->timing == MMC_TIMING_UHS_DDR50))) {
+			u16 preset;
+
+			sdhci_enable_preset_value(host, true);
+			preset = sdhci_get_preset_value(host);
+			ios->drv_type = (preset & SDHCI_PRESET_DRV_MASK)
+				>> SDHCI_PRESET_DRV_SHIFT;
 		}
 
 		/* Re-enable SD Clock */
@@ -2135,10 +2194,10 @@ out:
 	return err;
 }
 
-static void sdhci_do_enable_preset_value(struct sdhci_host *host, bool enable)
+
+static void sdhci_enable_preset_value(struct sdhci_host *host, bool enable)
 {
 	u16 ctrl;
-	unsigned long flags;
 
 	/* Host Controller v3.00 defines preset value registers */
 	if (host->version < SDHCI_SPEC_300)
@@ -2146,8 +2205,6 @@ static void sdhci_do_enable_preset_value(struct sdhci_host *host, bool enable)
 
 	if (host->quirks2 & SDHCI_QUIRK2_BROKEN_PRESET_VALUE)
 		return;
-
-	spin_lock_irqsave(&host->lock, flags);
 
 	ctrl = sdhci_readw(host, SDHCI_HOST_CONTROL2);
 
@@ -2164,17 +2221,6 @@ static void sdhci_do_enable_preset_value(struct sdhci_host *host, bool enable)
 		sdhci_writew(host, ctrl, SDHCI_HOST_CONTROL2);
 		host->flags &= ~SDHCI_PV_ENABLED;
 	}
-
-	spin_unlock_irqrestore(&host->lock, flags);
-}
-
-static void sdhci_enable_preset_value(struct mmc_host *mmc, bool enable)
-{
-	struct sdhci_host *host = mmc_priv(mmc);
-
-	sdhci_runtime_pm_get(host);
-	sdhci_do_enable_preset_value(host, enable);
-	sdhci_runtime_pm_put(host);
 }
 
 static int sdhci_stop_request(struct mmc_host *mmc)
@@ -2234,7 +2280,6 @@ static const struct mmc_host_ops sdhci_ops = {
 	.enable_sdio_irq = sdhci_enable_sdio_irq,
 	.start_signal_voltage_switch	= sdhci_start_signal_voltage_switch,
 	.execute_tuning			= sdhci_execute_tuning,
-	.enable_preset_value		= sdhci_enable_preset_value,
 	.enable		= sdhci_enable,
 	.disable	= sdhci_disable,
 	.stop_request = sdhci_stop_request,
@@ -2912,8 +2957,12 @@ int sdhci_runtime_resume_host(struct sdhci_host *host)
 	sdhci_do_set_ios(host, &host->mmc->ios);
 
 	sdhci_do_start_signal_voltage_switch(host, &host->mmc->ios);
-	if (host_flags & SDHCI_PV_ENABLED)
-		sdhci_do_enable_preset_value(host, true);
+	if ((host_flags & SDHCI_PV_ENABLED) &&
+		!(host->quirks2 & SDHCI_QUIRK2_PRESET_VALUE_BROKEN)) {
+		spin_lock_irqsave(&host->lock, flags);
+		sdhci_enable_preset_value(host, true);
+		spin_unlock_irqrestore(&host->lock, flags);
+	}
 
 	/* Set the re-tuning expiration flag */
 	if ((host->version >= SDHCI_SPEC_300) && host->tuning_count &&
@@ -3198,12 +3247,19 @@ int sdhci_add_host(struct sdhci_host *host)
 	if (!(host->quirks & SDHCI_QUIRK_FORCE_1_BIT_DATA))
 		mmc->caps |= MMC_CAP_4_BIT_DATA;
 
+	if (host->quirks2 & SDHCI_QUIRK2_HOST_NO_CMD23)
+		mmc->caps &= ~MMC_CAP_CMD23;
+
 	if (caps[0] & SDHCI_CAN_DO_HISPD)
 		mmc->caps |= MMC_CAP_SD_HIGHSPEED | MMC_CAP_MMC_HIGHSPEED;
 
 	if ((host->quirks & SDHCI_QUIRK_BROKEN_CARD_DETECTION) &&
 	    mmc_card_is_removable(mmc))
 		mmc->caps |= MMC_CAP_NEEDS_POLL;
+
+	if (host->quirks2 & SDHCI_QUIRK2_NO_1_8_V)
+		caps[1] &= ~(SDHCI_SUPPORT_SDR104 | SDHCI_SUPPORT_SDR50 |
+		       SDHCI_SUPPORT_DDR50);
 
 	/* Any UHS-I mode in caps implies SDR12 and SDR25 support. */
 	if (caps[1] & (SDHCI_SUPPORT_SDR104 | SDHCI_SUPPORT_SDR50 |

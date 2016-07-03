@@ -234,6 +234,18 @@
 
 /* 60-FB reserved */
 
+#define SDHCI_PRESET_FOR_SDR12 0x66
+#define SDHCI_PRESET_FOR_SDR25 0x68
+#define SDHCI_PRESET_FOR_SDR50 0x6A
+#define SDHCI_PRESET_FOR_SDR104        0x6C
+#define SDHCI_PRESET_FOR_DDR50 0x6E
+#define SDHCI_PRESET_DRV_MASK  0xC000
+#define SDHCI_PRESET_DRV_SHIFT  14
+#define SDHCI_PRESET_CLKGEN_SEL_MASK   0x400
+#define SDHCI_PRESET_CLKGEN_SEL_SHIFT	10
+#define SDHCI_PRESET_SDCLK_FREQ_MASK   0x3FF
+#define SDHCI_PRESET_SDCLK_FREQ_SHIFT	0
+
 #define SDHCI_SLOT_INT_STATUS	0xFC
 
 #define SDHCI_HOST_VERSION	0xFE
@@ -285,6 +297,7 @@ struct sdhci_ops {
 	void	(*hw_reset)(struct sdhci_host *host);
 	void	(*platform_suspend)(struct sdhci_host *host);
 	void	(*platform_resume)(struct sdhci_host *host);
+	void	(*platform_init)(struct sdhci_host *host);
 	void	(*check_power_status)(struct sdhci_host *host, u32 req_type);
 #define REQ_BUS_OFF	(1 << 0)
 #define REQ_BUS_ON	(1 << 1)
