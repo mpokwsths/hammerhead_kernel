@@ -1828,9 +1828,6 @@ int mmc_set_signal_voltage(struct mmc_host *host, int signal_voltage)
 	 */
 	if (!host->ops->start_signal_voltage_switch)
 		return -EPERM;
-	if (!host->ops->card_busy)
-		pr_warning("%s: cannot verify signal voltage switch\n",
-				mmc_hostname(host));
 
 	cmd.opcode = SD_SWITCH_VOLTAGE;
 	cmd.arg = 0;
@@ -1850,15 +1847,6 @@ int mmc_set_signal_voltage(struct mmc_host *host, int signal_voltage)
 		goto exit;
 	}
 
-	/*
-	 * The card should drive cmd and dat[0:3] low immediately
-	 * after the response of cmd11, but wait 1 ms to be sure
-	 */
-	mmc_delay(1);
-	if (host->ops->card_busy && !host->ops->card_busy(host)) {
-		err = -EAGAIN;
-		goto power_cycle;
-	}
 	/*
 	 * During a signal voltage level switch, the clock must be gated
 	 * for 5 ms according to the SD spec
@@ -1883,13 +1871,6 @@ int mmc_set_signal_voltage(struct mmc_host *host, int signal_voltage)
 
 	/* Wait for at least 1 ms according to spec */
 	mmc_delay(1);
-
-	/*
-	 * Failure to switch is indicated by the card holding
-	 * dat[0:3] low
-	 */
-	if (host->ops->card_busy && host->ops->card_busy(host))
-		err = -EAGAIN;
 
 power_cycle:
 	if (err) {
@@ -3118,7 +3099,7 @@ static int mmc_rescan_try_freq(struct mmc_host *host, unsigned freq)
 	mmc_hw_reset_for_init(host);
 
 	/* Initialization should be done at 3.3 V I/O voltage. */
-	mmc_set_signal_voltage(host, MMC_SIGNAL_VOLTAGE_330, 0);
+	__mmc_set_signal_voltage(host, MMC_SIGNAL_VOLTAGE_330);
 
 	/*
 	 * sdio_reset sends CMD52 to reset card.  Since we do not know
