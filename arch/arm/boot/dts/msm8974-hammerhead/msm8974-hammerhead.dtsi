@@ -372,6 +372,9 @@
 	qcom,pad-drv-on = <0x1 0x1 0x1>; /* 4mA, 4mA, 4mA */
 	qcom,pad-drv-off = <0x0 0x0 0x0>; /* 2mA, 2mA, 2mA */
 
+	qcom,cpu-affinity = "affine_irq";
+	qcom,cpu-dma-latency-us = <2 201 501>;
+
 	qcom,nonremovable;
 	qcom,wakeup-on-idle;
 	status = "ok";
