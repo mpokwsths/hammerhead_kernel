@@ -35,6 +35,7 @@
 #include <linux/interrupt.h>
 #include <linux/genalloc.h>
 #include <linux/vmalloc.h>
+#include <linux/mm.h>
 
 static inline size_t chunk_size(const struct gen_pool_chunk *chunk)
 {
@@ -246,20 +247,14 @@ void gen_pool_destroy(struct gen_pool *pool)
 	int bit, end_bit;
 
 	list_for_each_safe(_chunk, _next_chunk, &pool->chunks) {
-		int nbytes;
 		chunk = list_entry(_chunk, struct gen_pool_chunk, next_chunk);
 		list_del(&chunk->next_chunk);
 
 		end_bit = chunk_size(chunk) >> order;
-		nbytes = sizeof(struct gen_pool_chunk) +
-				BITS_TO_LONGS(end_bit) * sizeof(long);
 		bit = find_next_bit(chunk->bits, end_bit, 0);
 		BUG_ON(bit < end_bit);
 
-		if (nbytes <= PAGE_SIZE)
-			kfree(chunk);
-		else
-			vfree(chunk);
+		kvfree(chunk);
 	}
 	kfree(pool);
 	return;
